@@ -1,6 +1,10 @@
 #include "proj.h"
 #include "Geometry.hpp"
 
+inline std::chrono::milliseconds getTimestamp() {
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+}
+
 void framebuff_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
@@ -40,8 +44,10 @@ int main(int argc, char** argv) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glViewport(0, 0, WIDTH, HEIGHT);
 
-	Cube cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
-	cube.rotate(glm::radians(2.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	//Geometry* obj = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
+	//Geometry* obj = new Sphere(2.0f, 40, 20);
+	Geometry* obj = new Cylinder(1.0f, 6.0f, 4, 24, 40);
+	obj->rotate(glm::radians(2.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	glm::mat4 view, projection;
 	projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 40.0f);
@@ -50,23 +56,41 @@ int main(int argc, char** argv) {
 		glm::vec3(0.0, 0.0, 0.0),
 		glm::vec3(0.0, 1.0, 0.0)
 	);
-	cube.rotate(glm::radians(30.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+	obj->rotate(glm::radians(30.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
 
 	// projection和view矩阵或许应该封装在camera类中，这里先这样写
-	glUseProgram(cube.getProgram());
-	updateUniformMatrix4fv(cube.getProgram(), "view", view);
-	updateUniformMatrix4fv(cube.getProgram(), "projection", projection);
+	glUseProgram(obj->getProgram());
+	updateUniformMatrix4fv(obj->getProgram(), "view", view);
+	updateUniformMatrix4fv(obj->getProgram(), "projection", projection);
 	glUseProgram(0);
 
+	long long startTimestamp = getTimestamp().count();
+	long long t0, t1;
+
+	unsigned int frameRate = 120;
+	unsigned int frameTime = (unsigned int)(1000.0 / frameRate);
+
+	unsigned int cnt = 0;
 
 	while (!glfwWindowShouldClose(window)) {
+		t0 = getTimestamp().count();
+
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// 绘制图形
-		cube.rotate(glm::radians(0.2f), glm::vec3(0.0f, 1.0f, 0.0f));
-		cube.draw();
+		obj->rotate(glm::radians(0.2f), glm::vec3(0.0f, 1.0f, 0.0f));
+		obj->draw();
+
+		t1 = getTimestamp().count();
+
+		cnt++;
+		if (cnt % frameRate == 0)
+			std::cout << "time stamp: " << getTimestamp().count() - startTimestamp << std::endl;
+
+		if ((t1 - t0) < frameTime) {
+			Sleep(frameTime - (t1 - t0));
+		}
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
