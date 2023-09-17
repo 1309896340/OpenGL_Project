@@ -56,6 +56,10 @@ public:
 	Geometry(glm::vec3 position) : _scale(1.0), rotation(glm::mat4(1.0f)), program(0), VAO(0) {
 		this->position = glm::translate(glm::mat4(1.0f), position);
 	}
+	Geometry(glm::vec3 position,glm::vec4 rotation) : _scale(1.0), rotation(glm::mat4(1.0f)), program(0), VAO(0) {
+		this->position = glm::translate(glm::mat4(1.0f), position);
+		this->rotate(rotation.w, glm::vec3(rotation.x,rotation.y,rotation.z));	//初始的旋转动作(不是初始的角度)
+	}
 	GLuint getProgram() {
 		return program;
 	}
@@ -64,6 +68,9 @@ public:
 		glUseProgram(program);
 		updateUniformMatrix4fv(program, "model", generateModelMatrix());
 		glUseProgram(0);
+	}
+	void rotateTo(glm::vec3 direction) {
+		//尚未实现的功能：旋转到指定方向(绝对姿态)，rotate是基于当前姿态的相对旋转
 	}
 	void translate(glm::vec3 dxyz) {
 		position = glm::translate(position, dxyz);

@@ -140,6 +140,7 @@
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.hpp" />
     <ClInclude Include="Geometry.hpp" />
     <ClInclude Include="proj.h" />
     <ClInclude Include="utils.h" />
