@@ -13,6 +13,12 @@ void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods)
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {}
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (key == GLFW_KEY_ESCAPE && mods == GLFW_MOD_SHIFT) {
+		glfwSetWindowShouldClose(window, GLFW_TRUE);
+	}
+}
+
 int main(int argc, char** argv) {
 	if (glfwInit() != GLFW_TRUE) {
 		std::cout << "glfw³õÊ¼»¯Ê§°Ü" << std::endl;
@@ -39,6 +45,7 @@ int main(int argc, char** argv) {
 	glfwSetFramebufferSizeCallback(window, framebuff_size_callback);
 	glfwSetMouseButtonCallback(window, mouse_botton_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetKeyCallback(window, key_callback);
 
 	glEnable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -71,7 +78,6 @@ int main(int argc, char** argv) {
 	unsigned int frameRate = 120;
 	unsigned int frameTime = (unsigned int)(1000.0 / frameRate);
 
-	unsigned int cnt = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		t0 = getTimestamp().count();
@@ -79,15 +85,10 @@ int main(int argc, char** argv) {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		obj->rotate(glm::radians(0.2f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//obj->rotate(glm::radians(0.2f), glm::vec3(0.0f, 1.0f, 0.0f));
 		obj->draw();
 
 		t1 = getTimestamp().count();
-
-		cnt++;
-		if (cnt % frameRate == 0)
-			std::cout << "time stamp: " << getTimestamp().count() - startTimestamp << std::endl;
-
 		if ((t1 - t0) < frameTime) {
 			Sleep(frameTime - (t1 - t0));
 		}
