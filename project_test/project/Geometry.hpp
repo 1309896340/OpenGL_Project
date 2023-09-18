@@ -475,15 +475,14 @@ private:
 public:
 	Axis(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrorColor, glm::vec4 bodyColor) : _begin(_begin), _end(_end), width(width), arrowColor(arrowColor), bodyColor(bodyColor) {
 		length = glm::length(_end - _begin);
-		std::cout << "arrowLength: " << arrowLengthRatio * length << " bodyLength: " << (1 - arrowLengthRatio) * length << std::endl;
 		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio * length, 4, 4, 36);
 		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio) * length, 4, 4, 36);
 
 		arrow->setColor(arrowColor);
 		body->setColor(bodyColor);
 		// 进行组合
-		arrow->rotate(-90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-		body->rotate(-90.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+		arrow->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		body->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) * length / 2.0f, 0));
 		body->translate(glm::vec3(0, -arrowLengthRatio / 2.0f * length, 0));

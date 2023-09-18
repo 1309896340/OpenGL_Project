@@ -9,7 +9,7 @@ typedef struct _StatusInfo {
 }StatusInfo;
 
 StatusInfo status;
-Camera camera(glm::vec3(0.0f, 0.0f, 8.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+Camera camera(glm::vec3(0.0f, 2.0f, 8.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -57,10 +57,29 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+
+	std::cout << "key: " << key << "  scancode: " << scancode << "  action: " << action << "  modes: " << mods << std::endl;
+
 	if (key == GLFW_KEY_ESCAPE && mods == GLFW_MOD_SHIFT) {		//¹Ø±Õ´°¿Ú
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	}
-
+	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+		switch (key) {
+		case GLFW_KEY_W:
+			camera.move(0.0f, 0.1f);
+			break;
+		case GLFW_KEY_S:
+			camera.move(0.0f, -0.1f);
+			break;
+		case GLFW_KEY_A:
+			camera.move(-0.1f, 0.0f);
+			break;
+		case GLFW_KEY_D:
+			camera.move(0.1f, 0.0f);
+			break;
+		}
+		camera.updateViewMatrix();
+	}
 }
 
 int main(int argc, char** argv) {

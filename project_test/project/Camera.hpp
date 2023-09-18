@@ -57,11 +57,15 @@ public:
 		front.y = sinf(pitch);
 		front.z = -sinf(yaw) * cosf(pitch);
 
-		//std::cout << "(" << front.x << "," << front.y << "," << front.z << ")  "
-		//	<< "yaw:" << yaw << " pitch:" << pitch << std::endl;
 		front = glm::normalize(front);
 		updateLocalCoordiante();
 	}
+
+	void move(float dx, float dz) {	// dx正方向为右，dz正方向为前
+		position += dx * right + dz * front;
+		updateViewMatrix();
+	}
+
 	void updateViewMatrix() {
 		glm::mat4 view = glm::lookAt(position, position + front, up);
 		for (auto ptr = program.begin(); ptr != program.end(); ptr++) {
