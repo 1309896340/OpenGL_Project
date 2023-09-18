@@ -16,9 +16,15 @@
 #include <windows.h>
 
 
-#define WIDTH 800
-#define HEIGHT 600
+#define WIDTH 1600
+#define HEIGHT 1200
 
 #define PI 3.14159265358979323846
 
+extern float deltaTime;
+extern float lastFrame;
 
+
+extern glm::vec3 _up;
+extern glm::vec3 _right;
+extern glm::vec3 _front;
