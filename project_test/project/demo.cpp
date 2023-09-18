@@ -6,6 +6,7 @@ typedef struct _StatusInfo {
 	bool leftMouseButtonPressed = false;
 	bool rightMouseButtonPressed = false;
 	double mousePos[2];
+	unsigned int lastKey = 0;
 }StatusInfo;
 
 StatusInfo status;
@@ -80,6 +81,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		}
 		camera.updateViewMatrix();
 	}
+	else if (action == GLFW_RELEASE) {
+		status.lastKey = GLFW_KEY_UNKNOWN;
+	}
 }
 
 int main(int argc, char** argv) {
@@ -127,7 +131,7 @@ int main(int argc, char** argv) {
 	obj->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	//obj->rotate(glm::radians(20.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
-	Axis* axis = new Axis(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 2.0f, 0.0f), 0.2f,
+	Axis* axis = new Axis(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.1f,
 		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
 	camera.addAixs(axis);

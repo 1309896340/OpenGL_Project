@@ -81,18 +81,21 @@ public:
 	void rotate(float angle, glm::vec3 axis) {
 		glm::mat4 rtMat = glm::rotate(glm::mat4(1.0), angle, axis);
 		rotation = rtMat * rotation;
-		glUseProgram(program);
 		updateUniformMatrix4fv(program, "model", generateModelMatrix());
-		glUseProgram(0);
 	}
 	void rotateTo(glm::vec3 direction) {
 		//尚未实现的功能：旋转到指定方向(绝对姿态)，rotate是基于当前姿态的相对旋转
 	}
 	void translate(glm::vec3 dxyz) {
 		position = glm::translate(glm::mat4(1.0f), dxyz) * position;
-		glUseProgram(program);
 		updateUniformMatrix4fv(program, "model", generateModelMatrix());
-		glUseProgram(0);
+	}
+	void moveTo(glm::vec3 dxyz) {
+		position = glm::translate(glm::mat4(1.0f), dxyz);
+		updateUniformMatrix4fv(program, "model", generateModelMatrix());
+	}
+	void applyTransform(glm::mat4 transformMat) {
+
 	}
 	void scale(glm::vec3 xyz) {
 		position = glm::scale(_scale, xyz);
@@ -409,56 +412,6 @@ public:
 };
 
 
-//class Axis{ // 坐标轴
-//private:
-//	glm::vec3 _begin;
-//	glm::vec3 _end;
-//	float width;
-//	glm::vec4 arrowColor;
-//	glm::vec4 bodyColor;
-//
-//	GLuint VAO;
-//	GLuint program;
-//	std::vector<vec3> vertex;
-//	std::vector<unsigned int> index;
-//
-//	void prepareVAO() {
-//		glGenVertexArrays(1, &VAO);
-//		glBindVertexArray(VAO);
-//
-//		GLuint vbo_pos;
-//		glGenBuffers(1, &vbo_pos);
-//		glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-//		glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), vertex.data(), GL_STATIC_DRAW);
-//
-//		GLuint vbo_idx;
-//		glGenBuffers(1, &vbo_idx);
-//		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_idx);
-//		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(GLuint), index.data(), GL_STATIC_DRAW);
-//
-//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
-//		glEnableVertexAttribArray(0);
-//
-//		glBindBuffer(GL_ARRAY_BUFFER, 0);
-//		glBindVertexArray(0);
-//	}
-//
-//	void prepareShaderProgram() {
-//		std::string vertexShaderSource = readSource("vertexShaderSource.txt");
-//		std::string fragmentShaderSource = readSource("arrowFragmentShaderSource.txt");
-//		program = loadProgram(vertexShaderSource, fragmentShaderSource);
-//	}
-//	void generateVertexAndIndex() {
-//		
-//	}
-//public:
-//	Axis(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 ArrorColor, glm::vec4 bodyColor) :_begin(_begin), _end(_end), width(width),arrowColor(arrowColor),bodyColor(bodyColor) {
-//		generateVertexAndIndex();
-//		prepareVAO();
-//		prepareShaderProgram();
-//	}
-//};
-
 class Axis {
 private:
 	glm::vec3 _begin;
@@ -469,7 +422,7 @@ private:
 	glm::vec4 bodyColor;
 
 	const float arrowLengthRatio = 0.2f;
-	const float arrowRadiusRatio = 2.0f;
+	const float arrowRadiusRatio = 2.5f;
 
 	Geometry* arrow, * body;
 public:
@@ -483,9 +436,22 @@ public:
 		// 进行组合
 		arrow->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		body->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
 		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) * length / 2.0f, 0));
 		body->translate(glm::vec3(0, -arrowLengthRatio / 2.0f * length, 0));
+		// 变换到指定位置
+		glm::vec3 dir = glm::normalize(_end - _begin);
+		float dst_length = glm::distance(_end, _begin);
+
+		glm::vec3 rotate_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), dir);
+		float rotate_angle = glm::acos(glm::dot(glm::vec3(0.0f, 1.0f, 0.0f), dir));
+
+		//arrow->rotate(rotate_angle, rotate_axis);
+		//body->rotate(rotate_angle, rotate_axis);
+		arrow->moveTo((_end + _begin) / 2.0f);
+		body->moveTo((_end + _begin) / 2.0f);
+
+		glm::vec3 tp = (_end + _begin) / 2.0f;
+		std::cout << "middle pos: " << "(" << tp.x << "," << tp.y << "," << tp.z << ")" << std::endl;
 	}
 	std::vector<GLuint> getProgramList() {
 		std::vector<GLuint> programs;
