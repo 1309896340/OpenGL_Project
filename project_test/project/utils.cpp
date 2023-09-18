@@ -12,6 +12,11 @@ void updateUniformMatrix4fv(GLuint program, const std::string& varname, const gl
 	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(m));
 }
 
+void updateUniformVector3fv(GLuint program, const std::string& varname, const glm::vec3& v) {
+	GLint location = glGetUniformLocation(program, varname.c_str());
+	glUniform3fv(location, 1, glm::value_ptr(v));
+}
+
 void loadShader(GLuint shader, std::string source) {
 	const char* csource = source.c_str();
 	glShaderSource(shader, 1, &csource, NULL);

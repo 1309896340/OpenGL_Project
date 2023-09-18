@@ -146,6 +146,7 @@
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="customFragmentShaderSource.txt" />
     <Text Include="fragmentShaderSource.txt" />
     <Text Include="vertexShaderSource.txt" />
   </ItemGroup>

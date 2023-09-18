@@ -2,7 +2,7 @@
 #include "Geometry.hpp"
 #include "Camera.hpp"
 
-typedef struct _StatusInfo{
+typedef struct _StatusInfo {
 	bool leftMouseButtonPressed = false;
 	bool rightMouseButtonPressed = false;
 	double mousePos[2];
@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 	if (window != NULL) {
 		glfwMakeContextCurrent(window);
 		//将窗口移动到屏幕中央
-		GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 		glfwSetWindowPos(window, (mode->width - WIDTH) / 2, (mode->height - HEIGHT) / 2);
 	}
@@ -96,14 +96,22 @@ int main(int argc, char** argv) {
 	glfwSetKeyCallback(window, key_callback);
 
 	glEnable(GL_DEPTH_TEST);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glPolygonMode(GL_FRONT, GL_LINE);
+	glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
 
 	//Geometry* obj = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
 	//Geometry* obj = new Sphere(2.0f, 40, 20);
-	Geometry* obj = new Cylinder(1.0f, 6.0f, 4, 24, 40);
-	obj->rotate(glm::radians(30.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+	//Geometry* obj = new Cylinder(1.0f, 6.0f, 4, 24, 40);
+	Geometry* obj = new Cone(2.0f, 3.0f, 10, 30, 60);
+	obj->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//obj->rotate(glm::radians(20.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
+	Axis* axis = new Axis(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 2.0f, 0.0f), 0.2f,
+		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+
+	camera.addAixs(axis);
 	camera.addProgram(obj->getProgram());
 
 	float deltaTime = 0.0f;
@@ -120,8 +128,9 @@ int main(int argc, char** argv) {
 
 		//std::cout<<deltaTime<<std::endl;
 
-		obj->rotate(glm::radians(4*deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+		obj->rotate(glm::radians(12 * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		obj->draw();
+		axis->draw();
 
 
 		glfwSwapBuffers(window);

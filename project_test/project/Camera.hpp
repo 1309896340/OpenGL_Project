@@ -1,5 +1,6 @@
 #include "proj.h"
 #include "utils.h"
+#include "Geometry.hpp"
 
 #define X_MOVE_SENSITIVITY 0.001f
 #define Y_MOVE_SENSITIVITY 0.001f
@@ -56,8 +57,8 @@ public:
 		front.y = sinf(pitch);
 		front.z = -sinf(yaw) * cosf(pitch);
 
-		std::cout << "(" << front.x << "," << front.y << "," << front.z << ")  "
-			<< "yaw:" << yaw << " pitch:" << pitch << std::endl;
+		//std::cout << "(" << front.x << "," << front.y << "," << front.z << ")  "
+		//	<< "yaw:" << yaw << " pitch:" << pitch << std::endl;
 		front = glm::normalize(front);
 		updateLocalCoordiante();
 	}
@@ -77,6 +78,9 @@ public:
 			glUseProgram(0);
 		}
 	}
+	void addAixs(Axis *axis) {
+		addProgramList(axis->getProgramList());
+	}
 	void addProgram(GLuint _program) {
 		// 检查program是否合法
 		if (_program == 0) {
@@ -93,6 +97,24 @@ public:
 
 		updateProjectionMatrix();
 		updateViewMatrix();
+	}
+	void addProgramList(std::vector<GLuint> programs) {
+		for (auto ptr = programs.begin(); ptr != programs.end(); ptr++) {
+			if ((*ptr) == 0) {
+				std::cout << "错误，用于初始化Camera的program为空！" << std::endl;
+				exit(1);
+			}
+			GLint success;
+			glGetProgramiv(*ptr, GL_LINK_STATUS, &success);
+			if (success != GL_TRUE) {
+				std::cout << "错误，用于初始化Camera的program不合法！" << std::endl;
+				exit(1);
+			}
+			program.push_back(*ptr);
+		}
+		updateProjectionMatrix();
+		updateViewMatrix();
+	
 	}
 	void clearProgram() {
 		program.clear();
