@@ -2,8 +2,11 @@
 #include "utils.h"
 #include "Geometry.hpp"
 
-#define X_MOVE_SENSITIVITY 0.001f
-#define Y_MOVE_SENSITIVITY 0.001f
+#define X_ROTATE_SENSITIVITY 0.001f
+#define Y_ROTATE_SENSITIVITY 0.001f
+
+#define X_MOVE_SENSITIVITY 1.0f
+#define Y_MOVE_SENSITIVITY 1.0f
 
 class Camera {
 private:
@@ -14,7 +17,7 @@ private:
 	glm::vec3 right;
 	// 描述Camera的姿态(弧度制)
 	float yaw = 0.0f;	// 规定0为x正前方，范围为[-pi,pi]
-	float pitch = 0.0f;	//	规定0为x正前方，范围为[-pi/2,pi/2]
+	float pitch = 0.0f;	// 规定0为x正前方，范围为[-pi/2,pi/2]
 	float roll = 0.0f;	// 保留，暂时不用
 	// 上下文
 	std::vector<GLuint> program;
@@ -25,7 +28,7 @@ public:
 		updateAttitude();	//计算初始姿态
 		updateLocalCoordiante();
 	}
-	void updateAttitude() {
+	void updateAttitude() {			// 更新相机姿态(俯仰角pitch、航向角yaw)
 		// 计算俯仰角
 		float tmp = acosf(glm::dot(front, _up));
 		if (tmp > 0)
@@ -39,16 +42,14 @@ public:
 
 		yaw = atan2f(z, x);
 	}
-	void updateLocalCoordiante() {
+	void updateLocalCoordiante() {	// 更新局部坐标系(根据front向量计算right向量和up向量)
 		right = glm::normalize(glm::cross(front, _up));
 		up = glm::normalize(glm::cross(right, front));
 		// 好像暂时用不到局部坐标系
 	}
-
-	void rotate(float dx, float dy) {	// dx,dy为鼠标移动的距离
-		yaw -= dx * X_MOVE_SENSITIVITY;
-		pitch -= dy * Y_MOVE_SENSITIVITY;
-		//std::cout<< dx / 40000<<"   "<<dy/40000<<std::endl;
+	void rotate(float dx, float dy) {	// 控制相机旋转(更新front向量)
+		yaw -= dx * X_ROTATE_SENSITIVITY;
+		pitch -= dy * Y_ROTATE_SENSITIVITY;
 		if (pitch > (PI / 2 - 1e-5))
 			pitch = PI / 2 - 1e-5;
 		else if (pitch < (-PI / 2 + 1e-5))
@@ -60,13 +61,18 @@ public:
 		front = glm::normalize(front);
 		updateLocalCoordiante();
 	}
-
-	void move(float dx, float dz) {	// dx正方向为右，dz正方向为前
-		position += dx * right + dz * front;
-		updateViewMatrix();
+	void move(float dx, float dy) {	// // 控制相机旋转(更新相机位置) 
+		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * front;
+		updateAllViewMatrix();
 	}
+	void updateViewMatrix(GLuint _program) {	// 更新View矩阵
+		glm::mat4 view = glm::lookAt(position, position + front, up);
+		glUseProgram(_program);
+		updateUniformMatrix4fv(_program, "view", view);
+		glUseProgram(0);
 
-	void updateViewMatrix() {
+	}
+	void updateAllViewMatrix() {	// 更新所有View矩阵
 		glm::mat4 view = glm::lookAt(position, position + front, up);
 		for (auto ptr = program.begin(); ptr != program.end(); ptr++) {
 			glUseProgram(*ptr);
@@ -74,7 +80,13 @@ public:
 			glUseProgram(0);
 		}
 	}
-	void updateProjectionMatrix() {
+	void updateProjectionMatrix(GLuint _program) {	// 更新Projection矩阵
+		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 40.0f);
+		glUseProgram(_program);
+		updateUniformMatrix4fv(_program, "projection", projection);
+		glUseProgram(0);
+	}
+	void updateAllProjectionMatrix() {	// 更新所有Projection矩阵
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 40.0f);
 		for (auto ptr = program.begin(); ptr != program.end(); ptr++) {
 			glUseProgram(*ptr);
@@ -82,10 +94,7 @@ public:
 			glUseProgram(0);
 		}
 	}
-	void addAixs(Axis *axis) {
-		addProgramList(axis->getProgramList());
-	}
-	void addProgram(GLuint _program) {
+	void addProgram(GLuint _program) {	// 增加program
 		// 检查program是否合法
 		if (_program == 0) {
 			std::cout << "错误，用于初始化Camera的program为空！" << std::endl;
@@ -97,12 +106,11 @@ public:
 			std::cout << "错误，用于初始化Camera的program不合法！" << std::endl;
 			exit(1);
 		}
+		updateProjectionMatrix(_program);
+		updateViewMatrix(_program);
 		program.push_back(_program);
-
-		updateProjectionMatrix();
-		updateViewMatrix();
 	}
-	void addProgramList(std::vector<GLuint> programs) {
+	void addProgramList(std::vector<GLuint> programs) {	// 增加多个program
 		for (auto ptr = programs.begin(); ptr != programs.end(); ptr++) {
 			if ((*ptr) == 0) {
 				std::cout << "错误，用于初始化Camera的program为空！" << std::endl;
@@ -114,13 +122,13 @@ public:
 				std::cout << "错误，用于初始化Camera的program不合法！" << std::endl;
 				exit(1);
 			}
+			updateProjectionMatrix(*ptr);
+			updateViewMatrix(*ptr);
 			program.push_back(*ptr);
 		}
-		updateProjectionMatrix();
-		updateViewMatrix();
-	
+
 	}
-	void clearProgram() {
+	void clearProgram() {	// 清空program
 		program.clear();
 	}
 };

@@ -15,35 +15,38 @@ typedef struct {
 
 class Geometry {
 private:
-	glm::mat4 position;
-	glm::mat4 rotation;
-	glm::mat4 _scale;
+	glm::vec3 position;
+	glm::quat rotation;
+	glm::vec3 zoom;
 
 	bool autoColor;
-	glm::vec4 color;
 
 	glm::mat4 generateModelMatrix() {
-		return position * rotation * _scale;
+		glm::mat4 transformation(1.0f);
+		transformation = glm::translate(transformation, position);
+		transformation = transformation * glm::mat4_cast(rotation);
+		transformation = glm::scale(transformation, zoom);
+		return transformation;
 	}
 protected:
-	GLuint VAO;
+	GLuint VAO, vbo_pos, vbo_idx;
 	GLuint program;
 	std::vector<vec3> vertex;
 	std::vector<unsigned int> index;
 	void prepareShaderProgram(std::string vertexShaderPath, std::string fragmentShaderPath) {
 		program = loadProgram(readSource(vertexShaderPath), readSource(fragmentShaderPath));
+		updateModelMatrix();
+		updateUniformMatrix4fv(program, "modelBuffer", glm::mat4(1.0f));
 	};
 	virtual void generateVertexAndIndex() = 0;  //生成顶点和索引
 	virtual void prepareVAO() {
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
 
-		GLuint vbo_pos;
 		glGenBuffers(1, &vbo_pos);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-		glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), vertex.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), vertex.data(), GL_DYNAMIC_DRAW);
 
-		GLuint vbo_idx;
 		glGenBuffers(1, &vbo_idx);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_idx);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(GLuint), index.data(), GL_STATIC_DRAW);
@@ -57,11 +60,12 @@ protected:
 
 public:
 
-	Geometry(glm::vec3 position) : _scale(1.0), rotation(glm::mat4(1.0f)), program(0), VAO(0), position(glm::translate(glm::mat4(1.0f), position)), autoColor(true), color(glm::vec4(0.0f)) {
+	Geometry(glm::vec3 position) : zoom(1.0f), rotation(glm::identity<glm::quat>()), program(0), VAO(0), position(glm::vec3(0.0f)), autoColor(true) {
 		// 没有颜色初始化
 		prepareShaderProgram("vertexShaderSource.txt", "fragmentShaderSource.txt");
+
 	}
-	Geometry(glm::vec3 position, glm::vec4 color) : _scale(1.0), rotation(glm::mat4(1.0f)), program(0), VAO(0), position(glm::translate(glm::mat4(1.0f), position)), autoColor(false), color(glm::vec4(0.0)) {
+	Geometry(glm::vec3 position, glm::vec4 color) : zoom(1.0f), rotation(glm::identity<glm::quat>()), program(0), VAO(0), position(glm::vec3(0.0f)), autoColor(false) {
 		// 有颜色初始化
 		prepareShaderProgram("vertexShaderSource.txt", "customFragmentShaderSource.txt");
 	}
@@ -74,34 +78,39 @@ public:
 			glDeleteProgram(program);
 			prepareShaderProgram("vertexShaderSource.txt", "customFragmentShaderSource.txt");
 		}
-		glUseProgram(program);
-		updateUniformVector3fv(program, "CustomColor", color);
-		glUseProgram(0);
+		updateUniformVector4fv(program, "CustomColor", color);
 	}
 	void rotate(float angle, glm::vec3 axis) {
-		glm::mat4 rtMat = glm::rotate(glm::mat4(1.0), angle, axis);
-		rotation = rtMat * rotation;
-		updateUniformMatrix4fv(program, "model", generateModelMatrix());
+		rotation = glm::angleAxis(angle, axis) * rotation;
+		updateModelMatrix();
 	}
 	void rotateTo(glm::vec3 direction) {
 		//尚未实现的功能：旋转到指定方向(绝对姿态)，rotate是基于当前姿态的相对旋转
 	}
 	void translate(glm::vec3 dxyz) {
-		position = glm::translate(glm::mat4(1.0f), dxyz) * position;
-		updateUniformMatrix4fv(program, "model", generateModelMatrix());
+		position = position + dxyz;
+		updateModelMatrix();
 	}
 	void moveTo(glm::vec3 dxyz) {
-		position = glm::translate(glm::mat4(1.0f), dxyz);
-		updateUniformMatrix4fv(program, "model", generateModelMatrix());
+		position = dxyz;
+		updateModelMatrix();
 	}
-	void applyTransform(glm::mat4 transformMat) {
+	void applyTransform() {
+		glm::mat4 currentModelBuffer;
+		glGetUniformfv(program, glGetUniformLocation(program, "modelBuffer"), glm::value_ptr(currentModelBuffer));
+		updateUniformMatrix4fv(program, "modelBuffer", generateModelMatrix() * currentModelBuffer);
 
+		position = glm::vec3(0.0f);
+		rotation = glm::identity<glm::quat>();
+		zoom = glm::vec3(1.0f);
+		updateModelMatrix();
 	}
 	void scale(glm::vec3 xyz) {
-		position = glm::scale(_scale, xyz);
-		glUseProgram(program);
+		zoom = zoom * xyz;
+		updateModelMatrix();
+	}
+	void updateModelMatrix() {
 		updateUniformMatrix4fv(program, "model", generateModelMatrix());
-		glUseProgram(0);
 	}
 	virtual void draw() {
 		glUseProgram(program);
@@ -109,7 +118,7 @@ public:
 		glDrawElements(GL_TRIANGLES, (GLsizei)index.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 		glUseProgram(0);
-	}	//绘制
+	}
 };
 
 class Cube : public Geometry {
@@ -412,7 +421,7 @@ public:
 };
 
 
-class Axis {
+class Arrow {
 private:
 	glm::vec3 _begin;
 	glm::vec3 _end;
@@ -426,41 +435,51 @@ private:
 
 	Geometry* arrow, * body;
 public:
-	Axis(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrorColor, glm::vec4 bodyColor) : _begin(_begin), _end(_end), width(width), arrowColor(arrowColor), bodyColor(bodyColor) {
+	Arrow(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrowColor, glm::vec4 bodyColor) : _begin(_begin), _end(_end), width(width), arrowColor(arrowColor), bodyColor(bodyColor) {
 		length = glm::length(_end - _begin);
-		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio * length, 4, 4, 36);
-		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio) * length, 4, 4, 36);
+		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio * length, 3, 4, 18);
+		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio) * length, 2, (int)(length * 10), 18);
 
 		arrow->setColor(arrowColor);
 		body->setColor(bodyColor);
 		// 进行组合
-		arrow->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		body->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		arrow->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		body->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) * length / 2.0f, 0));
 		body->translate(glm::vec3(0, -arrowLengthRatio / 2.0f * length, 0));
+		// 应用变换
+		arrow->applyTransform();
+		body->applyTransform();
+
 		// 变换到指定位置
 		glm::vec3 dir = glm::normalize(_end - _begin);
-		float dst_length = glm::distance(_end, _begin);
-
 		glm::vec3 rotate_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), dir);
 		float rotate_angle = glm::acos(glm::dot(glm::vec3(0.0f, 1.0f, 0.0f), dir));
+		if (abs(rotate_angle) < EPS) {		// 完全平行时rotate_axis接近全零会导致rotate方法调用出错
+			rotate_axis = glm::vec3(0.0f, 0.0f, 1.0f);
+			rotate_angle = 0.0f;
+		}
+		else if (abs(rotate_angle - PI) < EPS) {
+			rotate_axis = glm::vec3(0.0f, 0.0f, 1.0f);
+			rotate_angle = PI;
+		}
+		else {
+			rotate_axis = glm::normalize(rotate_axis);
+		}
 
-		//arrow->rotate(rotate_angle, rotate_axis);
-		//body->rotate(rotate_angle, rotate_axis);
+		arrow->rotate(rotate_angle, rotate_axis);
+		body->rotate(rotate_angle, rotate_axis);
 		arrow->moveTo((_end + _begin) / 2.0f);
 		body->moveTo((_end + _begin) / 2.0f);
-
-		glm::vec3 tp = (_end + _begin) / 2.0f;
-		std::cout << "middle pos: " << "(" << tp.x << "," << tp.y << "," << tp.z << ")" << std::endl;
 	}
 	std::vector<GLuint> getProgramList() {
 		std::vector<GLuint> programs;
-		programs.push_back(arrow->getProgram());
 		programs.push_back(body->getProgram());
+		programs.push_back(arrow->getProgram());
 		return programs;
 	}
 	void draw() {
-		body->draw();
 		arrow->draw();
+		body->draw();
 	}
 };

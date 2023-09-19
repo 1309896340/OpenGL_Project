@@ -10,7 +10,7 @@ typedef struct _StatusInfo {
 }StatusInfo;
 
 StatusInfo status;
-Camera camera(glm::vec3(0.0f, 2.0f, 8.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+Camera camera(glm::vec3(1.0f, 6.0f, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -53,7 +53,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		status.mousePos[1] = ypos;
 		// 控制视角
 		camera.rotate(dx, dy);
-		camera.updateViewMatrix();
+		camera.updateAllViewMatrix();
 	}
 }
 
@@ -79,7 +79,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			camera.move(0.1f, 0.0f);
 			break;
 		}
-		camera.updateViewMatrix();
+		camera.updateAllViewMatrix();
 	}
 	else if (action == GLFW_RELEASE) {
 		status.lastKey = GLFW_KEY_UNKNOWN;
@@ -87,6 +87,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 
 int main(int argc, char** argv) {
+
 	if (glfwInit() != GLFW_TRUE) {
 		std::cout << "glfw初始化失败" << std::endl;
 		exit(1);
@@ -119,9 +120,9 @@ int main(int argc, char** argv) {
 	glfwSetKeyCallback(window, key_callback);
 
 	glEnable(GL_DEPTH_TEST);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glPolygonMode(GL_FRONT, GL_LINE);
-	glPolygonMode(GL_BACK, GL_FILL);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT, GL_LINE);
+	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
 
 	//Geometry* obj = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
@@ -129,12 +130,16 @@ int main(int argc, char** argv) {
 	//Geometry* obj = new Cylinder(1.0f, 6.0f, 4, 24, 40);
 	Geometry* obj = new Cone(2.0f, 3.0f, 10, 30, 60);
 	obj->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	obj->translate(glm::vec3(0.0f, 1.5f, 0.0f));
 	//obj->rotate(glm::radians(20.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
-	Axis* axis = new Axis(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.1f,
-		glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+	Arrow* axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	Arrow* axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+	Arrow* axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
-	camera.addAixs(axis);
+	camera.addProgramList(axis_x->getProgramList());
+	camera.addProgramList(axis_y->getProgramList());
+	camera.addProgramList(axis_z->getProgramList());
 	camera.addProgram(obj->getProgram());
 
 	float deltaTime = 0.0f;
@@ -151,9 +156,11 @@ int main(int argc, char** argv) {
 
 		//std::cout<<deltaTime<<std::endl;
 
-		obj->rotate(glm::radians(12 * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+		obj->rotate(12 * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		obj->draw();
-		axis->draw();
+		axis_x->draw();
+		axis_y->draw();
+		axis_z->draw();
 
 
 		glfwSwapBuffers(window);

@@ -21,6 +21,9 @@
 
 #define PI 3.14159265358979323846
 
+
+#define EPS 1e-7
+
 extern float deltaTime;
 extern float lastFrame;
 
