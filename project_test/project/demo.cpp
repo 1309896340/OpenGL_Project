@@ -125,16 +125,15 @@ int main(int argc, char** argv) {
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
 
-	//Geometry* obj = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
+	Geometry* obj = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
 	//Geometry* obj = new Sphere(2.0f, 40, 20);
 	//Geometry* obj = new Cylinder(1.0f, 6.0f, 4, 24, 40);
-	Geometry* obj = new Cone(2.0f, 3.0f, 10, 30, 60);
+	//Geometry* obj = new Cone(2.0f, 3.0f, 10, 30, 60);
 	obj->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	obj->translate(glm::vec3(0.0f, 1.5f, 0.0f));
 	//obj->rotate(glm::radians(20.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
 	Arrow* axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-	Arrow* axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+	Arrow* axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
 	Arrow* axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
 	camera.addProgramList(axis_x->getProgramList());
@@ -156,7 +155,7 @@ int main(int argc, char** argv) {
 
 		//std::cout<<deltaTime<<std::endl;
 
-		obj->rotate(12 * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+		//obj->rotate(12 * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		obj->draw();
 		axis_x->draw();
 		axis_y->draw();

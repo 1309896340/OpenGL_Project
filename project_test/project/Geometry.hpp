@@ -150,77 +150,66 @@ protected:
 		std::vector<GLuint> zyidx(2 * 6 * zSliceNum * ySliceNum);
 		std::vector<GLuint> xzidx(2 * 6 * xSliceNum * zSliceNum);
 
-		// 顶点
+		vertex.resize(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
+		index.clear();
+
+		int base = 0;
 		for (int i = 0; i <= xSliceNum; i++) {
 			for (int j = 0; j <= ySliceNum; j++) {
-				xybuf[i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength / 2 };
-				xybuf[xyNum1 + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength / 2 };
+				vertex[base + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength / 2 };
+				vertex[base + xyNum1 + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength / 2 };
 			}
 		}
+		for (int k = 0; k < 2; k++) {
+			for (int i = 0; i < xSliceNum; i++) {
+				for (int j = 0; j < ySliceNum; j++) {
+					index.push_back(base + k * xyNum1 + i * (ySliceNum + 1) + j);
+					index.push_back(base + k * xyNum1 + i * (ySliceNum + 1) + j + 1);
+					index.push_back(base + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j + 1);
+					index.push_back(base + k * xyNum1 + i * (ySliceNum + 1) + j);
+					index.push_back(base + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j + 1);
+					index.push_back(base + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j);
+				}
+			}
+		}
+		base += 2 * xyNum1;
 		for (int i = 0; i <= zSliceNum; i++) {
 			for (int j = 0; j <= ySliceNum; j++) {
-				zybuf[i * (ySliceNum + 1) + j] = { -xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
-				zybuf[zyNum1 + i * (ySliceNum + 1) + j] = { xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
+				vertex[base + i * (ySliceNum + 1) + j] = { -xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
+				vertex[base + zyNum1 + i * (ySliceNum + 1) + j] = { xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
 			}
 		}
+		for (int k = 0; k < 2; k++) {
+			for (int i = 0; i < zSliceNum; i++) {
+				for (int j = 0; j < ySliceNum; j++) {
+					index.push_back(base + k * zyNum1 + i * (ySliceNum + 1) + j);
+					index.push_back(base + k * zyNum1 + i * (ySliceNum + 1) + j + 1);
+					index.push_back(base + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j + 1);
+					index.push_back(base + k * zyNum1 + i * (ySliceNum + 1) + j);
+					index.push_back(base + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j + 1);
+					index.push_back(base + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j);
+				}
+			}
+		}
+		base += 2 * zyNum1;
 		for (int i = 0; i <= xSliceNum; i++) {
 			for (int j = 0; j <= zSliceNum; j++) {
-				xzbuf[i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2, -zLength / 2 + j * dz };
-				xzbuf[xzNum1 + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, yLength / 2, -zLength / 2 + j * dz };
+				vertex[base + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2, -zLength / 2 + j * dz };
+				vertex[base + xzNum1 + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, yLength / 2, -zLength / 2 + j * dz };
 			}
 		}
-		// 面元索引
-		int bias = 0;
-		GLuint* ptr;
-		for (int i = 0; i < xSliceNum; i++) {
-			for (int j = 0; j < ySliceNum; j++) {
-				ptr = &xyidx[(i * ySliceNum + j) * 12];
-				for (int k = 0; k < 2; k++) {
-					*(ptr++) = bias + k * xyNum1 + i * (ySliceNum + 1) + j;
-					*(ptr++) = bias + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j;
-					*(ptr++) = bias + k * xyNum1 + (i + 1) * (ySliceNum + 1) + (j + 1);
-					*(ptr++) = bias + k * xyNum1 + i * (ySliceNum + 1) + j;
-					*(ptr++) = bias + k * xyNum1 + (i + 1) * (ySliceNum + 1) + (j + 1);
-					*(ptr++) = bias + k * xyNum1 + i * (ySliceNum + 1) + (j + 1);
+		for (int k = 0; k < 2; k++) {
+			for (int i = 0; i < xSliceNum; i++) {
+				for (int j = 0; j < zSliceNum; j++) {
+					index.push_back(base + k * xzNum1 + i * (zSliceNum + 1) + j);
+					index.push_back(base + k * xzNum1 + i * (zSliceNum + 1) + j + 1);
+					index.push_back(base + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j + 1);
+					index.push_back(base + k * xzNum1 + i * (zSliceNum + 1) + j);
+					index.push_back(base + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j + 1);
+					index.push_back(base + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j);
 				}
 			}
 		}
-		bias += xyNum1 * 2;
-		for (int i = 0; i < zSliceNum; i++) {
-			for (int j = 0; j < ySliceNum; j++) {
-				ptr = &zyidx[(i * ySliceNum + j) * 12];
-				for (int k = 0; k < 2; k++) {
-					*(ptr++) = bias + k * zyNum1 + i * (ySliceNum + 1) + j;
-					*(ptr++) = bias + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j;
-					*(ptr++) = bias + k * zyNum1 + (i + 1) * (ySliceNum + 1) + (j + 1);
-					*(ptr++) = bias + k * zyNum1 + i * (ySliceNum + 1) + j;
-					*(ptr++) = bias + k * zyNum1 + (i + 1) * (ySliceNum + 1) + (j + 1);
-					*(ptr++) = bias + k * zyNum1 + i * (ySliceNum + 1) + (j + 1);
-				}
-			}
-		}
-		bias += zyNum1 * 2;
-		for (int i = 0; i < xSliceNum; i++) {
-			for (int j = 0; j < zSliceNum; j++) {
-				ptr = &xzidx[(i * zSliceNum + j) * 12];
-				for (int k = 0; k < 2; k++) {
-					*(ptr++) = bias + k * xzNum1 + i * (zSliceNum + 1) + j;
-					*(ptr++) = bias + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j;
-					*(ptr++) = bias + k * xzNum1 + (i + 1) * (zSliceNum + 1) + (j + 1);
-					*(ptr++) = bias + k * xzNum1 + i * (zSliceNum + 1) + j;
-					*(ptr++) = bias + k * xzNum1 + (i + 1) * (zSliceNum + 1) + (j + 1);
-					*(ptr++) = bias + k * xzNum1 + i * (zSliceNum + 1) + (j + 1);
-				}
-			}
-		}
-		vertex.clear();
-		vertex.insert(vertex.end(), xybuf.begin(), xybuf.end());
-		vertex.insert(vertex.end(), zybuf.begin(), zybuf.end());
-		vertex.insert(vertex.end(), xzbuf.begin(), xzbuf.end());
-		index.clear();
-		index.insert(index.end(), xyidx.begin(), xyidx.end());
-		index.insert(index.end(), zyidx.begin(), zyidx.end());
-		index.insert(index.end(), xzidx.begin(), xzidx.end());
 	}
 public:
 	Cube(float xLength, float yLength, float zLength, int xSliceNum, int ySliceNum, int zSliceNum) :Geometry(glm::vec3(0.0)), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum), xLength(xLength), yLength(yLength), zLength(zLength) {
@@ -239,6 +228,9 @@ protected:
 	virtual void generateVertexAndIndex() {
 		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
+
+		vertex.clear();
+		index.clear();
 
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= latSliceNum; j++) {
@@ -285,22 +277,18 @@ protected:
 		int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
 
 		int base = 0;
-		vertex.clear();
+		vertex.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		index.clear();
 
 		float lon_tmp, r_tmp, h_tmp;
-		//上下圆面
-		vec3* ptr = new vec3[2 * rlonNum1]();
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
-				ptr[i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
-				ptr[rlonNum1 + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
+				vertex[base + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+				vertex[base + rlonNum1 + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
 			}
 		}
-		vertex.insert(vertex.end(), ptr, ptr + 2 * rlonNum1);
-		delete[] ptr;
-
 		for (int k = 0; k < 2; k++) {
 			for (int i = 0; i < lonSliceNum; i++) {
 				for (int j = 0; j < rSliceNum; j++) {
@@ -314,17 +302,13 @@ protected:
 			}
 		}
 		base += 2 * rlonNum1;
-		//侧面
-		ptr = new vec3[hlonNum1]();
 		for (int i = 0; i <= hSliceNum; i++) {
 			for (int j = 0; j <= lonSliceNum; j++) {
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
-				ptr[i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
+				vertex[base + i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
 			}
 		}
-		vertex.insert(vertex.end(), ptr, ptr + hlonNum1);
-		delete[] ptr;
 		for (int i = 0; i < hSliceNum; i++) {
 			for (int j = 0; j < lonSliceNum; j++) {
 				index.push_back(base + i * (lonSliceNum + 1) + j);
@@ -363,21 +347,18 @@ protected:
 		int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
 
 		int base = 0;
-		vertex.clear();
+		vertex.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		index.clear();
 
 		float lon_tmp, r_tmp, h_tmp;
 		//下圆面
-		vec3* ptr = new vec3[rlonNum1]();
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
-				ptr[i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+				vertex[base + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
 			}
 		}
-		vertex.insert(vertex.end(), ptr, ptr + rlonNum1);
-		delete[] ptr;
-
 		for (int i = 0; i < lonSliceNum; i++) {
 			for (int j = 0; j < rSliceNum; j++) {
 				index.push_back(base + i * (rSliceNum + 1) + j);
@@ -388,20 +369,16 @@ protected:
 				index.push_back(base + (i + 1) * (rSliceNum + 1) + j);
 			}
 		}
-
 		base += rlonNum1;
 		//侧面
-		ptr = new vec3[hlonNum1]();
 		for (int i = 0; i <= hSliceNum; i++) {
 			for (int j = 0; j <= lonSliceNum; j++) {
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
 				r_tmp = radius * (1 - i * hStep / height);
-				ptr[i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
+				vertex[base + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
 			}
 		}
-		vertex.insert(vertex.end(), ptr, ptr + hlonNum1);
-		delete[] ptr;
 		for (int i = 0; i < hSliceNum; i++) {
 			for (int j = 0; j < lonSliceNum; j++) {
 				index.push_back(base + i * (lonSliceNum + 1) + j);
