@@ -237,17 +237,14 @@ protected:
 				float lon = -PI + i * lonStep;
 				float lat = -PI / 2 + j * latStep;
 				vertex.push_back({ radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) });
-			}
-		}
-
-		for (int i = 0; i < lonSliceNum; i++) {
-			for (int j = 0; j < latSliceNum; j++) {
-				index.push_back(i * (latSliceNum + 1) + j);
-				index.push_back(i * (latSliceNum + 1) + j + 1);
-				index.push_back((i + 1) * (latSliceNum + 1) + j + 1);
-				index.push_back(i * (latSliceNum + 1) + j);
-				index.push_back((i + 1) * (latSliceNum + 1) + j + 1);
-				index.push_back((i + 1) * (latSliceNum + 1) + j);
+				if (i < lonSliceNum && j < latSliceNum) {
+					index.push_back(i * (latSliceNum + 1) + j);
+					index.push_back(i * (latSliceNum + 1) + j + 1);
+					index.push_back((i + 1) * (latSliceNum + 1) + j + 1);
+					index.push_back(i * (latSliceNum + 1) + j);
+					index.push_back((i + 1) * (latSliceNum + 1) + j + 1);
+					index.push_back((i + 1) * (latSliceNum + 1) + j);
+				}
 			}
 		}
 	}
@@ -346,47 +343,42 @@ protected:
 		int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
 		int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
 
-		int base = 0;
 		vertex.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
 		index.clear();
 
 		float lon_tmp, r_tmp, h_tmp;
-		//ÏÂÔ²Ãæ
+
+		int base = 0;
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
 				vertex[base + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
-			}
-		}
-		for (int i = 0; i < lonSliceNum; i++) {
-			for (int j = 0; j < rSliceNum; j++) {
-				index.push_back(base + i * (rSliceNum + 1) + j);
-				index.push_back(base + i * (rSliceNum + 1) + j + 1);
-				index.push_back(base + (i + 1) * (rSliceNum + 1) + j + 1);
-				index.push_back(base + i * (rSliceNum + 1) + j);
-				index.push_back(base + (i + 1) * (rSliceNum + 1) + j + 1);
-				index.push_back(base + (i + 1) * (rSliceNum + 1) + j);
+				if (i < lonSliceNum && j < rSliceNum) {
+					index.push_back(base + i * (rSliceNum + 1) + j);
+					index.push_back(base + i * (rSliceNum + 1) + j + 1);
+					index.push_back(base + (i + 1) * (rSliceNum + 1) + j + 1);
+					index.push_back(base + i * (rSliceNum + 1) + j);
+					index.push_back(base + (i + 1) * (rSliceNum + 1) + j + 1);
+					index.push_back(base + (i + 1) * (rSliceNum + 1) + j);
+				}
 			}
 		}
 		base += rlonNum1;
-		//²àÃæ
 		for (int i = 0; i <= hSliceNum; i++) {
 			for (int j = 0; j <= lonSliceNum; j++) {
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
 				r_tmp = radius * (1 - i * hStep / height);
 				vertex[base + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
-			}
-		}
-		for (int i = 0; i < hSliceNum; i++) {
-			for (int j = 0; j < lonSliceNum; j++) {
-				index.push_back(base + i * (lonSliceNum + 1) + j);
-				index.push_back(base + i * (lonSliceNum + 1) + j + 1);
-				index.push_back(base + (i + 1) * (lonSliceNum + 1) + j + 1);
-				index.push_back(base + i * (lonSliceNum + 1) + j);
-				index.push_back(base + (i + 1) * (lonSliceNum + 1) + j + 1);
-				index.push_back(base + (i + 1) * (lonSliceNum + 1) + j);
+				if (i < hSliceNum && j < lonSliceNum) {
+					index.push_back(base + i * (lonSliceNum + 1) + j);
+					index.push_back(base + i * (lonSliceNum + 1) + j + 1);
+					index.push_back(base + (i + 1) * (lonSliceNum + 1) + j + 1);
+					index.push_back(base + i * (lonSliceNum + 1) + j);
+					index.push_back(base + (i + 1) * (lonSliceNum + 1) + j + 1);
+					index.push_back(base + (i + 1) * (lonSliceNum + 1) + j);
+				}
 			}
 		}
 	}

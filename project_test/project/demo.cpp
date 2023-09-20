@@ -59,7 +59,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 
-	std::cout << "key: " << key << "  scancode: " << scancode << "  action: " << action << "  modes: " << mods << std::endl;
+	//std::cout << "key: " << key << "  scancode: " << scancode << "  action: " << action << "  modes: " << mods << std::endl;
 
 	if (key == GLFW_KEY_ESCAPE && mods == GLFW_MOD_SHIFT) {		//¹Ø±Õ´°¿Ú
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -120,16 +120,20 @@ int main(int argc, char** argv) {
 	glfwSetKeyCallback(window, key_callback);
 
 	glEnable(GL_DEPTH_TEST);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	//glPolygonMode(GL_FRONT, GL_LINE);
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
 
-	Geometry* obj = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
-	//Geometry* obj = new Sphere(2.0f, 40, 20);
-	//Geometry* obj = new Cylinder(1.0f, 6.0f, 4, 24, 40);
-	//Geometry* obj = new Cone(2.0f, 3.0f, 10, 30, 60);
-	obj->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	Geometry* obj1 = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
+	Geometry* obj2 = new Sphere(2.0f, 40, 20);
+	Geometry* obj3 = new Cylinder(1.0f, 6.0f, 4, 24, 40);
+	Geometry* obj4 = new Cone(2.0f, 3.0f, 10, 30, 60);
+
+	obj1->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj1->moveTo(glm::vec3(6.0f, 0.0f, 0.0f));
+	obj2->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj2->moveTo(glm::vec3(3.0f, 0.0f, 0.0f));
+	obj3->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj3->moveTo(glm::vec3(0.0f, 0.0f, -3.0f));
+	obj4->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj4->moveTo(glm::vec3(-3.0f, 0.0f, 0.0f));
 	//obj->rotate(glm::radians(20.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
 	Arrow* axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
@@ -139,7 +143,11 @@ int main(int argc, char** argv) {
 	camera.addProgramList(axis_x->getProgramList());
 	camera.addProgramList(axis_y->getProgramList());
 	camera.addProgramList(axis_z->getProgramList());
-	camera.addProgram(obj->getProgram());
+
+	camera.addProgram(obj1->getProgram());
+	camera.addProgram(obj2->getProgram());
+	camera.addProgram(obj3->getProgram());
+	camera.addProgram(obj4->getProgram());
 
 	float deltaTime = 0.0f;
 	float lastTime = 0.0f;
@@ -156,7 +164,11 @@ int main(int argc, char** argv) {
 		//std::cout<<deltaTime<<std::endl;
 
 		//obj->rotate(12 * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
-		obj->draw();
+		obj1->draw();
+		obj2->draw();
+		obj3->draw();
+		obj4->draw();
+
 		axis_x->draw();
 		axis_y->draw();
 		axis_z->draw();
