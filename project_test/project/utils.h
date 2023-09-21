@@ -9,3 +9,4 @@ void updateUniformVector4fv(GLuint program, const std::string& varname, const gl
 
 void loadShader(GLuint shader, std::string source);
 GLuint loadProgram(std::string vertexSource, std::string fragmentSource);
+GLuint loadProgramFromFile(std::string vertexSourcePath, std::string fragmentSourcePath);

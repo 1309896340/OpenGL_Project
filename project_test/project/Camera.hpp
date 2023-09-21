@@ -19,13 +19,18 @@ private:
 	float yaw = 0.0f;	// 规定0为x正前方，范围为[-pi,pi]
 	float pitch = 0.0f;	// 规定0为x正前方，范围为[-pi/2,pi/2]
 	float roll = 0.0f;	// 保留，暂时不用
-	// 上下文
-	std::vector<GLuint> program;
+	// 生成View矩阵和Projection矩阵
+	glm::mat4 generateViewMatrix() {
+		return glm::lookAt(position, position + front, up);
+	}
+	glm::mat4 generateProjectionMatrix() {
+		return glm::perspective(45.0f, (float)WIDTH / HEIGHT, 0.1f, 50.0f);
+	}
 public:
 	Camera(glm::vec3 position, glm::vec3 target) :position(position) {
 		front = glm::normalize(target - position);	// front只在一开始通过position和target确定一次
 
-		updateAttitude();	//计算初始姿态
+		updateAttitude();
 		updateLocalCoordiante();
 	}
 	void updateAttitude() {			// 更新相机姿态(俯仰角pitch、航向角yaw)
@@ -63,72 +68,6 @@ public:
 	}
 	void move(float dx, float dy) {	// // 控制相机旋转(更新相机位置) 
 		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * front;
-		updateAllViewMatrix();
 	}
-	void updateViewMatrix(GLuint _program) {	// 更新View矩阵
-		glm::mat4 view = glm::lookAt(position, position + front, up);
-		glUseProgram(_program);
-		updateUniformMatrix4fv(_program, "view", view);
-		glUseProgram(0);
 
-	}
-	void updateAllViewMatrix() {	// 更新所有View矩阵
-		glm::mat4 view = glm::lookAt(position, position + front, up);
-		for (auto ptr = program.begin(); ptr != program.end(); ptr++) {
-			glUseProgram(*ptr);
-			updateUniformMatrix4fv(*ptr, "view", view);
-			glUseProgram(0);
-		}
-	}
-	void updateProjectionMatrix(GLuint _program) {	// 更新Projection矩阵
-		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 40.0f);
-		glUseProgram(_program);
-		updateUniformMatrix4fv(_program, "projection", projection);
-		glUseProgram(0);
-	}
-	void updateAllProjectionMatrix() {	// 更新所有Projection矩阵
-		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 40.0f);
-		for (auto ptr = program.begin(); ptr != program.end(); ptr++) {
-			glUseProgram(*ptr);
-			updateUniformMatrix4fv(*ptr, "projection", projection);
-			glUseProgram(0);
-		}
-	}
-	void addProgram(GLuint _program) {	// 增加program
-		// 检查program是否合法
-		if (_program == 0) {
-			std::cout << "错误，用于初始化Camera的program为空！" << std::endl;
-			exit(1);
-		}
-		GLint success;
-		glGetProgramiv(_program, GL_LINK_STATUS, &success);
-		if (success != GL_TRUE) {
-			std::cout << "错误，用于初始化Camera的program不合法！" << std::endl;
-			exit(1);
-		}
-		updateProjectionMatrix(_program);
-		updateViewMatrix(_program);
-		program.push_back(_program);
-	}
-	void addProgramList(std::vector<GLuint> programs) {	// 增加多个program
-		for (auto ptr = programs.begin(); ptr != programs.end(); ptr++) {
-			if ((*ptr) == 0) {
-				std::cout << "错误，用于初始化Camera的program为空！" << std::endl;
-				exit(1);
-			}
-			GLint success;
-			glGetProgramiv(*ptr, GL_LINK_STATUS, &success);
-			if (success != GL_TRUE) {
-				std::cout << "错误，用于初始化Camera的program不合法！" << std::endl;
-				exit(1);
-			}
-			updateProjectionMatrix(*ptr);
-			updateViewMatrix(*ptr);
-			program.push_back(*ptr);
-		}
-
-	}
-	void clearProgram() {	// 清空program
-		program.clear();
-	}
 };

@@ -1,9 +1,11 @@
 #include "proj.h"
 #include "utils.h"
-
-#include <vector>
-
+#include "Shader.hpp"
 #pragma once
+
+
+// Shader的初始化
+Shader* default_shader = new Shader("vertexShader.vs", "fragmentShader.fs");	//默认着色器
 
 typedef struct {
 	float x, y, z;
@@ -17,27 +19,24 @@ class Geometry {
 private:
 	glm::vec3 position;
 	glm::quat rotation;
-	glm::vec3 zoom;
+	glm::vec3 scale;
 
-	bool autoColor;
+	Shader* shader;
+
+	glm::mat4 modelBuffer;
 
 	glm::mat4 generateModelMatrix() {
 		glm::mat4 transformation(1.0f);
 		transformation = glm::translate(transformation, position);
 		transformation = transformation * glm::mat4_cast(rotation);
-		transformation = glm::scale(transformation, zoom);
+		transformation = glm::scale(transformation, scale);
 		return transformation;
 	}
 protected:
 	GLuint VAO, vbo_pos, vbo_idx;
-	GLuint program;
 	std::vector<vec3> vertex;
 	std::vector<unsigned int> index;
-	void prepareShaderProgram(std::string vertexShaderPath, std::string fragmentShaderPath) {
-		program = loadProgram(readSource(vertexShaderPath), readSource(fragmentShaderPath));
-		updateModelMatrix();
-		updateUniformMatrix4fv(program, "modelBuffer", glm::mat4(1.0f));
-	};
+
 	virtual void generateVertexAndIndex() = 0;  //生成顶点和索引
 	virtual void prepareVAO() {
 		glGenVertexArrays(1, &VAO);
@@ -60,64 +59,53 @@ protected:
 
 public:
 
-	Geometry(glm::vec3 position) : zoom(1.0f), rotation(glm::identity<glm::quat>()), program(0), VAO(0), position(glm::vec3(0.0f)), autoColor(true) {
+	Geometry(glm::vec3 position) :modelBuffer(glm::mat4(1.0f)), scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)), shader(default_shader) {
 		// 没有颜色初始化
-		prepareShaderProgram("vertexShaderSource.txt", "fragmentShaderSource.txt");
+		shader->use();
+		shader->setBool("isCustom", false);
+		shader->close();
 
 	}
-	Geometry(glm::vec3 position, glm::vec4 color) : zoom(1.0f), rotation(glm::identity<glm::quat>()), program(0), VAO(0), position(glm::vec3(0.0f)), autoColor(false) {
+	Geometry(glm::vec3 position, glm::vec4 color) :modelBuffer(glm::mat4(1.0f)), scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)), shader(default_shader) {
 		// 有颜色初始化
-		prepareShaderProgram("vertexShaderSource.txt", "customFragmentShaderSource.txt");
-	}
-	GLuint getProgram() {
-		return program;
+		shader->use();
+		shader->setBool("isCustom", true);
+		shader->close();
 	}
 	void setColor(glm::vec4 color) {
-		if (autoColor) {
-			autoColor = false;
-			glDeleteProgram(program);
-			prepareShaderProgram("vertexShaderSource.txt", "customFragmentShaderSource.txt");
-		}
-		updateUniformVector4fv(program, "CustomColor", color);
+		shader->use();
+		shader->setVec4("CutomColor", color);
+		shader->close();
 	}
 	void rotate(float angle, glm::vec3 axis) {
 		rotation = glm::angleAxis(angle, axis) * rotation;
-		updateModelMatrix();
 	}
 	void rotateTo(glm::vec3 direction) {
 		//尚未实现的功能：旋转到指定方向(绝对姿态)，rotate是基于当前姿态的相对旋转
 	}
 	void translate(glm::vec3 dxyz) {
 		position = position + dxyz;
-		updateModelMatrix();
 	}
 	void moveTo(glm::vec3 dxyz) {
 		position = dxyz;
-		updateModelMatrix();
 	}
 	void applyTransform() {
-		glm::mat4 currentModelBuffer;
-		glGetUniformfv(program, glGetUniformLocation(program, "modelBuffer"), glm::value_ptr(currentModelBuffer));
-		updateUniformMatrix4fv(program, "modelBuffer", generateModelMatrix() * currentModelBuffer);
+		modelBuffer = generateModelMatrix() * modelBuffer;
 
 		position = glm::vec3(0.0f);
 		rotation = glm::identity<glm::quat>();
-		zoom = glm::vec3(1.0f);
-		updateModelMatrix();
+		scale = glm::vec3(1.0f);
 	}
 	void scale(glm::vec3 xyz) {
-		zoom = zoom * xyz;
-		updateModelMatrix();
+		scale *= xyz;
 	}
-	void updateModelMatrix() {
-		updateUniformMatrix4fv(program, "model", generateModelMatrix());
-	}
+
 	virtual void draw() {
-		glUseProgram(program);
+		shader->use();
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)index.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
-		glUseProgram(0);
+		shader->close();
 	}
 };
 
@@ -390,6 +378,50 @@ public:
 };
 
 
+class Line {
+private:
+	glm::vec3 _begin;
+	glm::vec3 _end;
+	float width;
+	glm::vec3 color;
+protected:
+	GLuint program;
+	GLuint vao;
+public:
+	Line(glm::vec3 begin, glm::vec3 end, float width, glm::vec3 color) :_begin(begin), _end(end), width(width), color(color) {
+		program = loadProgramFromFile("Line.vert", "fragmentShaderSource.txt");
+
+		GLfloat vertices[] = {
+			_begin.x,_begin.y,_begin.z,
+			_end.x,_end.y,_end.z
+		};
+
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+
+		GLuint vbo;
+		glGenBuffers(1, &vbo);
+		glNamedBufferData(vbo, sizeof(GLfloat) * 6, vertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, NULL, NULL);
+		glEnableVertexAttribArray(0);
+		glBindVertexArray(0);
+
+		// 初始化颜色的uniform矩阵
+		updateUniformVector4fv(program, "CustomColor", glm::vec4(color, 1.0f));
+	}
+
+	GLuint getProgram() {
+		return program;
+	}
+	void draw() {
+		glUseProgram(program);
+		glBindVertexArray(vao);
+		glDrawArrays(GL_LINES, 0, 2);
+		glBindVertexArray(0);
+		glUseProgram(0);
+	}
+};
+
 class Arrow {
 private:
 	glm::vec3 _begin;
@@ -440,12 +472,6 @@ public:
 		body->rotate(rotate_angle, rotate_axis);
 		arrow->moveTo((_end + _begin) / 2.0f);
 		body->moveTo((_end + _begin) / 2.0f);
-	}
-	std::vector<GLuint> getProgramList() {
-		std::vector<GLuint> programs;
-		programs.push_back(body->getProgram());
-		programs.push_back(arrow->getProgram());
-		return programs;
 	}
 	void draw() {
 		arrow->draw();

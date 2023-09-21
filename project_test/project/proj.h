@@ -12,6 +12,7 @@
 #include <string>
 #include <ctime>
 #include <chrono>
+#include <vector>
 
 #include <windows.h>
 
@@ -31,3 +32,10 @@ extern float lastFrame;
 extern glm::vec3 _up;
 extern glm::vec3 _right;
 extern glm::vec3 _front;
+
+typedef struct {
+	float x, y, z;
+}vec3;
+typedef struct {
+	float x, y, z, w;
+}vec4;

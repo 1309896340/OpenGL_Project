@@ -41,6 +41,14 @@ void loadShader(GLuint shader, std::string source) {
 		exit(4);
 	}
 }
+
+
+GLuint loadProgramFromFile(std::string vertexSourcePath, std::string fragmentSourcePath) {
+	std::string vertexShader = readSource(vertexSourcePath);
+	std::string fragmentShader = readSource(fragmentSourcePath);
+	return loadProgram(vertexShader, fragmentShader);
+}
+
 GLuint loadProgram(std::string vertexSource, std::string fragmentSource) {
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER), fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	loadShader(vertexShader, vertexSource);

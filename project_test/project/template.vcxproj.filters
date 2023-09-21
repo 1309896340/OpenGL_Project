@@ -24,6 +24,9 @@
     <ClCompile Include="glad\src\glad.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Shader.hpp">
+      <Filter>头文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="proj.h">
@@ -40,14 +43,16 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="fragmentShaderSource.txt">
+    <Text Include="vertexShader.vs">
       <Filter>资源文件</Filter>
     </Text>
-    <Text Include="vertexShaderSource.txt">
+    <Text Include="fragmentShader.fs">
       <Filter>资源文件</Filter>
     </Text>
-    <Text Include="customFragmentShaderSource.txt">
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="line.txt">
       <Filter>资源文件</Filter>
-    </Text>
+    </FxCompile>
   </ItemGroup>
 </Project>

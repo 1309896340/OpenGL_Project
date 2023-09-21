@@ -137,6 +137,7 @@
   <ItemGroup>
     <ClCompile Include="demo.cpp" />
     <ClCompile Include="glad\src\glad.c" />
+    <ClCompile Include="Shader.hpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -146,9 +147,11 @@
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="customFragmentShaderSource.txt" />
-    <Text Include="fragmentShaderSource.txt" />
-    <Text Include="vertexShaderSource.txt" />
+    <Text Include="fragmentShader.fs" />
+    <Text Include="vertexShader.vs" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="line.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

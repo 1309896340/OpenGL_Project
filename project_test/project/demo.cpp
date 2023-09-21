@@ -12,6 +12,7 @@ typedef struct _StatusInfo {
 StatusInfo status;
 Camera camera(glm::vec3(1.0f, 6.0f, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
+
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
 glm::vec3 _front = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -53,7 +54,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		status.mousePos[1] = ypos;
 		// ¿ØÖÆÊÓ½Ç
 		camera.rotate(dx, dy);
-		camera.updateAllViewMatrix();
+
+		shader->use();
+		shader->setMat4("view", camera.getViewMatrix());
+		shader->close();
 	}
 }
 
@@ -125,10 +129,14 @@ int main(int argc, char** argv) {
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
 
+
+
 	Geometry* obj1 = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
 	Geometry* obj2 = new Sphere(2.0f, 40, 20);
 	Geometry* obj3 = new Cylinder(1.0f, 6.0f, 4, 24, 40);
 	Geometry* obj4 = new Cone(2.0f, 3.0f, 10, 30, 60);
+
+	Line *a1 = new Line(glm::vec3(2.0f,0.0f,-2.0f),glm::vec3(),3.0f,glm::vec3(1.0f,0.0f,1.0f));
 
 	obj1->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj1->moveTo(glm::vec3(6.0f, 0.0f, 0.0f));
 	obj2->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj2->moveTo(glm::vec3(3.0f, 0.0f, 0.0f));
@@ -148,6 +156,8 @@ int main(int argc, char** argv) {
 	camera.addProgram(obj2->getProgram());
 	camera.addProgram(obj3->getProgram());
 	camera.addProgram(obj4->getProgram());
+
+	camera.addProgram(a1->getProgram());
 
 	float deltaTime = 0.0f;
 	float lastTime = 0.0f;
@@ -172,6 +182,8 @@ int main(int argc, char** argv) {
 		axis_x->draw();
 		axis_y->draw();
 		axis_z->draw();
+
+		a1->draw();
 
 
 		glfwSwapBuffers(window);
