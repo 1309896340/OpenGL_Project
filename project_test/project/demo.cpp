@@ -153,7 +153,6 @@ int main(int argc, char** argv) {
 
 	shader->use();
 	shader->setMat4("projection", camera.getProjectionMatrix());
-	shader->close();
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -163,11 +162,9 @@ int main(int argc, char** argv) {
 		currentTime = glfwGetTime();
 		deltaTime = currentTime - lastTime;
 
-		//std::cout<<deltaTime<<std::endl;
 
 		shader->use();
 		shader->setMat4("view", camera.getViewMatrix());
-		shader->close();
 
 		//obj->rotate(12 * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		obj1->draw();

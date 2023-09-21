@@ -3,8 +3,6 @@
 #include "Shader.hpp"
 #pragma once
 
-
-
 class Geometry {
 private:
 	glm::vec3 position;
