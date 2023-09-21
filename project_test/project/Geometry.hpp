@@ -4,34 +4,20 @@
 #pragma once
 
 
-// Shader的初始化
-Shader* default_shader = new Shader("vertexShader.vs", "fragmentShader.fs");	//默认着色器
-
-typedef struct {
-	float x, y, z;
-}vec3;
-
-typedef struct {
-	float x, y, z, w;
-}vec4;
 
 class Geometry {
 private:
 	glm::vec3 position;
 	glm::quat rotation;
-	glm::vec3 scale;
+	glm::vec3 _scale;
 
 	Shader* shader;
 
+	glm::vec4 color;
+	bool autoColor;
+
 	glm::mat4 modelBuffer;
 
-	glm::mat4 generateModelMatrix() {
-		glm::mat4 transformation(1.0f);
-		transformation = glm::translate(transformation, position);
-		transformation = transformation * glm::mat4_cast(rotation);
-		transformation = glm::scale(transformation, scale);
-		return transformation;
-	}
 protected:
 	GLuint VAO, vbo_pos, vbo_idx;
 	std::vector<vec3> vertex;
@@ -59,23 +45,12 @@ protected:
 
 public:
 
-	Geometry(glm::vec3 position) :modelBuffer(glm::mat4(1.0f)), scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)), shader(default_shader) {
+	Geometry(glm::vec3 position, Shader* shader) :autoColor(true), shader(shader), modelBuffer(glm::mat4(1.0f)), _scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)) {
 		// 没有颜色初始化
-		shader->use();
-		shader->setBool("isCustom", false);
-		shader->close();
-
-	}
-	Geometry(glm::vec3 position, glm::vec4 color) :modelBuffer(glm::mat4(1.0f)), scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)), shader(default_shader) {
-		// 有颜色初始化
-		shader->use();
-		shader->setBool("isCustom", true);
-		shader->close();
 	}
 	void setColor(glm::vec4 color) {
-		shader->use();
-		shader->setVec4("CutomColor", color);
-		shader->close();
+		autoColor = false;
+		this->color = color;
 	}
 	void rotate(float angle, glm::vec3 axis) {
 		rotation = glm::angleAxis(angle, axis) * rotation;
@@ -90,18 +65,34 @@ public:
 		position = dxyz;
 	}
 	void applyTransform() {
-		modelBuffer = generateModelMatrix() * modelBuffer;
+		modelBuffer = getModelMatrix() * modelBuffer;
 
 		position = glm::vec3(0.0f);
 		rotation = glm::identity<glm::quat>();
-		scale = glm::vec3(1.0f);
+		_scale = glm::vec3(1.0f);
 	}
 	void scale(glm::vec3 xyz) {
-		scale *= xyz;
+		_scale *= xyz;
+	}
+
+	glm::mat4 getModelMatrix() {
+		glm::mat4 transformation(1.0f);
+		transformation = glm::translate(transformation, position);
+		transformation = transformation * glm::mat4_cast(rotation);
+		transformation = glm::scale(transformation, _scale);
+		return transformation;
 	}
 
 	virtual void draw() {
 		shader->use();
+		if (autoColor) {
+			shader->setBool("isCustom",false);
+		}else{
+			shader->setBool("isCustom",true);
+			shader->setVec4("CustomColor", color);
+		}
+		shader->setMat4("model", getModelMatrix());
+		shader->setMat4("modelBuffer", modelBuffer);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)index.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
@@ -200,7 +191,7 @@ protected:
 		}
 	}
 public:
-	Cube(float xLength, float yLength, float zLength, int xSliceNum, int ySliceNum, int zSliceNum) :Geometry(glm::vec3(0.0)), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum), xLength(xLength), yLength(yLength), zLength(zLength) {
+	Cube(float xLength, float yLength, float zLength, int xSliceNum, int ySliceNum, int zSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum), xLength(xLength), yLength(yLength), zLength(zLength) {
 		generateVertexAndIndex();
 		prepareVAO();
 	}
@@ -237,7 +228,7 @@ protected:
 		}
 	}
 public:
-	Sphere(float radius, unsigned int lonSliceNum, unsigned int latSliceNum) :Geometry(glm::vec3(0.0)), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
+	Sphere(float radius, unsigned int lonSliceNum, unsigned int latSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
 		generateVertexAndIndex();
 		prepareVAO();
 	}
@@ -306,7 +297,7 @@ protected:
 		}
 	}
 public:
-	Cylinder(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum) :Geometry(glm::vec3(0.0)), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cylinder(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		generateVertexAndIndex();
 		prepareVAO();
 	}
@@ -371,7 +362,7 @@ protected:
 		}
 	}
 public:
-	Cone(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum) :Geometry(glm::vec3(0.0)), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cone(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		generateVertexAndIndex();
 		prepareVAO();
 	}
@@ -436,10 +427,10 @@ private:
 
 	Geometry* arrow, * body;
 public:
-	Arrow(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrowColor, glm::vec4 bodyColor) : _begin(_begin), _end(_end), width(width), arrowColor(arrowColor), bodyColor(bodyColor) {
+	Arrow(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrowColor, glm::vec4 bodyColor, Shader* shader) : _begin(_begin), _end(_end), width(width), arrowColor(arrowColor), bodyColor(bodyColor) {
 		length = glm::length(_end - _begin);
-		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio * length, 3, 4, 18);
-		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio) * length, 2, (int)(length * 10), 18);
+		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio * length, 3, 4, 18, shader);
+		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio) * length, 2, (int)(length * 10), 18, shader);
 
 		arrow->setColor(arrowColor);
 		body->setColor(bodyColor);

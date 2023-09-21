@@ -1,6 +1,7 @@
 #include "proj.h"
 #include "Geometry.hpp"
 #include "Camera.hpp"
+#include "Shader.hpp"
 
 typedef struct _StatusInfo {
 	bool leftMouseButtonPressed = false;
@@ -54,10 +55,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		status.mousePos[1] = ypos;
 		// 控制视角
 		camera.rotate(dx, dy);
-
-		shader->use();
-		shader->setMat4("view", camera.getViewMatrix());
-		shader->close();
 	}
 }
 
@@ -83,7 +80,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			camera.move(0.1f, 0.0f);
 			break;
 		}
-		camera.updateAllViewMatrix();
 	}
 	else if (action == GLFW_RELEASE) {
 		status.lastKey = GLFW_KEY_UNKNOWN;
@@ -130,13 +126,15 @@ int main(int argc, char** argv) {
 	glViewport(0, 0, WIDTH, HEIGHT);
 
 
+	// Shader的初始化
+	Shader* shader = new Shader("vertexShader.vs", "fragmentShader.fs");	//默认着色器
 
-	Geometry* obj1 = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20);
-	Geometry* obj2 = new Sphere(2.0f, 40, 20);
-	Geometry* obj3 = new Cylinder(1.0f, 6.0f, 4, 24, 40);
-	Geometry* obj4 = new Cone(2.0f, 3.0f, 10, 30, 60);
+	Geometry* obj1 = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20, shader);
+	Geometry* obj2 = new Sphere(2.0f, 40, 20, shader);
+	Geometry* obj3 = new Cylinder(1.0f, 6.0f, 4, 24, 40, shader);
+	Geometry* obj4 = new Cone(2.0f, 3.0f, 10, 30, 60, shader);
 
-	Line *a1 = new Line(glm::vec3(2.0f,0.0f,-2.0f),glm::vec3(),3.0f,glm::vec3(1.0f,0.0f,1.0f));
+	//Line *a1 = new Line(glm::vec3(2.0f,0.0f,-2.0f),glm::vec3(),3.0f,glm::vec3(1.0f,0.0f,1.0f));
 
 	obj1->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj1->moveTo(glm::vec3(6.0f, 0.0f, 0.0f));
 	obj2->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj2->moveTo(glm::vec3(3.0f, 0.0f, 0.0f));
@@ -144,24 +142,18 @@ int main(int argc, char** argv) {
 	obj4->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj4->moveTo(glm::vec3(-3.0f, 0.0f, 0.0f));
 	//obj->rotate(glm::radians(20.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
-	Arrow* axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-	Arrow* axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-	Arrow* axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+	Arrow* axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), shader);
+	Arrow* axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), shader);
+	Arrow* axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), shader);
 
-	camera.addProgramList(axis_x->getProgramList());
-	camera.addProgramList(axis_y->getProgramList());
-	camera.addProgramList(axis_z->getProgramList());
-
-	camera.addProgram(obj1->getProgram());
-	camera.addProgram(obj2->getProgram());
-	camera.addProgram(obj3->getProgram());
-	camera.addProgram(obj4->getProgram());
-
-	camera.addProgram(a1->getProgram());
 
 	float deltaTime = 0.0f;
 	float lastTime = 0.0f;
 	float currentTime = glfwGetTime();
+
+	shader->use();
+	shader->setMat4("projection", camera.getProjectionMatrix());
+	shader->close();
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -173,6 +165,10 @@ int main(int argc, char** argv) {
 
 		//std::cout<<deltaTime<<std::endl;
 
+		shader->use();
+		shader->setMat4("view", camera.getViewMatrix());
+		shader->close();
+
 		//obj->rotate(12 * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		obj1->draw();
 		obj2->draw();
@@ -183,8 +179,7 @@ int main(int argc, char** argv) {
 		axis_y->draw();
 		axis_z->draw();
 
-		a1->draw();
-
+		//a1->draw();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

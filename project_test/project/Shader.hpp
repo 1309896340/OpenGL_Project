@@ -1,6 +1,8 @@
 #include "proj.h"
 #include "utils.h"
 
+#pragma once
+
 class Shader {
 private:
 	GLuint ID;

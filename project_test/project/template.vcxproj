@@ -150,9 +150,6 @@
     <Text Include="fragmentShader.fs" />
     <Text Include="vertexShader.vs" />
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="line.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

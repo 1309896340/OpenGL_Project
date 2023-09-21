@@ -50,9 +50,4 @@
       <Filter>资源文件</Filter>
     </Text>
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="line.txt">
-      <Filter>资源文件</Filter>
-    </FxCompile>
-  </ItemGroup>
 </Project>

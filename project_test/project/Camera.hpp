@@ -19,13 +19,6 @@ private:
 	float yaw = 0.0f;	// 规定0为x正前方，范围为[-pi,pi]
 	float pitch = 0.0f;	// 规定0为x正前方，范围为[-pi/2,pi/2]
 	float roll = 0.0f;	// 保留，暂时不用
-	// 生成View矩阵和Projection矩阵
-	glm::mat4 generateViewMatrix() {
-		return glm::lookAt(position, position + front, up);
-	}
-	glm::mat4 generateProjectionMatrix() {
-		return glm::perspective(45.0f, (float)WIDTH / HEIGHT, 0.1f, 50.0f);
-	}
 public:
 	Camera(glm::vec3 position, glm::vec3 target) :position(position) {
 		front = glm::normalize(target - position);	// front只在一开始通过position和target确定一次
@@ -70,4 +63,11 @@ public:
 		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * front;
 	}
 
+	// 生成View矩阵和Projection矩阵
+	glm::mat4 getViewMatrix() {
+		return glm::lookAt(position, position + front, up);
+	}
+	glm::mat4 getProjectionMatrix() {
+		return glm::perspective(45.0f, (float)WIDTH / HEIGHT, 0.1f, 50.0f);
+	}
 };

@@ -7,5 +7,5 @@ uniform bool isCustom;
 uniform vec4 CustomColor;
 
 void main(){
-	FragColor = isCustom ? CustomColor : vec5(color, 1.0f);
+	FragColor = isCustom ? CustomColor : vec4(color+0.5f, 1.0f);
 }
