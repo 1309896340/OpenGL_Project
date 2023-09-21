@@ -3,6 +3,22 @@
 #include "Shader.hpp"
 #pragma once
 
+
+typedef struct {
+	vec3 begin;
+	vec3 end;
+	vec4 color;
+	float width;
+} Line;
+
+typedef struct {
+	std::vector<Line> lines;	// 线条缓冲区
+	GLuint vbo_line;
+	Shader* shader;
+}LineStructure;
+
+LineStructure lineManager;
+
 class Geometry {
 private:
 	glm::vec3 position;
@@ -365,84 +381,41 @@ public:
 	}
 };
 
+void initLineDrawing(Shader* shader) {
+	lineManager.shader = shader;
+	glGenBuffers(1, &lineManager.vbo_line);
+	glBindBuffer(GL_ARRAY_BUFFER, lineManager.vbo_line);
+	glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), NULL, GL_STATIC_DRAW);
+}
+void showLines() {
+	glBindBuffer(GL_ARRAY_BUFFER, lineManager.vbo_line);
+	lineManager.shader->use();
+	lineManager.shader->setMat4("model", glm::mat4(1.0f));
+	lineManager.shader->setMat4("modelBuffer", glm::mat4(1.0f));
 
-void drawLine(glm::vec3 begin, glm::vec3 end, glm::vec3 color, float width, Shader* shader) {
-	GLuint VBO;
-	float vertices[] = {
-		begin.x,begin.y,begin.z,
-		end.x,end.y,end.z
-	};
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
-	glEnableVertexAttribArray(0);
-	shader->use();
-	shader->setMat4("model", glm::mat4(1.0f));
-	shader->setMat4("modelBuffer", glm::mat4(1.0f));
-	shader->setBool("isAuto", false);
-	shader->setVec4("ncolor", glm::vec4(color, 1.0f));
-	glLineWidth(width);
-	glDrawArrays(GL_LINES, 0, 2);
-	glDeleteBuffers(1, &VBO);
+	while (!lineManager.lines.empty()) {
+		Line& a = lineManager.lines.back();
+		glNamedBufferData(lineManager.vbo_line, sizeof(float) * 6, &a.begin, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
+		glEnableVertexAttribArray(0);
+		lineManager.shader->setBool("isAuto", false);
+		lineManager.shader->setVec4("ncolor", glm::vec4(a.color.x, a.color.y, a.color.z, a.color.w));
+		glLineWidth(a.width);
+		glDrawArrays(GL_LINES, 0, 2);
+		glLineWidth(0.1f);
+		lineManager.lines.pop_back();
+	}
 }
 
-//class Line :Geometry {
-//private:
-//	glm::vec3 _begin;
-//	glm::vec3 _end;
-//	float width;
-//	Shader* shader;
-//protected:
-//	virtual void generateVertexAndIndex() {
-//		vertex.clear();
-//		index.clear();
-//		vertex.push_back({ _begin.x,_begin.y,_begin.z });
-//		vertex.push_back({ _end.x,_end.y,_end.z });
-//	}
-//	virtual void prepareVAO() {
-//		glGenVertexArrays(1, &VAO);
-//		glBindVertexArray(VAO);
-//
-//		glGenBuffers(1, &vbo_pos);
-//		glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-//		glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), vertex.data(), GL_STATIC_DRAW);
-//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, NULL, NULL);
-//		glEnableVertexAttribArray(0);
-//		glBindVertexArray(0);
-//	}
-//public:
-//	Line(glm::vec3 begin, glm::vec3 end, float width, glm::vec3 color, Shader* shader) :Geometry(glm::vec3(0.0), shader), shader(shader), _begin(begin), _end(end), width(width) {
-//		this->setColor(glm::vec4(color, 1.0f));
-//		generateVertexAndIndex();
-//		prepareVAO();
-//	}
-//
-//	void setBegin() {
-//
-//	}
-//
-//	void setEnd() {
-//
-//	}
-//
-//	void draw() {
-//		shader->use();
-//		if (autoColor) {
-//			shader->setBool("isCustom", false);
-//		}
-//		else {
-//			shader->setBool("isCustom", true);
-//			shader->setVec4("ncolor", color);
-//		}
-//		shader->setMat4("model", glm::mat4(1.0f));
-//		shader->setMat4("modelBuffer", glm::mat4(1.0f));
-//		glLineWidth(width);
-//		glBindVertexArray(VAO);
-//		glDrawArrays(GL_LINES, 0, 2);
-//		glBindVertexArray(0);
-//	}
-//};
+void drawLine(glm::vec3 begin, glm::vec3 end, glm::vec3 color, float width, Shader* shader) {
+	Line a;
+	a.begin = { begin.x,begin.y,begin.z };
+	a.end = { end.x,end.y,end.z };
+	a.color = { color.x,color.y,color.z,1.0f };
+	a.width = width;
+
+	lineManager.lines.push_back(a);
+}
 
 class Arrow {		// 比较粗暴的组合体实现
 private:

@@ -69,5 +69,6 @@ public:
 	}
 	glm::mat4 getProjectionMatrix() {
 		return glm::perspective(45.0f, (float)WIDTH / HEIGHT, 0.1f, 50.0f);
+		//return glm::ortho(-5.0, 8.0, -3.0, 7.0, 0.1, 50.0);
 	}
 };
