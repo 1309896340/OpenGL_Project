@@ -37,7 +37,7 @@ void loadShader(GLuint shader, std::string source) {
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 	if (!success) {
 		glGetShaderInfoLog(shader, sizeof(infoLog), NULL, infoLog);
-		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+		std::cout << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << std::endl;
 		exit(4);
 	}
 }

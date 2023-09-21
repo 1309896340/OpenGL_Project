@@ -120,6 +120,7 @@ int main(int argc, char** argv) {
 	glfwSetKeyCallback(window, key_callback);
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LINE_SMOOTH);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	//glPolygonMode(GL_FRONT, GL_LINE);
 	//glPolygonMode(GL_BACK, GL_FILL);
@@ -134,7 +135,6 @@ int main(int argc, char** argv) {
 	Geometry* obj3 = new Cylinder(1.0f, 6.0f, 4, 24, 40, shader);
 	Geometry* obj4 = new Cone(2.0f, 3.0f, 10, 30, 60, shader);
 
-	//Line *a1 = new Line(glm::vec3(2.0f,0.0f,-2.0f),glm::vec3(),3.0f,glm::vec3(1.0f,0.0f,1.0f));
 
 	obj1->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj1->moveTo(glm::vec3(6.0f, 0.0f, 0.0f));
 	obj2->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj2->moveTo(glm::vec3(3.0f, 0.0f, 0.0f));
@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
 		axis_y->draw();
 		axis_z->draw();
 
-		//a1->draw();
+		drawLine(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f / sqrt(3), 1.0f / sqrt(3), 1.0f / sqrt(3)), glm::vec3(0.0f, 1.0f, 1.0f), 12.0f, shader);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

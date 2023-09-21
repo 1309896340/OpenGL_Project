@@ -3,9 +3,9 @@
 in vec3 color;
 out vec4 FragColor;
 
-uniform bool isCustom;
-uniform vec4 CustomColor;
+uniform bool isAuto;
+uniform vec4 ncolor;
 
 void main(){
-	FragColor = isCustom ? CustomColor : vec4(color+0.5f, 1.0f);
+	FragColor = isAuto ? vec4(color + 0.5f, 1.0f) : ncolor ;
 }
