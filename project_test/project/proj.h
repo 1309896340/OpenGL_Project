@@ -17,8 +17,8 @@
 #include <windows.h>
 
 
-#define WIDTH 800
-#define HEIGHT 600
+#define WIDTH 1600
+#define HEIGHT 1200
 
 #define PI 3.1415926535897932384626433832795
 

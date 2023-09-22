@@ -8,6 +8,8 @@ typedef struct _StatusInfo {
 	bool rightMouseButtonPressed = false;
 	double mousePos[2];
 	unsigned int lastKey = 0;
+	bool startShoot = false;
+	double shootPos[2];
 }StatusInfo;
 
 StatusInfo status;
@@ -29,6 +31,9 @@ void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods)
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		if (action == GLFW_PRESS && !status.leftMouseButtonPressed) {
 			status.leftMouseButtonPressed = true;
+			status.startShoot = true;
+			glfwGetCursorPos(window, &status.shootPos[0], &status.shootPos[1]);
+			std::cout << "发出射线:(" << status.shootPos[0] << "," << status.shootPos[1] << ")" << std::endl;
 		}
 		else if (action == GLFW_RELEASE && status.leftMouseButtonPressed) {
 			status.leftMouseButtonPressed = false;
@@ -54,6 +59,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		status.mousePos[1] = ypos;
 		// 控制视角
 		camera.rotate(dx, dy);
+	}
+	if (status.leftMouseButtonPressed == true) {
+		// 移动射线准心
+		status.shootPos[0] = xpos;
+		status.shootPos[1] = ypos;
+		std::cout << "移动射线:(" << xpos << "," << ypos << ")" << std::endl;
 	}
 }
 
@@ -84,6 +95,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		status.lastKey = GLFW_KEY_UNKNOWN;
 	}
 }
+
+// 当Camera移动时，需要调用shader更新shootPos，Camera旋转时，需要更新shootDir
 
 int main(int argc, char** argv) {
 
@@ -187,10 +200,19 @@ int main(int argc, char** argv) {
 		shader->setMat4("view", camera.getViewMatrix());
 		shader->setVec3("viewPos", camera.getPosition());
 
+
+		if (status.startShoot) {
+			//glm::vec3 ray_start = camera.getPosition() + 1.0f * camera.getFront() + 0.1f * (camera.getRight() + camera.getUp());
+			glm::vec3 ray_start = camera.getShootPos(status.shootPos[0], status.shootPos[1]);
+			glm::vec3 ray_end = camera.getPosition() + 20.0f * camera.getFront();
+			drawLine(ray_start, ray_end, glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shader);
+		}
+
 		for (int i = 0; i < objs.size(); i++) {
 			objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 			objs[i]->draw();
 		}
+
 
 		axis_x->draw();
 		axis_y->draw();

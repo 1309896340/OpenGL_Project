@@ -413,17 +413,17 @@ void initLineDrawing(Shader* shader) {
 	glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), NULL, GL_STATIC_DRAW);
 }
 void showLines() {
-	glBindBuffer(GL_ARRAY_BUFFER, lineManager.vbo_line);
 	lineManager.shader->use();
 	lineManager.shader->setMat4("model", glm::mat4(1.0f));
 	lineManager.shader->setMat4("modelBuffer", glm::mat4(1.0f));
+	lineManager.shader->setBool("isAuto", false);
 
 	while (!lineManager.lines.empty()) {
 		Line& a = lineManager.lines.back();
-		glNamedBufferData(lineManager.vbo_line, sizeof(float) * 6, &a.begin, GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, lineManager.vbo_line);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, &a.begin, GL_DYNAMIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
 		glEnableVertexAttribArray(0);
-		lineManager.shader->setBool("isAuto", false);
 		lineManager.shader->setVec4("ncolor", glm::vec4(a.color.x, a.color.y, a.color.z, a.color.w));
 		glLineWidth(a.width);
 		glDrawArrays(GL_LINES, 0, 2);
