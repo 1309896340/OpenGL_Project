@@ -26,6 +26,9 @@ public:
 		updateAttitude();
 		updateLocalCoordiante();
 	}
+	glm::vec3 getPosition() {
+		return position;
+	}
 	void updateAttitude() {			// 更新相机姿态(俯仰角pitch、航向角yaw)
 		// 计算俯仰角
 		float tmp = acosf(glm::dot(front, _up));

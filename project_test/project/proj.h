@@ -17,10 +17,10 @@
 #include <windows.h>
 
 
-#define WIDTH 1600
-#define HEIGHT 1200
+#define WIDTH 800
+#define HEIGHT 600
 
-#define PI 3.14159265358979323846
+#define PI 3.1415926535897932384626433832795
 
 
 #define EPS 1e-7

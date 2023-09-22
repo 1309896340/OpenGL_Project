@@ -13,7 +13,6 @@ typedef struct _StatusInfo {
 StatusInfo status;
 Camera camera(glm::vec3(1.0f, 6.0f, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
-
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
 glm::vec3 _front = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -120,8 +119,8 @@ int main(int argc, char** argv) {
 	glfwSetKeyCallback(window, key_callback);
 
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LINE_SMOOTH);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glEnable(GL_LINE_SMOOTH);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	//glPolygonMode(GL_FRONT, GL_LINE);
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
@@ -130,18 +129,33 @@ int main(int argc, char** argv) {
 	// Shader的初始化
 	Shader* shader = new Shader("vertexShader.vs", "fragmentShader.fs");	//默认着色器
 
+	std::vector<Geometry*> objs;
+
 	Geometry* obj1 = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20, shader);
 	Geometry* obj2 = new Sphere(2.0f, 40, 20, shader);
 	Geometry* obj3 = new Cylinder(1.0f, 6.0f, 4, 24, 40, shader);
 	Geometry* obj4 = new Cone(2.0f, 3.0f, 10, 30, 60, shader);
 
+
+	//Geometry* obj5 = new Sphere(0.05f, 36, 18, shader);
+	//obj5->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj5->moveTo(glm::vec3(0.2f, 0.2f, 0.2f));
+	//obj5->setColor(glm::vec4(1.0f,0.0f,0.0f,1.0f));
+	//objs.push_back(obj5);
+
+
 	initLineDrawing(shader);
 
-	obj1->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj1->moveTo(glm::vec3(6.0f, 0.0f, 0.0f));
+
+	obj1->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj1->moveTo(glm::vec3(8.0f, 0.0f, 0.0f));
 	obj2->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj2->moveTo(glm::vec3(3.0f, 0.0f, 0.0f));
 	obj3->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj3->moveTo(glm::vec3(0.0f, 0.0f, -3.0f));
 	obj4->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj4->moveTo(glm::vec3(-3.0f, 0.0f, 0.0f));
 	//obj->rotate(glm::radians(20.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+
+	objs.push_back(obj1);
+	objs.push_back(obj2);
+	objs.push_back(obj3);
+	objs.push_back(obj4);
 
 	Arrow* axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), shader);
 	Arrow* axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), shader);
@@ -154,32 +168,37 @@ int main(int argc, char** argv) {
 
 	shader->use();
 	shader->setMat4("projection", camera.getProjectionMatrix());
+	shader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+	shader->setVec3("lightPos", glm::vec3(0.1f, 0.1f, 0.1f));
+
+
+	//obj4->setColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		lastTime = currentTime;;
+		lastTime = currentTime;
 		currentTime = glfwGetTime();
 		deltaTime = currentTime - lastTime;
 
 
 		shader->use();
 		shader->setMat4("view", camera.getViewMatrix());
+		shader->setVec3("viewPos", camera.getPosition());
 
-		//obj->rotate(12 * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
-		obj1->draw();
-		obj2->draw();
-		obj3->draw();
-		obj4->draw();
+		for (int i = 0; i < objs.size(); i++) {
+			objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+			objs[i]->draw();
+		}
 
 		axis_x->draw();
 		axis_y->draw();
 		axis_z->draw();
 
-		drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0, 1, 1), glm::vec3(0.0f, 1.0f, 1.0f), 1.5f, shader);
-		drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1, 0, 1), glm::vec3(1.0f, 0.0f, 1.0f), 1.5f, shader);
-		drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1, 1, 0), glm::vec3(1.0f, 1.0f, 0.0f), 1.5f, shader);
+		//drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0, 1, 1), glm::vec3(0.0f, 1.0f, 1.0f), 1.5f, shader);
+		//drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1, 0, 1), glm::vec3(1.0f, 0.0f, 1.0f), 1.5f, shader);
+		//drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1, 1, 0), glm::vec3(1.0f, 1.0f, 0.0f), 1.5f, shader);
 
 		showLines();
 		glfwSwapBuffers(window);

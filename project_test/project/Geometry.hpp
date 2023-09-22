@@ -28,8 +28,9 @@ private:
 	glm::mat4 modelBuffer;
 
 protected:
-	GLuint VAO, vbo_pos, vbo_idx;
+	GLuint VAO, vbo_pos, vbo_idx, vbo_norm;
 	std::vector<vec3> vertex;
+	std::vector<vec3> normal;
 	std::vector<unsigned int> index;
 
 	Shader* shader;
@@ -43,14 +44,22 @@ protected:
 
 		glGenBuffers(1, &vbo_pos);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-		glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), vertex.data(), GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), vertex.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
+		glEnableVertexAttribArray(0);
+
+		if (!normal.empty()) {
+			glGenBuffers(1, &vbo_norm);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_norm);
+			glBufferData(GL_ARRAY_BUFFER, normal.size() * sizeof(vec3), normal.data(), GL_STATIC_DRAW);
+			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
+			glEnableVertexAttribArray(1);
+		}
 
 		glGenBuffers(1, &vbo_idx);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_idx);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(GLuint), index.data(), GL_STATIC_DRAW);
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
-		glEnableVertexAttribArray(0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
@@ -60,6 +69,9 @@ public:
 
 	Geometry(glm::vec3 position, Shader* shader) :autoColor(true), color(glm::vec4(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)), _scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)) {
 		// 没有颜色初始化
+		vertex.clear();
+		index.clear();
+		normal.clear();
 	}
 	void setColor(glm::vec4 color) {
 		autoColor = false;
@@ -135,12 +147,15 @@ protected:
 
 		vertex.resize(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
 		index.resize(2 * (xyNum + zyNum + xzNum) * 6, 0);
+		normal.resize(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
 
 		int baseVert = 0, baseIdx = 0;
 		for (int i = 0; i <= xSliceNum; i++) {
 			for (int j = 0; j <= ySliceNum; j++) {
 				vertex[baseVert + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength / 2 };
 				vertex[baseVert + xyNum1 + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength / 2 };
+				normal[baseVert + i * (ySliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
+				normal[baseVert + xyNum1 + i * (ySliceNum + 1) + j] = { 0.0f,0.0f,1.0f };
 				if (i < xSliceNum && j < ySliceNum) {
 					for (int k = 0; k < 2; k++) {
 						unsigned int* ptr = &index[baseIdx + (k * xyNum + i * ySliceNum + j) * 6];
@@ -160,6 +175,8 @@ protected:
 			for (int j = 0; j <= ySliceNum; j++) {
 				vertex[baseVert + i * (ySliceNum + 1) + j] = { -xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
 				vertex[baseVert + zyNum1 + i * (ySliceNum + 1) + j] = { xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
+				normal[baseVert + i * (ySliceNum + 1) + j] = { -1.0f,0.0f,0.0f };
+				normal[baseVert + zyNum1 + i * (ySliceNum + 1) + j] = { 1.0f,0.0f,0.0f };
 				if (i < zSliceNum && j < ySliceNum) {
 					for (int k = 0; k < 2; k++) {
 						unsigned int* ptr = &index[baseIdx + (k * zyNum + i * ySliceNum + j) * 6];
@@ -179,6 +196,8 @@ protected:
 			for (int j = 0; j <= zSliceNum; j++) {
 				vertex[baseVert + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2, -zLength / 2 + j * dz };
 				vertex[baseVert + xzNum1 + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, yLength / 2, -zLength / 2 + j * dz };
+				normal[baseVert + i * (zSliceNum + 1) + j] = { 0.0f,-1.0f,0.0f };
+				normal[baseVert + xzNum1 + i * (zSliceNum + 1) + j] = { 0.0f,1.0f,0.0f };
 				if (i < xSliceNum && j < zSliceNum) {
 					for (int k = 0; k < 2; k++) {
 						unsigned int* ptr = &index[baseIdx + (k * xzNum + i * zSliceNum + j) * 6];
@@ -216,12 +235,14 @@ protected:
 
 		vertex.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
 		index.resize(lonlatNum * 6, 0);
+		normal.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
 
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= latSliceNum; j++) {
 				float lon = -PI + i * lonStep;
 				float lat = -PI / 2 + j * latStep;
 				vertex[i * (latSliceNum + 1) + j] = { radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) };
+				normal[i * (latSliceNum + 1) + j] = { cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat) };
 				if (i < lonSliceNum && j < latSliceNum) {
 					unsigned int* ptr = &index[(i * latSliceNum + j) * 6];
 					*ptr++ = i * (latSliceNum + 1) + j;
@@ -264,12 +285,15 @@ protected:
 		int baseVert = 0, baseIdx = 0;
 		vertex.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
 		index.resize((2 * rlonNum + hlonNum) * 6, 0);
+		normal.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
 				vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
 				vertex[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
+				normal[baseVert + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
+				normal[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,1.0f };
 				if (i < lonSliceNum && j < rSliceNum) {
 					for (int k = 0; k < 2; k++) {
 						unsigned int* ptr = &index[baseIdx + (k * rlonNum + i * rSliceNum + j) * 6];
@@ -290,6 +314,7 @@ protected:
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
 				vertex[baseVert + i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
+				normal[baseVert + i * (lonSliceNum + 1) + j] = { cos(lon_tmp), sin(lon_tmp), 0.0f };
 				if (i < hSliceNum && j < lonSliceNum) {
 					unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
 					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
@@ -333,12 +358,14 @@ protected:
 		int baseVert = 0, baseIdx = 0;
 		vertex.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
 		index.resize((rlonNum + hlonNum) * 6, 0);
+		normal.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
 
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
 				vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+				normal[baseVert + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
 				if (i < lonSliceNum && j < rSliceNum) {
 					unsigned int* ptr = &index[baseIdx + (i * rSliceNum + j) * 6];
 					*ptr++ = baseVert + i * (rSliceNum + 1) + j;
@@ -351,13 +378,15 @@ protected:
 			}
 		}
 		baseVert += rlonNum1;
-		baseIdx += rlonNum * 6; 
+		baseIdx += rlonNum * 6;
 		for (int i = 0; i <= hSliceNum; i++) {
 			for (int j = 0; j <= lonSliceNum; j++) {
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
 				r_tmp = radius * (1 - i * hStep / height);
 				vertex[baseVert + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
+				float tmp = sqrt(r_tmp * r_tmp + height * height);
+				normal[baseVert + i * (lonSliceNum + 1) + j] = { h_tmp * cos(lon_tmp) / tmp,h_tmp * sin(lon_tmp) / tmp,r_tmp / tmp };
 				if (i < hSliceNum && j < lonSliceNum) {
 					unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
 					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
