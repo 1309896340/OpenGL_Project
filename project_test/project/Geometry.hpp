@@ -386,7 +386,7 @@ protected:
 				r_tmp = radius * (1 - i * hStep / height);
 				vertex[baseVert + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
 				float tmp = sqrt(r_tmp * r_tmp + height * height);
-				normal[baseVert + i * (lonSliceNum + 1) + j] = { h_tmp * cos(lon_tmp) / tmp,h_tmp * sin(lon_tmp) / tmp,r_tmp / tmp };
+				normal[baseVert + i * (lonSliceNum + 1) + j] = { height * cos(lon_tmp) / tmp,height * sin(lon_tmp) / tmp,r_tmp / tmp };
 				if (i < hSliceNum && j < lonSliceNum) {
 					unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
 					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;

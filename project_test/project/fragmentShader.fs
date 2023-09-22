@@ -29,5 +29,5 @@ void main(){
 	vec3 diffuse = max(dot(normal,lightDir),0.0f) * lightColor;
 	vec3 specular = pow(max(dot(reflectDir,viewDir),0.0f),32) * specularStrength  * lightColor;
 	vec3 result = (ambient + diffuse + specular) * (isAuto ? color : ncolor.xyz);
-	FragColor =	vec4(result, 1.0f);			// 采用照明模型
+	FragColor =	vec4(result, 1.0f);
 }
