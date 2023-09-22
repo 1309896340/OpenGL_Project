@@ -120,7 +120,6 @@ private:
 
 protected:
 	virtual void generateVertexAndIndex() {
-
 		float dx, dy, dz;
 		dx = xLength / xSliceNum;
 		dy = yLength / ySliceNum;
@@ -134,71 +133,62 @@ protected:
 		int zyNum1 = (ySliceNum + 1) * (zSliceNum + 1);
 		int xzNum1 = (xSliceNum + 1) * (zSliceNum + 1);
 
-		std::vector<vec3> xybuf(2 * (xSliceNum + 1) * (ySliceNum + 1));
-		std::vector<vec3> zybuf(2 * (zSliceNum + 1) * (ySliceNum + 1));
-		std::vector<vec3> xzbuf(2 * (xSliceNum + 1) * (zSliceNum + 1));
-
-		std::vector<GLuint> xyidx(2 * 6 * xSliceNum * ySliceNum);
-		std::vector<GLuint> zyidx(2 * 6 * zSliceNum * ySliceNum);
-		std::vector<GLuint> xzidx(2 * 6 * xSliceNum * zSliceNum);
-
 		vertex.resize(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
-		index.clear();
+		index.resize(2 * (xyNum + zyNum + xzNum) * 6, 0);
 
-		int base = 0;
+		int baseVert = 0, baseIdx = 0;
 		for (int i = 0; i <= xSliceNum; i++) {
 			for (int j = 0; j <= ySliceNum; j++) {
-				vertex[base + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength / 2 };
-				vertex[base + xyNum1 + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength / 2 };
-			}
-		}
-		for (int k = 0; k < 2; k++) {
-			for (int i = 0; i < xSliceNum; i++) {
-				for (int j = 0; j < ySliceNum; j++) {
-					index.push_back(base + k * xyNum1 + i * (ySliceNum + 1) + j);
-					index.push_back(base + k * xyNum1 + i * (ySliceNum + 1) + j + 1);
-					index.push_back(base + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j + 1);
-					index.push_back(base + k * xyNum1 + i * (ySliceNum + 1) + j);
-					index.push_back(base + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j + 1);
-					index.push_back(base + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j);
+				vertex[baseVert + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength / 2 };
+				vertex[baseVert + xyNum1 + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength / 2 };
+				if (i < xSliceNum && j < ySliceNum) {
+					for (int k = 0; k < 2; k++) {
+						unsigned int* ptr = &index[baseIdx + (k * xyNum + i * ySliceNum + j) * 6];
+						*ptr++ = baseVert + k * xyNum1 + i * (ySliceNum + 1) + j;
+						*ptr++ = baseVert + k * xyNum1 + i * (ySliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * xyNum1 + i * (ySliceNum + 1) + j;
+						*ptr++ = baseVert + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j;
+					}
 				}
 			}
 		}
-		base += 2 * xyNum1;
+		baseVert += 2 * xyNum1;
+		baseIdx += 2 * xyNum * 6;
 		for (int i = 0; i <= zSliceNum; i++) {
 			for (int j = 0; j <= ySliceNum; j++) {
-				vertex[base + i * (ySliceNum + 1) + j] = { -xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
-				vertex[base + zyNum1 + i * (ySliceNum + 1) + j] = { xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
-			}
-		}
-		for (int k = 0; k < 2; k++) {
-			for (int i = 0; i < zSliceNum; i++) {
-				for (int j = 0; j < ySliceNum; j++) {
-					index.push_back(base + k * zyNum1 + i * (ySliceNum + 1) + j);
-					index.push_back(base + k * zyNum1 + i * (ySliceNum + 1) + j + 1);
-					index.push_back(base + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j + 1);
-					index.push_back(base + k * zyNum1 + i * (ySliceNum + 1) + j);
-					index.push_back(base + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j + 1);
-					index.push_back(base + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j);
+				vertex[baseVert + i * (ySliceNum + 1) + j] = { -xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
+				vertex[baseVert + zyNum1 + i * (ySliceNum + 1) + j] = { xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
+				if (i < zSliceNum && j < ySliceNum) {
+					for (int k = 0; k < 2; k++) {
+						unsigned int* ptr = &index[baseIdx + (k * zyNum + i * ySliceNum + j) * 6];
+						*ptr++ = baseVert + k * zyNum1 + i * (ySliceNum + 1) + j;
+						*ptr++ = baseVert + k * zyNum1 + i * (ySliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * zyNum1 + i * (ySliceNum + 1) + j;
+						*ptr++ = baseVert + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j;
+					}
 				}
 			}
 		}
-		base += 2 * zyNum1;
+		baseVert += 2 * zyNum1;
+		baseIdx += 2 * zyNum * 6;
 		for (int i = 0; i <= xSliceNum; i++) {
 			for (int j = 0; j <= zSliceNum; j++) {
-				vertex[base + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2, -zLength / 2 + j * dz };
-				vertex[base + xzNum1 + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, yLength / 2, -zLength / 2 + j * dz };
-			}
-		}
-		for (int k = 0; k < 2; k++) {
-			for (int i = 0; i < xSliceNum; i++) {
-				for (int j = 0; j < zSliceNum; j++) {
-					index.push_back(base + k * xzNum1 + i * (zSliceNum + 1) + j);
-					index.push_back(base + k * xzNum1 + i * (zSliceNum + 1) + j + 1);
-					index.push_back(base + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j + 1);
-					index.push_back(base + k * xzNum1 + i * (zSliceNum + 1) + j);
-					index.push_back(base + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j + 1);
-					index.push_back(base + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j);
+				vertex[baseVert + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2, -zLength / 2 + j * dz };
+				vertex[baseVert + xzNum1 + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, yLength / 2, -zLength / 2 + j * dz };
+				if (i < xSliceNum && j < zSliceNum) {
+					for (int k = 0; k < 2; k++) {
+						unsigned int* ptr = &index[baseIdx + (k * xzNum + i * zSliceNum + j) * 6];
+						*ptr++ = baseVert + k * xzNum1 + i * (zSliceNum + 1) + j;
+						*ptr++ = baseVert + k * xzNum1 + i * (zSliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * xzNum1 + i * (zSliceNum + 1) + j;
+						*ptr++ = baseVert + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j;
+					}
 				}
 			}
 		}
@@ -221,21 +211,25 @@ protected:
 		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
 
-		vertex.clear();
-		index.clear();
+		int lonlatNum = lonSliceNum * latSliceNum;
+		int lonlatNum1 = (latSliceNum + 1) * (lonSliceNum + 1);
+
+		vertex.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
+		index.resize(lonlatNum * 6, 0);
 
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= latSliceNum; j++) {
 				float lon = -PI + i * lonStep;
 				float lat = -PI / 2 + j * latStep;
-				vertex.push_back({ radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) });
+				vertex[i * (latSliceNum + 1) + j] = { radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) };
 				if (i < lonSliceNum && j < latSliceNum) {
-					index.push_back(i * (latSliceNum + 1) + j);
-					index.push_back(i * (latSliceNum + 1) + j + 1);
-					index.push_back((i + 1) * (latSliceNum + 1) + j + 1);
-					index.push_back(i * (latSliceNum + 1) + j);
-					index.push_back((i + 1) * (latSliceNum + 1) + j + 1);
-					index.push_back((i + 1) * (latSliceNum + 1) + j);
+					unsigned int* ptr = &index[(i * latSliceNum + j) * 6];
+					*ptr++ = i * (latSliceNum + 1) + j;
+					*ptr++ = i * (latSliceNum + 1) + j + 1;
+					*ptr++ = (i + 1) * (latSliceNum + 1) + j + 1;
+					*ptr++ = i * (latSliceNum + 1) + j;
+					*ptr++ = (i + 1) * (latSliceNum + 1) + j + 1;
+					*ptr++ = (i + 1) * (latSliceNum + 1) + j;
 				}
 			}
 		}
@@ -265,47 +259,46 @@ protected:
 		int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
 		int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
 
-		int base = 0;
-		vertex.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		index.clear();
-
 		float lon_tmp, r_tmp, h_tmp;
+
+		int baseVert = 0, baseIdx = 0;
+		vertex.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		index.resize((2 * rlonNum + hlonNum) * 6, 0);
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
-				vertex[base + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
-				vertex[base + rlonNum1 + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
-			}
-		}
-		for (int k = 0; k < 2; k++) {
-			for (int i = 0; i < lonSliceNum; i++) {
-				for (int j = 0; j < rSliceNum; j++) {
-					index.push_back(base + k * rlonNum1 + i * (rSliceNum + 1) + j);
-					index.push_back(base + k * rlonNum1 + i * (rSliceNum + 1) + j + 1);
-					index.push_back(base + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1);
-					index.push_back(base + k * rlonNum1 + i * (rSliceNum + 1) + j);
-					index.push_back(base + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1);
-					index.push_back(base + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j);
+				vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+				vertex[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
+				if (i < lonSliceNum && j < rSliceNum) {
+					for (int k = 0; k < 2; k++) {
+						unsigned int* ptr = &index[baseIdx + (k * rlonNum + i * rSliceNum + j) * 6];
+						*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j;
+						*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j;
+						*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1;
+						*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j;
+					}
 				}
 			}
 		}
-		base += 2 * rlonNum1;
+		baseVert += 2 * rlonNum1;
+		baseIdx += 2 * rlonNum * 6;
 		for (int i = 0; i <= hSliceNum; i++) {
 			for (int j = 0; j <= lonSliceNum; j++) {
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
-				vertex[base + i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
-			}
-		}
-		for (int i = 0; i < hSliceNum; i++) {
-			for (int j = 0; j < lonSliceNum; j++) {
-				index.push_back(base + i * (lonSliceNum + 1) + j);
-				index.push_back(base + i * (lonSliceNum + 1) + j + 1);
-				index.push_back(base + (i + 1) * (lonSliceNum + 1) + j + 1);
-				index.push_back(base + i * (lonSliceNum + 1) + j);
-				index.push_back(base + (i + 1) * (lonSliceNum + 1) + j + 1);
-				index.push_back(base + (i + 1) * (lonSliceNum + 1) + j);
+				vertex[baseVert + i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
+				if (i < hSliceNum && j < lonSliceNum) {
+					unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
+					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
+					*ptr++ = baseVert + i * (lonSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
+					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j;
+				}
 			}
 		}
 	}
@@ -335,41 +328,44 @@ protected:
 		int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
 		int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
 
-		vertex.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		index.clear();
-
 		float lon_tmp, r_tmp, h_tmp;
 
-		int base = 0;
+		int baseVert = 0, baseIdx = 0;
+		vertex.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		index.resize((rlonNum + hlonNum) * 6, 0);
+
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
-				vertex[base + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+				vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
 				if (i < lonSliceNum && j < rSliceNum) {
-					index.push_back(base + i * (rSliceNum + 1) + j);
-					index.push_back(base + i * (rSliceNum + 1) + j + 1);
-					index.push_back(base + (i + 1) * (rSliceNum + 1) + j + 1);
-					index.push_back(base + i * (rSliceNum + 1) + j);
-					index.push_back(base + (i + 1) * (rSliceNum + 1) + j + 1);
-					index.push_back(base + (i + 1) * (rSliceNum + 1) + j);
+					unsigned int* ptr = &index[baseIdx + (i * rSliceNum + j) * 6];
+					*ptr++ = baseVert + i * (rSliceNum + 1) + j;
+					*ptr++ = baseVert + i * (rSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + i * (rSliceNum + 1) + j;
+					*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j;
 				}
 			}
 		}
-		base += rlonNum1;
+		baseVert += rlonNum1;
+		baseIdx += rlonNum * 6; 
 		for (int i = 0; i <= hSliceNum; i++) {
 			for (int j = 0; j <= lonSliceNum; j++) {
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
 				r_tmp = radius * (1 - i * hStep / height);
-				vertex[base + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
+				vertex[baseVert + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
 				if (i < hSliceNum && j < lonSliceNum) {
-					index.push_back(base + i * (lonSliceNum + 1) + j);
-					index.push_back(base + i * (lonSliceNum + 1) + j + 1);
-					index.push_back(base + (i + 1) * (lonSliceNum + 1) + j + 1);
-					index.push_back(base + i * (lonSliceNum + 1) + j);
-					index.push_back(base + (i + 1) * (lonSliceNum + 1) + j + 1);
-					index.push_back(base + (i + 1) * (lonSliceNum + 1) + j);
+					unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
+					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
+					*ptr++ = baseVert + i * (lonSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
+					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
+					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j;
 				}
 			}
 		}
