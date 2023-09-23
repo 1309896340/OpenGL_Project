@@ -74,4 +74,21 @@ public:
 		return glm::perspective(45.0f, (float)WIDTH / HEIGHT, 0.1f, 50.0f);
 		//return glm::ortho(-5.0, 8.0, -3.0, 7.0, 0.1, 50.0);
 	}
+	glm::vec3 getShootPos(double x, double y) {
+		// x和y为窗口的未归一化坐标
+		x = (x - WIDTH / 2) / (WIDTH / 2);
+		y = (HEIGHT / 2 - y) / (HEIGHT / 2);
+		// 映射到世界坐标系
+		glm::vec4 worldPos = glm::inverse(getProjectionMatrix() * getViewMatrix()) * glm::vec4(x, y, -0.1, 1.0);
+		return glm::vec3(worldPos.x, worldPos.y, worldPos.z);
+	}
+	glm::vec3 getFront() {
+		return front;
+	}
+	glm::vec3 getRight() {
+		return right;
+	}
+	glm::vec3 getUp() {
+		return up;
+	}
 };

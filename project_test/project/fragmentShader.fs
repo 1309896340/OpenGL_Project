@@ -13,6 +13,9 @@ uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 
+uniform vec3 shootPos;			// 射出线条的起点
+uniform vec3 shootDir;			// 射出线条的方向
+
 float ambientStrength = 0.2f;
 float specularStrength = 0.5f;
 
