@@ -60,7 +60,6 @@ protected:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_idx);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(GLuint), index.data(), GL_STATIC_DRAW);
 
-
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}  //解析顶点和索引
@@ -406,6 +405,67 @@ public:
 	}
 };
 
+
+typedef float (*zFunc)(float x, float y);
+typedef vec3(*zGrad)(float x, float y, float z);
+
+class Surface : public Geometry {
+private:
+	int xSliceNum;
+	int ySliceNum;
+	float xStart, xEnd;
+	float yStart, yEnd;
+	zFunc func;
+	zGrad grad;
+
+protected:
+	//virtual float zfunc(float x, float y) = 0;
+	//virtual vec3 zfunc_grad(float x, float y, float z) = 0;
+
+	virtual void generateVertexAndIndex() {
+		float dx = (xEnd - xStart) / xSliceNum;
+		float dy = (yEnd - yStart) / ySliceNum;
+		float x, y, z;
+		vec3 _grad;
+
+		int lonlatNum = xSliceNum * ySliceNum;
+		int lonlatNum1 = (xSliceNum + 1) * (ySliceNum + 1);
+
+		vertex.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
+		index.resize(lonlatNum * 6, 0);
+		normal.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
+
+		for (int i = 0; i <= xSliceNum; i++) {
+			for (int j = 0; j <= ySliceNum; j++) {
+				x = xStart + i * dx;
+				y = yStart + j * dy;
+				z = func(x, y);
+				_grad = grad(x, y, z);
+
+				vertex[i * (ySliceNum + 1) + j] = { x,y,z };
+				normal[i * (ySliceNum + 1) + j] = { _grad.x, _grad.y, _grad.z };
+				if (i < xSliceNum && j < ySliceNum) {
+					unsigned int* ptr = &index[(i * ySliceNum + j) * 6];
+					*ptr++ = i * (ySliceNum + 1) + j;
+					*ptr++ = i * (ySliceNum + 1) + j + 1;
+					*ptr++ = (i + 1) * (ySliceNum + 1) + j + 1;
+					*ptr++ = i * (ySliceNum + 1) + j;
+					*ptr++ = (i + 1) * (ySliceNum + 1) + j + 1;
+					*ptr++ = (i + 1) * (ySliceNum + 1) + j;
+				}
+			}
+		}
+	}
+public:
+	Surface(float xStart, float xEnd, float yStart, float yEnd, zFunc func, zGrad grad, unsigned int xSliceNum, unsigned int ySliceNum, Shader* shader) :
+		Geometry(glm::vec3(0.0), shader), xStart(xStart), xEnd(xEnd), yStart(yStart), yEnd(yEnd), func(func), grad(grad), xSliceNum(xSliceNum), ySliceNum(ySliceNum) {
+		generateVertexAndIndex();
+		prepareVAO();
+	}
+};
+
+
+
 void initLineDrawing(Shader* shader) {
 	lineManager.shader = shader;
 	glGenBuffers(1, &lineManager.vbo_line);
@@ -427,7 +487,7 @@ void showLines() {
 		lineManager.shader->setVec4("ncolor", glm::vec4(a.color.x, a.color.y, a.color.z, a.color.w));
 		glLineWidth(a.width);
 		glDrawArrays(GL_LINES, 0, 2);
-		glLineWidth(0.1f);
+		glLineWidth(DEFAULT_LINE_WIDTH);
 		lineManager.lines.pop_back();
 	}
 }

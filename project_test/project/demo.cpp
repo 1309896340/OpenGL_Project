@@ -10,6 +10,7 @@ typedef struct _StatusInfo {
 	unsigned int lastKey = 0;
 	bool startShoot = false;
 	double shootPos[2];
+	glm::vec3 lightPos = glm::vec3(0.1f, 0.1f, 0.1f);
 }StatusInfo;
 
 StatusInfo status;
@@ -89,11 +90,41 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		case GLFW_KEY_D:
 			camera.move(0.1f, 0.0f);
 			break;
+		case GLFW_KEY_UP:  // 控制光源的位置
+			status.lightPos.z -= 0.2f;
+			break;
+		case GLFW_KEY_DOWN:
+			status.lightPos.z += 0.2f;
+			break;
+		case GLFW_KEY_LEFT:
+			status.lightPos.x -= 0.2f;
+			break;
+		case GLFW_KEY_RIGHT:
+			status.lightPos.x += 0.2f;
+			break;
+		case GLFW_KEY_H:
+			status.lightPos.y += 0.2f;
+			break;
+		case GLFW_KEY_G:
+			status.lightPos.y -= 0.2f;
+			break;
 		}
 	}
 	else if (action == GLFW_RELEASE) {
 		status.lastKey = GLFW_KEY_UNKNOWN;
 	}
+}
+
+float SurfaceFunc(float x, float y) {
+	return sinf(PI * x) + cosf(PI * y);
+}
+vec3 SurfaceGrad(float x, float y, float z) {
+	vec3 tmp = { -PI * cosf(PI * x), -PI * sinf(PI * y), 1 };
+	float nm = sqrtf(tmp.x * tmp.x + tmp.y * tmp.y + tmp.z * tmp.z);
+	tmp.x /= nm;
+	tmp.y /= nm;
+	tmp.z /= nm;
+	return tmp;
 }
 
 // 当Camera移动时，需要调用shader更新shootPos，Camera旋转时，需要更新shootDir
@@ -140,14 +171,21 @@ int main(int argc, char** argv) {
 
 
 	// Shader的初始化
-	Shader* shader = new Shader("vertexShader.vs", "fragmentShader.fs");	//默认着色器
+	Shader* shader = new Shader("vertexShader.gvs", "fragmentShader.gfs");	//默认着色器
 
 	std::vector<Geometry*> objs;
 
-	Geometry* obj1 = new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20, shader);
-	Geometry* obj2 = new Sphere(2.0f, 40, 20, shader);
-	Geometry* obj3 = new Cylinder(1.0f, 6.0f, 4, 24, 40, shader);
-	Geometry* obj4 = new Cone(2.0f, 3.0f, 10, 30, 60, shader);
+	//objs.push_back(new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20, shader));
+	//objs.push_back(new Sphere(2.0f, 40, 20, shader));
+	//objs.push_back(new Cylinder(1.0f, 6.0f, 4, 24, 40, shader));
+	//objs.push_back(new Cone(2.0f, 3.0f, 10, 30, 60, shader));
+	objs.push_back(new Surface(-4.0f, 4.0f, -4.0f, 4.0f, SurfaceFunc, SurfaceGrad, 320, 320, shader));
+	objs[0]->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	objs[0]->translate(glm::vec3(0.0f, -2.0f, 0.0f));
+
+	objs.push_back(new Sphere(0.04f, 72, 20, shader));
+	objs[1]->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	objs[1]->translate(status.lightPos);
 
 
 	//Geometry* obj5 = new Sphere(0.05f, 36, 18, shader);
@@ -158,17 +196,10 @@ int main(int argc, char** argv) {
 
 	initLineDrawing(shader);
 
-
-	obj1->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj1->moveTo(glm::vec3(8.0f, 0.0f, 0.0f));
-	obj2->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj2->moveTo(glm::vec3(3.0f, 0.0f, 0.0f));
-	obj3->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj3->moveTo(glm::vec3(0.0f, 0.0f, -3.0f));
-	obj4->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj4->moveTo(glm::vec3(-3.0f, 0.0f, 0.0f));
-	//obj->rotate(glm::radians(20.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-
-	objs.push_back(obj1);
-	objs.push_back(obj2);
-	objs.push_back(obj3);
-	objs.push_back(obj4);
+	//for (int i = 0; i < 4; i++) {
+	//	objs[i]->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//	objs[i]->moveTo(glm::vec3(4.0f * (i - 2), 0.0f, 0.0f));
+	//}
 
 	Arrow* axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), shader);
 	Arrow* axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), shader);
@@ -182,7 +213,8 @@ int main(int argc, char** argv) {
 	shader->use();
 	shader->setMat4("projection", camera.getProjectionMatrix());
 	shader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-	shader->setVec3("lightPos", glm::vec3(0.1f, 0.1f, 0.1f));
+	shader->setVec3("lightPos", status.lightPos);
+	//shader->setVec3("lightPos", glm::vec3(0.1f, 0.1f, 0.1f));
 
 
 	//obj4->setColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
@@ -200,16 +232,19 @@ int main(int argc, char** argv) {
 		shader->setMat4("view", camera.getViewMatrix());
 		shader->setVec3("viewPos", camera.getPosition());
 
+		objs[1]->moveTo(status.lightPos);
+		shader->setVec3("lightPos", status.lightPos);
 
-		if (status.startShoot) {
-			//glm::vec3 ray_start = camera.getPosition() + 1.0f * camera.getFront() + 0.1f * (camera.getRight() + camera.getUp());
-			glm::vec3 ray_start = camera.getShootPos(status.shootPos[0], status.shootPos[1]);
-			glm::vec3 ray_end = camera.getPosition() + 20.0f * camera.getFront();
-			drawLine(ray_start, ray_end, glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shader);
-		}
+		//// 绘制射线只是为了方便，由于射线方向与镜头方向平行，所以线条绘制不出来
+		//if (status.startShoot) {
+		//	//glm::vec3 ray_start = camera.getPosition() + 1.0f * camera.getFront() + 0.1f * (camera.getRight() + camera.getUp());
+		//	glm::vec3 ray_start = camera.getPosition() + (float)(status.shootPos[0] - WIDTH / 2) / (WIDTH / 2) * camera.getRight() + (float)(HEIGHT / 2 - status.shootPos[1]) / (HEIGHT / 2) * camera.getUp();
+		//	glm::vec3 ray_end = camera.getPosition() + 20.0f * camera.getFront();
+		//	drawLine(ray_start, ray_end, glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shader);
+		//}
 
 		for (int i = 0; i < objs.size(); i++) {
-			objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+			//objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 			objs[i]->draw();
 		}
 

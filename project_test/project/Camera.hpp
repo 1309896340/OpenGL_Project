@@ -79,7 +79,7 @@ public:
 		x = (x - WIDTH / 2) / (WIDTH / 2);
 		y = (HEIGHT / 2 - y) / (HEIGHT / 2);
 		// 映射到世界坐标系
-		glm::vec4 worldPos = glm::inverse(getProjectionMatrix() * getViewMatrix()) * glm::vec4(x, y, -0.1, 1.0);
+		glm::vec4 worldPos = glm::inverse(getProjectionMatrix() * getViewMatrix()) * glm::vec4(x, y, 0.1, 1.0);
 		return glm::vec3(worldPos.x, worldPos.y, worldPos.z);
 	}
 	glm::vec3 getFront() {

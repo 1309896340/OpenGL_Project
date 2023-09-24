@@ -43,10 +43,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="vertexShader.vs">
+    <Text Include="vertexShader.gvs">
       <Filter>资源文件</Filter>
     </Text>
-    <Text Include="fragmentShader.fs">
+    <Text Include="fragmentShader.gfs">
       <Filter>资源文件</Filter>
     </Text>
   </ItemGroup>
