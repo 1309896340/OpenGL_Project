@@ -48,6 +48,11 @@ public:
 		up = glm::normalize(glm::cross(right, front));
 		// 好像暂时用不到局部坐标系
 	}
+	void lookAt(glm::vec3 dst) {
+		front = glm::normalize(dst - position);
+		updateAttitude();
+		updateLocalCoordiante();
+	}
 	void rotate(float dx, float dy) {	// 控制相机旋转(更新front向量)
 		yaw -= dx * X_ROTATE_SENSITIVITY;
 		pitch -= dy * Y_ROTATE_SENSITIVITY;
@@ -64,6 +69,9 @@ public:
 	}
 	void move(float dx, float dy) {	// // 控制相机旋转(更新相机位置) 
 		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * front;
+	}
+	void moveTo(float x, float y, float z) {	// // 控制相机旋转(更新相机位置) 
+		position = glm::vec3(x, y, z);
 	}
 
 	// 生成View矩阵和Projection矩阵

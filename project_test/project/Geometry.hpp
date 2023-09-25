@@ -1,6 +1,7 @@
 #include "proj.h"
 #include "utils.h"
 #include "Shader.hpp"
+
 #pragma once
 
 
@@ -33,7 +34,7 @@ private:
 	glm::mat4 modelBuffer;
 
 protected:
-	GLuint VAO, vbo_pos, vbo_idx, vbo_norm;
+	GLuint VAO;
 	std::vector<vec3> vertex;
 	std::vector<vec3> normal;
 	std::vector<unsigned int> index;
@@ -42,44 +43,35 @@ protected:
 	glm::vec4 color;
 	bool autoColor;
 
-	virtual void generateVertexAndIndex() = 0;  //生成顶点和索引
-	virtual void prepareVAO() {
-		glGenVertexArrays(1, &VAO);
-		glBindVertexArray(VAO);
-
-		glGenBuffers(1, &vbo_pos);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-		glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), vertex.data(), GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
-		glEnableVertexAttribArray(0);
-
-		if (!normal.empty()) {
-			glGenBuffers(1, &vbo_norm);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo_norm);
-			glBufferData(GL_ARRAY_BUFFER, normal.size() * sizeof(vec3), normal.data(), GL_STATIC_DRAW);
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
-			glEnableVertexAttribArray(1);
-		}
-
-		glGenBuffers(1, &vbo_idx);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_idx);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(GLuint), index.data(), GL_STATIC_DRAW);
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
-	}  //解析顶点和索引
-
 public:
 
-	Geometry(glm::vec3 position, Shader* shader) :autoColor(true), color(glm::vec4(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)), _scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)) {
+	Geometry(glm::vec3 position, Shader* shader) :autoColor(true), color(glm::vec4(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
+		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)) {
 		// 没有颜色初始化
 		vertex.clear();
 		index.clear();
 		normal.clear();
 	}
+	Geometry(Shader* shader) :position(glm::vec3(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
+		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), autoColor(true), color(glm::vec4(0.0f)) {
+		vertex.clear();
+		index.clear();
+		normal.clear();
+	}
+
+	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :position(glm::vec3(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
+		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), vertex(vertex), normal(normal), index(index), autoColor(true), color(glm::vec4(0.0f)) {
+		VAO = prepareVAO(vertex, normal, index);
+	}
+
 	void setColor(glm::vec4 color) {
 		autoColor = false;
 		this->color = color;
+	}
+
+	void setColor(bool isAuto) {
+		if (isAuto)
+			autoColor = true;
 	}
 	void rotate(float angle, glm::vec3 axis) {
 		rotation = glm::angleAxis(angle, axis) * rotation;
@@ -134,9 +126,11 @@ class Cube : public Geometry {
 private:
 	int xSliceNum, ySliceNum, zSliceNum;
 	float xLength, yLength, zLength;
+public:
+	Cube(float xLength, float yLength, float zLength, int xSliceNum, int ySliceNum, int zSliceNum, Shader* shader) :
+		Geometry(glm::vec3(0.0), shader), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
+		xLength(xLength), yLength(yLength), zLength(zLength) {
 
-protected:
-	virtual void generateVertexAndIndex() {
 		float dx, dy, dz;
 		dx = xLength / xSliceNum;
 		dy = yLength / ySliceNum;
@@ -216,11 +210,7 @@ protected:
 				}
 			}
 		}
-	}
-public:
-	Cube(float xLength, float yLength, float zLength, int xSliceNum, int ySliceNum, int zSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum), xLength(xLength), yLength(yLength), zLength(zLength) {
-		generateVertexAndIndex();
-		prepareVAO();
+		VAO = prepareVAO(vertex, normal, index);
 	}
 };
 
@@ -230,8 +220,8 @@ private:
 	int lonSliceNum;
 	int latSliceNum;
 
-protected:
-	virtual void generateVertexAndIndex() {
+public:
+	Sphere(float radius, unsigned int lonSliceNum, unsigned int latSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
 		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
 
@@ -259,11 +249,7 @@ protected:
 				}
 			}
 		}
-	}
-public:
-	Sphere(float radius, unsigned int lonSliceNum, unsigned int latSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
-		generateVertexAndIndex();
-		prepareVAO();
+		VAO = prepareVAO(vertex, normal, index);
 	}
 };
 
@@ -274,8 +260,8 @@ private:
 	int rSliceNum;
 	int hSliceNum;
 	int lonSliceNum;
-protected:
-	void generateVertexAndIndex() {
+public:
+	Cylinder(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -331,11 +317,7 @@ protected:
 				}
 			}
 		}
-	}
-public:
-	Cylinder(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
-		generateVertexAndIndex();
-		prepareVAO();
+		VAO = prepareVAO(vertex, normal, index);
 	}
 };
 
@@ -347,8 +329,8 @@ private:
 	int rSliceNum;
 	int hSliceNum;
 	int lonSliceNum;
-protected:
-	void generateVertexAndIndex() {
+public:
+	Cone(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -403,11 +385,7 @@ protected:
 				}
 			}
 		}
-	}
-public:
-	Cone(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
-		generateVertexAndIndex();
-		prepareVAO();
+		VAO = prepareVAO(vertex, normal, index);
 	}
 };
 
@@ -423,12 +401,9 @@ private:
 	float yStart, yEnd;
 	zFunc func;
 	zGrad grad;
-
-protected:
-	//virtual float zfunc(float x, float y) = 0;
-	//virtual vec3 zfunc_grad(float x, float y, float z) = 0;
-
-	virtual void generateVertexAndIndex() {
+public:
+	Surface(float xStart, float xEnd, float yStart, float yEnd, zFunc func, zGrad grad, unsigned int xSliceNum, unsigned int ySliceNum, Shader* shader) :
+		Geometry(glm::vec3(0.0), shader), xStart(xStart), xEnd(xEnd), yStart(yStart), yEnd(yEnd), func(func), grad(grad), xSliceNum(xSliceNum), ySliceNum(ySliceNum) {
 		float dx = (xEnd - xStart) / xSliceNum;
 		float dy = (yEnd - yStart) / ySliceNum;
 		float x, y, z;
@@ -461,15 +436,9 @@ protected:
 				}
 			}
 		}
-	}
-public:
-	Surface(float xStart, float xEnd, float yStart, float yEnd, zFunc func, zGrad grad, unsigned int xSliceNum, unsigned int ySliceNum, Shader* shader) :
-		Geometry(glm::vec3(0.0), shader), xStart(xStart), xEnd(xEnd), yStart(yStart), yEnd(yEnd), func(func), grad(grad), xSliceNum(xSliceNum), ySliceNum(ySliceNum) {
-		generateVertexAndIndex();
-		prepareVAO();
+		prepareVAO(vertex, normal, index);
 	}
 };
-
 
 
 void initLineDrawing(Shader* shader) {
