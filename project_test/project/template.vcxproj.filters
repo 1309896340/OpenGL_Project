@@ -43,11 +43,19 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="vertexShader.gvs">
+    <Text Include="lightShader.gvs">
       <Filter>资源文件</Filter>
     </Text>
-    <Text Include="fragmentShader.gfs">
+    <Text Include="lightShader.gfs">
       <Filter>资源文件</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader.gvs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader.gfs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -3,11 +3,30 @@
 
 #pragma once
 
+class ShaderUniform {
+private:
+	GLint location;
+public:
+	ShaderUniform(GLint location) :location(location) {}
+	void operator=(glm::vec4 value) {
+		glUniform4fv(location, 1, glm::value_ptr(value));
+	}
+	void operator=(glm::vec3 value) {
+		glUniform3fv(location, 1, glm::value_ptr(value));
+	}
+	void operator=(glm::mat4 value) {
+		glUniformMatrix4fv(location, 1, GLFW_FALSE, glm::value_ptr(value));
+	}
+	void operator=(bool value) {
+		glUniform1i(location, (int)value);
+	}
+};
+
 class Shader {
 private:
 	GLuint ID;
 public:
-	Shader(std::string vertexPath,std::string fragmentPath) {
+	Shader(std::string vertexPath, std::string fragmentPath) {
 		ID = loadProgramFromFile(vertexPath, fragmentPath);
 	}
 	void use() {
@@ -16,16 +35,10 @@ public:
 	void close() {
 		glUseProgram(0);
 	}
-	void setVec4(std::string name, glm::vec4 value) {
-		glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
-	}
-	void setVec3(std::string name, glm::vec3 value) {
-		glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
-	}
-	void setMat4(std::string name, glm::mat4 value) {
-		glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
-	}
-	void setBool(std::string name, bool value) {
-		glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+	ShaderUniform operator[](const std::string &name) {
+		ShaderUniform su(glGetUniformLocation(ID, name.c_str()));
+		return su;
 	}
 };
+
+

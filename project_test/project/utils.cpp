@@ -7,26 +7,26 @@ std::string readSource(std::string filename) {
 	return ss.str();
 }
 
-void updateUniformMatrix4fv(GLuint program, const std::string& varname, const glm::mat4& m) {
-	GLint location = glGetUniformLocation(program, varname.c_str());
-	glUseProgram(program);
-	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(m));
-	glUseProgram(0);
-}
-
-void updateUniformVector3fv(GLuint program, const std::string& varname, const glm::vec3& v) {
-	GLint location = glGetUniformLocation(program, varname.c_str());
-	glUseProgram(program);
-	glUniform3fv(location, 1, glm::value_ptr(v));
-	glUseProgram(0);
-}
-
-void updateUniformVector4fv(GLuint program, const std::string& varname, const glm::vec4& v) {
-	GLint location = glGetUniformLocation(program, varname.c_str());
-	glUseProgram(program);
-	glUniform4fv(location, 1, glm::value_ptr(v));
-	glUseProgram(0);
-}
+//void updateUniformMatrix4fv(GLuint program, const std::string& varname, const glm::mat4& m) {
+//	GLint location = glGetUniformLocation(program, varname.c_str());
+//	glUseProgram(program);
+//	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(m));
+//	glUseProgram(0);
+//}
+//
+//void updateUniformVector3fv(GLuint program, const std::string& varname, const glm::vec3& v) {
+//	GLint location = glGetUniformLocation(program, varname.c_str());
+//	glUseProgram(program);
+//	glUniform3fv(location, 1, glm::value_ptr(v));
+//	glUseProgram(0);
+//}
+//
+//void updateUniformVector4fv(GLuint program, const std::string& varname, const glm::vec4& v) {
+//	GLint location = glGetUniformLocation(program, varname.c_str());
+//	glUseProgram(program);
+//	glUniform4fv(location, 1, glm::value_ptr(v));
+//	glUseProgram(0);
+//}
 
 void loadShader(GLuint shader, std::string source) {
 	const char* csource = source.c_str();
@@ -66,7 +66,6 @@ GLuint loadProgram(std::string vertexSource, std::string fragmentSource) {
 		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << info << std::endl;
 		exit(5);
 	}
-	//glUseProgram(program);
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 	return program;

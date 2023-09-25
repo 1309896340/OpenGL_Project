@@ -127,9 +127,7 @@ vec3 SurfaceGrad(float x, float y, float z) {
 	return tmp;
 }
 
-// 当Camera移动时，需要调用shader更新shootPos，Camera旋转时，需要更新shootDir
-
-int main(int argc, char** argv) {
+GLFWwindow* GLFWinit() {
 
 	if (glfwInit() != GLFW_TRUE) {
 		std::cout << "glfw初始化失败" << std::endl;
@@ -168,10 +166,16 @@ int main(int argc, char** argv) {
 	//glPolygonMode(GL_FRONT, GL_LINE);
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
+	return window;
+}
 
+int main(int argc, char** argv) {
+
+	GLFWwindow* window = GLFWinit();
 
 	// Shader的初始化
-	Shader* shader = new Shader("vertexShader.gvs", "fragmentShader.gfs");	//默认着色器
+	Shader* sd = new Shader("shader.gvs", "shader.gfs");	//默认着色器
+	Shader &shader = *sd;
 
 	std::vector<Geometry*> objs;
 
@@ -179,45 +183,23 @@ int main(int argc, char** argv) {
 	//objs.push_back(new Sphere(2.0f, 40, 20, shader));
 	//objs.push_back(new Cylinder(1.0f, 6.0f, 4, 24, 40, shader));
 	//objs.push_back(new Cone(2.0f, 3.0f, 10, 30, 60, shader));
-	objs.push_back(new Surface(-4.0f, 4.0f, -4.0f, 4.0f, SurfaceFunc, SurfaceGrad, 320, 320, shader));
+	objs.push_back(new Surface(-4.0f, 4.0f, -4.0f, 4.0f, SurfaceFunc, SurfaceGrad, 320, 320, sd));
 	objs[0]->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	objs[0]->translate(glm::vec3(0.0f, -2.0f, 0.0f));
 
-	objs.push_back(new Sphere(0.04f, 72, 20, shader));
-	objs[1]->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-	objs[1]->translate(status.lightPos);
 
+	Drawable* axis = new Axis(sd);
 
-	//Geometry* obj5 = new Sphere(0.05f, 36, 18, shader);
-	//obj5->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  obj5->moveTo(glm::vec3(0.2f, 0.2f, 0.2f));
-	//obj5->setColor(glm::vec4(1.0f,0.0f,0.0f,1.0f));
-	//objs.push_back(obj5);
-
-
-	initLineDrawing(shader);
-
-	//for (int i = 0; i < 4; i++) {
-	//	objs[i]->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	//	objs[i]->moveTo(glm::vec3(4.0f * (i - 2), 0.0f, 0.0f));
-	//}
-
-	Arrow* axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), shader);
-	Arrow* axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), shader);
-	Arrow* axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), shader);
-
+	initLineDrawing(sd);
 
 	float deltaTime = 0.0f;
 	float lastTime = 0.0f;
 	float currentTime = glfwGetTime();
 
-	shader->use();
-	shader->setMat4("projection", camera.getProjectionMatrix());
-	shader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-	shader->setVec3("lightPos", status.lightPos);
-	//shader->setVec3("lightPos", glm::vec3(0.1f, 0.1f, 0.1f));
-
-
-	//obj4->setColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+	shader.use();
+	shader["projection"] = camera.getProjectionMatrix();
+	//shader["lightColor"] = glm::vec3(1.0f, 1.0f, 1.0f);
+	//shader["lightPos"] = status.lightPos;
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -227,35 +209,16 @@ int main(int argc, char** argv) {
 		currentTime = glfwGetTime();
 		deltaTime = currentTime - lastTime;
 
-
-		shader->use();
-		shader->setMat4("view", camera.getViewMatrix());
-		shader->setVec3("viewPos", camera.getPosition());
-
-		objs[1]->moveTo(status.lightPos);
-		shader->setVec3("lightPos", status.lightPos);
-
-		//// 绘制射线只是为了方便，由于射线方向与镜头方向平行，所以线条绘制不出来
-		//if (status.startShoot) {
-		//	//glm::vec3 ray_start = camera.getPosition() + 1.0f * camera.getFront() + 0.1f * (camera.getRight() + camera.getUp());
-		//	glm::vec3 ray_start = camera.getPosition() + (float)(status.shootPos[0] - WIDTH / 2) / (WIDTH / 2) * camera.getRight() + (float)(HEIGHT / 2 - status.shootPos[1]) / (HEIGHT / 2) * camera.getUp();
-		//	glm::vec3 ray_end = camera.getPosition() + 20.0f * camera.getFront();
-		//	drawLine(ray_start, ray_end, glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shader);
-		//}
+		shader.use();
+		//shader["projection"] = camera.getProjectionMatrix();
+		shader["view"] = camera.getViewMatrix();
 
 		for (int i = 0; i < objs.size(); i++) {
-			//objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+			objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 			objs[i]->draw();
 		}
 
-
-		axis_x->draw();
-		axis_y->draw();
-		axis_z->draw();
-
-		//drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0, 1, 1), glm::vec3(0.0f, 1.0f, 1.0f), 1.5f, shader);
-		//drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1, 0, 1), glm::vec3(1.0f, 0.0f, 1.0f), 1.5f, shader);
-		//drawLine(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1, 1, 0), glm::vec3(1.0f, 1.0f, 0.0f), 1.5f, shader);
+		axis->draw();
 
 		showLines();
 		glfwSwapBuffers(window);

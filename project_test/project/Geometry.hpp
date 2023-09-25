@@ -19,7 +19,12 @@ typedef struct {
 
 LineStructure lineManager;
 
-class Geometry {
+class Drawable {
+public:
+	virtual void draw() = 0;
+};
+
+class Geometry :public Drawable {
 private:
 	glm::vec3 position;
 	glm::quat rotation;
@@ -108,16 +113,17 @@ public:
 	}
 
 	virtual void draw() {
-		shader->use();
+		Shader& sd = *shader;
+		sd.use();
 		if (autoColor) {
-			shader->setBool("isAuto", true);
+			sd["isAuto"] = true;
 		}
 		else {
-			shader->setBool("isAuto", false);
-			shader->setVec4("ncolor", color);
+			sd["isAuto"] = false;
+			sd["ncolor"] = color;
 		}
-		shader->setMat4("model", getModelMatrix());
-		shader->setMat4("modelBuffer", modelBuffer);
+		sd["model"] = getModelMatrix();
+		sd["modelBuffer"] = modelBuffer;
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)index.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
@@ -473,10 +479,11 @@ void initLineDrawing(Shader* shader) {
 	glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), NULL, GL_STATIC_DRAW);
 }
 void showLines() {
-	lineManager.shader->use();
-	lineManager.shader->setMat4("model", glm::mat4(1.0f));
-	lineManager.shader->setMat4("modelBuffer", glm::mat4(1.0f));
-	lineManager.shader->setBool("isAuto", false);
+	Shader& shader = *lineManager.shader;
+	shader.use();
+	shader["model"] = glm::mat4(1.0f);
+	shader["modelBuffer"] = glm::mat4(1.0f);
+	shader["isAuto"] = false;
 
 	while (!lineManager.lines.empty()) {
 		Line& a = lineManager.lines.back();
@@ -484,14 +491,13 @@ void showLines() {
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, &a.begin, GL_DYNAMIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
 		glEnableVertexAttribArray(0);
-		lineManager.shader->setVec4("ncolor", glm::vec4(a.color.x, a.color.y, a.color.z, a.color.w));
+		shader["ncolor"] = glm::vec4(a.color.x, a.color.y, a.color.z, a.color.w);
 		glLineWidth(a.width);
 		glDrawArrays(GL_LINES, 0, 2);
 		glLineWidth(DEFAULT_LINE_WIDTH);
 		lineManager.lines.pop_back();
 	}
 }
-
 void drawLine(glm::vec3 begin, glm::vec3 end, glm::vec3 color, float width, Shader* shader) {
 	Line a;
 	a.begin = { begin.x,begin.y,begin.z };
@@ -502,7 +508,7 @@ void drawLine(glm::vec3 begin, glm::vec3 end, glm::vec3 color, float width, Shad
 	lineManager.lines.push_back(a);
 }
 
-class Arrow {		// 比较粗暴的组合体实现
+class Arrow :public Drawable {		// 比较粗暴的组合体实现
 private:
 	glm::vec3 _begin;
 	glm::vec3 _end;
@@ -556,5 +562,23 @@ public:
 	void draw() {
 		arrow->draw();
 		body->draw();
+	}
+};
+
+class Axis :public Drawable {
+private:
+	Arrow* axis_x, * axis_y, * axis_z;
+	Shader* shader;
+public:
+	Axis(Shader* shader) :shader(shader) {
+		axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), shader);
+		axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), shader);
+		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), shader);
+	}
+
+	void draw() {
+		axis_x->draw();
+		axis_y->draw();
+		axis_z->draw();
 	}
 };
