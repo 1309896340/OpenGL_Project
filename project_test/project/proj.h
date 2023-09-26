@@ -1,10 +1,4 @@
 #pragma once
-#include "GLAD/glad.h"
-#include "GLFW/glfw3.h"
-#include "glm/glm.hpp"
-#include "glm/gtx/string_cast.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -14,7 +8,17 @@
 #include <chrono>
 #include <vector>
 
-#include <windows.h>
+#include "GLAD/glad.h"
+#include "GLFW/glfw3.h"
+#include "glm/glm.hpp"
+#include "glm/gtx/string_cast.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
+#include "tinynurbs.h"
+
+//#include <windows.h>
+
 
 
 #define WIDTH 1200

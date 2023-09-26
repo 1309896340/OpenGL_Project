@@ -1,9 +1,7 @@
 #include "proj.h"
-#include "Geometry.hpp"
 #include "Camera.hpp"
 #include "Shader.hpp"
-
-#include "tinynurbs.h"
+#include "Geometry.hpp"
 
 typedef struct _StatusInfo {
 	bool leftMouseButtonPressed = false;
@@ -17,7 +15,7 @@ typedef struct _StatusInfo {
 }StatusInfo;
 
 StatusInfo status;
-Camera camera(glm::vec3(1.0f, 6.0f, 6.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+Camera camera(glm::vec3(0.1f, 6.0f, 0.1f), glm::vec3(0.0f, 0.0f, 0.0f));
 
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -63,8 +61,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		}
 		else {
 			// 以原点为中心旋转
+			camera.move(-dx / 100.0f, 0.0f, dy / 100.0f);
 			camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
-			camera.move(-dx/100.0f, 0);
 		}
 	}
 	if (status.leftMouseButtonPressed == true) {
@@ -186,60 +184,15 @@ GLFWwindow* GLFWinit() {
 
 
 int main(int argc, char** argv) {
-
-	unsigned int degree_u = 3, degree_v = 3;
-	std::vector<float> knots_u = { 0,0,0,0,1,1,1,1 }, knots_v = { 0,0,0,0,1,1,1,1 };;
-	tinynurbs::array2<glm::vec3> ctrl_pts(4, 4, glm::vec3(0.0f, 0.0f, 0.0f));
-	tinynurbs::array2<float> weights(4, 4);
-
-	for (unsigned int u = 0; u < 4; u++) {
-		for (unsigned int v = 0; v < 4; v++) {
-			ctrl_pts(u, v) = glm::vec3((float)(u - 1.5f) * 2, (float)(v - 1.5f) * 2, 0.0f);
-			weights(u, v) = 1.0f;
-		}
-	}
-	ctrl_pts(1, 1) = glm::vec3(1.0f, 1.0f, 7.0f);
-	ctrl_pts(2, 2) = glm::vec3(1.0f, 1.0f, -3.0f);
-	tinynurbs::RationalSurface3f srf(degree_u, degree_v, knots_u, knots_v, ctrl_pts, weights);
-
-	assert(tinynurbs::surfaceIsValid(srf));
-
-	unsigned int num_u = 30, num_v = 30;
-
-	std::vector<vec3> vertex((num_u + 1) * (num_v + 1), { 0.0f });
-	std::vector<vec3> normal((num_u + 1) * (num_v + 1));
-	std::vector<GLuint> index(num_u * num_v * 6);
-
-	glm::vec3 tmp;
-	for (unsigned int u = 0; u <= num_u; u++) {
-		for (unsigned int v = 0; v <= num_v; v++) {
-			tmp = tinynurbs::surfacePoint(srf, (float)u / num_u, (float)v / num_v);
-			vertex[u * (num_v + 1) + v] = { tmp.x,tmp.y,tmp.z };
-			tmp = tinynurbs::surfaceDerivatives(srf, 1, (float)u / num_u, (float)v / num_v)(1, 1);
-			normal[u * (num_v + 1) + v] = { tmp.x,tmp.y,tmp.z };
-			if (u < num_u && v < num_v) {
-				unsigned int* ptr = &index[(u * num_v + v) * 6];
-				*ptr++ = u * (num_v + 1) + v;
-				*ptr++ = u * (num_v + 1) + v + 1;
-				*ptr++ = (u + 1) * (num_v + 1) + v + 1;
-				*ptr++ = u * (num_v + 1) + v;
-				*ptr++ = (u + 1) * (num_v + 1) + v + 1;
-				*ptr++ = (u + 1) * (num_v + 1) + v;
-			}
-		}
-	}
-
 	GLFWwindow* window = GLFWinit();
 
 	//Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 	Shader* shader = new Shader("shader.gvs", "shader.gfs");
 	Shader& sd = *shader;
 
-	Geometry* surface = new Geometry(vertex, normal, index, shader);
 	Drawable* axis = new Axis(shader);
+	Geometry* leaf = new Leaf(1.0f, 12.0f, 4, 36, shader);
 
-	surface->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	//surface->translate(glm::vec3(0.0f, -2.0f, 0.0f));
 
 	float deltaTime = 0.0f;
 	float lastTime = 0.0f;
@@ -257,11 +210,9 @@ int main(int argc, char** argv) {
 		lastTime = currentTime;
 		currentTime = glfwGetTime();
 		deltaTime = currentTime - lastTime;
-		surface->rotate(glm::radians(deltaTime) * 20, glm::vec3(0.0f, 1.0f, 0.0f));
 
-		surface->draw();
+		leaf->draw();
 		axis->draw();
-
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

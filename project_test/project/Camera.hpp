@@ -1,12 +1,11 @@
 #include "proj.h"
-#include "utils.h"
-#include "Geometry.hpp"
 
 #define X_ROTATE_SENSITIVITY 0.001f
 #define Y_ROTATE_SENSITIVITY 0.001f
 
 #define X_MOVE_SENSITIVITY 1.0f
 #define Y_MOVE_SENSITIVITY 1.0f
+#define Z_MOVE_SENSITIVITY 1.0f
 
 class Camera {
 private:
@@ -67,8 +66,8 @@ public:
 		front = glm::normalize(front);
 		updateLocalCoordiante();
 	}
-	void move(float dx, float dy) {	// // 控制相机旋转(更新相机位置) 
-		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * front;
+	void move(float dx, float dy, float dz = 0.0f) {	// // 控制相机旋转(更新相机位置) 
+		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * front + dz * Z_MOVE_SENSITIVITY * up;
 	}
 	void moveTo(float x, float y, float z) {	// // 控制相机旋转(更新相机位置) 
 		position = glm::vec3(x, y, z);
