@@ -67,7 +67,7 @@ public:
 		updateLocalCoordiante();
 	}
 	void move(float dx, float dy, float dz = 0.0f) {	// // 控制相机旋转(更新相机位置) 
-		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * front + dz * Z_MOVE_SENSITIVITY * up;
+		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * up + dz * Z_MOVE_SENSITIVITY * front;
 	}
 	void moveTo(float x, float y, float z) {	// // 控制相机旋转(更新相机位置) 
 		position = glm::vec3(x, y, z);

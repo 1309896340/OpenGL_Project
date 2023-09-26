@@ -57,5 +57,14 @@
     <None Include="shader.gfs">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="nshader.gfs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="nshader.ggs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="nshader.gvs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

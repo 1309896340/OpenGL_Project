@@ -27,16 +27,75 @@ class Shader {
 private:
 	GLuint ID;
 public:
+	Shader() {
+		ID = glCreateProgram();
+	}
 	Shader(std::string vertexPath, std::string fragmentPath) {
-		ID = loadProgramFromFile(vertexPath, fragmentPath);
+		ID = glCreateProgram();
+		compileAndAttachShader(vertexPath, GL_VERTEX_SHADER);
+		compileAndAttachShader(fragmentPath, GL_FRAGMENT_SHADER);
+		link();
+	}
+	Shader(std::string vertexPath, std::string geometryPath, std::string fragmentPath) {
+		ID = glCreateProgram();
+		compileAndAttachShader(vertexPath, GL_VERTEX_SHADER);
+		compileAndAttachShader(geometryPath, GL_GEOMETRY_SHADER);
+		compileAndAttachShader(fragmentPath, GL_FRAGMENT_SHADER);
+		link();
+	}
+	~Shader() {
+		glDeleteProgram(ID);
+	}
+	GLint compileAndAttachShader(std::string shaderSourcePath, GLenum shaderType) {
+		////验证当前program是否有效(后来发现GL_VALIDATE_STATUS不是这么用的?)
+		//GLint success;
+		//glGetProgramiv(ID, GL_VALIDATE_STATUS, &success);
+		//if (success != GL_TRUE) {
+		//	std::cout << "当前program不可用" << std::endl;	// 调试输出
+		//	return success;
+		//}
+		//std::cout << "通过program有效验证" << std::endl;
+
+		GLuint shader = glCreateShader(shaderType);
+		loadShader(shader, readSource(shaderSourcePath));
+
+		GLint success;
+		GLchar infoLog[512];
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+		if (!success) {
+			GLint length;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+			glGetShaderInfoLog(shader, length * sizeof(GLchar), NULL, infoLog);
+			std::cout << "着色器 " << shaderType << " 编译失败！\n" << infoLog << std::endl;			// 调试输出
+		}
+
+		glAttachShader(ID, shader);
+		return GL_TRUE;
+	}
+	GLint link() {
+		glLinkProgram(ID);
+		GLint success;
+		glGetProgramiv(ID, GL_LINK_STATUS, &success);
+		if (success != GL_TRUE) {
+			char info[512];
+			GLsizei length;
+			glGetProgramInfoLog(ID, 512, &length, info);
+			std::cout << "program链接失败！\n" << info << std::endl;
+			exit(5);
+		}
+		return success;
 	}
 	void use() {
-		glUseProgram(ID);
+		GLint success;
+		glGetProgramiv(ID, GL_LINK_STATUS, &success);
+		if (success == GL_TRUE)
+			glUseProgram(ID);
+		else {
+			std::cout << "使用未正确链接的着色器program！" << std::endl;
+			exit(6);
+		}
 	}
-	void close() {
-		glUseProgram(0);
-	}
-	ShaderUniform operator[](const std::string &name) {
+	ShaderUniform operator[](const std::string& name) {
 		ShaderUniform su(glGetUniformLocation(ID, name.c_str()));
 		return su;
 	}

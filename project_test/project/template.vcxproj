@@ -151,6 +151,9 @@
     <Text Include="lightShader.gvs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="nshader.gfs" />
+    <None Include="nshader.ggs" />
+    <None Include="nshader.gvs" />
     <None Include="shader.gfs" />
     <None Include="shader.gvs" />
   </ItemGroup>

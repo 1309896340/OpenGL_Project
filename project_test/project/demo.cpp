@@ -15,7 +15,7 @@ typedef struct _StatusInfo {
 }StatusInfo;
 
 StatusInfo status;
-Camera camera(glm::vec3(0.1f, 6.0f, 0.1f), glm::vec3(0.0f, 0.0f, 0.0f));
+Camera camera(glm::vec3(-0.4f, 0.8f, 3.0f), glm::vec3(0.4f, 0.5f, 0.0f));
 
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -61,7 +61,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		}
 		else {
 			// 以原点为中心旋转
-			camera.move(-dx / 100.0f, 0.0f, dy / 100.0f);
+			camera.move(-dx / 100.0f, dy / 100.0f, 0.0f);
 			camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
 		}
 	}
@@ -93,16 +93,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
 		switch (key) {
 		case GLFW_KEY_W:
-			camera.move(0.0f, 0.1f);
+			camera.move(0.0f, 0.0f, 0.1f);
 			break;
 		case GLFW_KEY_S:
-			camera.move(0.0f, -0.1f);
+			camera.move(0.0f, 0.0f, -0.1f);
 			break;
 		case GLFW_KEY_A:
-			camera.move(-0.1f, 0.0f);
+			camera.move(-0.1f, 0.0f, 0.0f);
 			break;
 		case GLFW_KEY_D:
-			camera.move(0.1f, 0.0f);
+			camera.move(0.1f, 0.0f, 0.0f);
 			break;
 		case GLFW_KEY_UP:  // 控制光源的位置
 			status.lightPos.z -= 0.2f;
@@ -175,7 +175,7 @@ GLFWwindow* GLFWinit() {
 
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_LINE_SMOOTH);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	//glPolygonMode(GL_FRONT, GL_LINE);
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
@@ -186,32 +186,41 @@ GLFWwindow* GLFWinit() {
 int main(int argc, char** argv) {
 	GLFWwindow* window = GLFWinit();
 
-	//Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+	Shader* normShader = new Shader("nshader.gvs", "nshader.ggs", "nshader.gfs");
 	Shader* shader = new Shader("shader.gvs", "shader.gfs");
-	Shader& sd = *shader;
 
 	Drawable* axis = new Axis(shader);
-	Geometry* leaf = new Leaf(1.0f, 12.0f, 4, 36, shader);
+	//Geometry* leaf = new Leaf(0.1f, 1.2f, 4, 36, shader);
+	Geometry* obj = new Cone(1.0f, 2.0f, 4, 8, 36, normShader);
+	//Geometry* obj = new Sphere(1.0f, 20, 40, normShader);
+	obj->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//obj->translate(glm::vec3(0.0f, -1.0f, 0.0f));
 
 
 	float deltaTime = 0.0f;
 	float lastTime = 0.0f;
 	float currentTime = glfwGetTime();
 
-	sd.use();
-	sd["projection"] = camera.getProjectionMatrix();
+	shader->use();
+	(*shader)["projection"] = camera.getProjectionMatrix();
+	normShader->use();
+	(*normShader)["projection"] = camera.getProjectionMatrix();
+
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		sd.use();
-		sd["view"] = camera.getViewMatrix();
+		shader->use();
+		(*shader)["view"] = camera.getViewMatrix();
+		normShader->use();
+		(*normShader)["view"] = camera.getViewMatrix();
 
 		lastTime = currentTime;
 		currentTime = glfwGetTime();
 		deltaTime = currentTime - lastTime;
 
-		leaf->draw();
+		//leaf->draw();
+		obj->draw();
 		axis->draw();
 
 		glfwSwapBuffers(window);
@@ -221,62 +230,66 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-/*
-int main(int argc, char** argv) {
 
-	GLFWwindow* window = GLFWinit();
+//int main(int argc, char** argv) {
+//
+//	GLFWwindow* window = GLFWinit();
+//
+//	Shader* sd = new Shader("lightShader.gvs", "lightShader.gfs");	//默认着色器
+//	Shader& shader = *sd;
+//
+//	std::vector<Geometry*> objs;
+//
+//	//objs.push_back(new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20, shader));
+//	//objs.push_back(new Sphere(2.0f, 40, 20, shader));
+//	//objs.push_back(new Cylinder(1.0f, 6.0f, 4, 24, 40, shader));
+//	//objs.push_back(new Cone(2.0f, 3.0f, 10, 30, 60, shader));
+//	objs.push_back(new Surface(-4.0f, 4.0f, -4.0f, 4.0f, SurfaceFunc, SurfaceGrad, 320, 320, sd));
+//	objs[0]->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+//	objs[0]->translate(glm::vec3(0.0f, -2.0f, 0.0f));
+//
+//	objs.push_back(new Sphere(0.02f, 20, 40, sd));
+//	objs.back()->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+//
+//	Drawable * axis = new Axis(sd);
+//
+//	initLineDrawing(sd);
+//
+//	float deltaTime = 0.0f;
+//	float lastTime = 0.0f;
+//	float currentTime = glfwGetTime();
+//
+//	shader.use();
+//	shader["projection"] = camera.getProjectionMatrix();
+//	shader["lightColor"] = glm::vec3(1.0f, 1.0f, 1.0f);
+//	shader["lightPos"] = status.lightPos;
+//
+//	while (!glfwWindowShouldClose(window)) {
+//		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+//		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//
+//		lastTime = currentTime;
+//		currentTime = glfwGetTime();
+//		deltaTime = currentTime - lastTime;
+//
+//		shader.use();
+//		shader["view"] = camera.getViewMatrix();
+//		shader["lightPos"] = status.lightPos;
+//		objs[1]->moveTo(status.lightPos);
+//
+//		for (int i = 0; i < objs.size(); i++) {
+//			//objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+//			objs[i]->draw();
+//		}
+//
+//		axis->draw();
+//
+//		showLines();
+//		glfwSwapBuffers(window);
+//		glfwPollEvents();
+//	}
+//
+//	glfwTerminate();
+//	return 0;
+//}
 
-	Shader* sd = new Shader("shader.gvs", "shader.gfs");	//默认着色器
-	Shader& shader = *sd;
-
-	std::vector<Geometry*> objs;
-
-	//objs.push_back(new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20, shader));
-	//objs.push_back(new Sphere(2.0f, 40, 20, shader));
-	//objs.push_back(new Cylinder(1.0f, 6.0f, 4, 24, 40, shader));
-	//objs.push_back(new Cone(2.0f, 3.0f, 10, 30, 60, shader));
-	objs.push_back(new Surface(-4.0f, 4.0f, -4.0f, 4.0f, SurfaceFunc, SurfaceGrad, 320, 320, sd));
-	objs[0]->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	objs[0]->translate(glm::vec3(0.0f, -2.0f, 0.0f));
-
-
-	Drawable* axis = new Axis(sd);
-
-	initLineDrawing(sd);
-
-	float deltaTime = 0.0f;
-	float lastTime = 0.0f;
-	float currentTime = glfwGetTime();
-
-	shader.use();
-	shader["projection"] = camera.getProjectionMatrix();
-	//shader["lightColor"] = glm::vec3(1.0f, 1.0f, 1.0f);
-	//shader["lightPos"] = status.lightPos;
-
-	while (!glfwWindowShouldClose(window)) {
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		lastTime = currentTime;
-		currentTime = glfwGetTime();
-		deltaTime = currentTime - lastTime;
-
-		shader.use();
-		shader["view"] = camera.getViewMatrix();
-
-		for (int i = 0; i < objs.size(); i++) {
-			objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
-			objs[i]->draw();
-		}
-
-		axis->draw();
-
-		showLines();
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-
-	glfwTerminate();
-	return 0;
-}
-*/

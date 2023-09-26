@@ -364,8 +364,8 @@ public:
 				lon_tmp = -PI + j * lonStep;
 				r_tmp = radius * (1 - i * hStep / height);
 				vertex[baseVert + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
-				float tmp = sqrt(r_tmp * r_tmp + height * height);
-				normal[baseVert + i * (lonSliceNum + 1) + j] = { height * cos(lon_tmp) / tmp,height * sin(lon_tmp) / tmp,r_tmp / tmp };
+				float tmp = sqrt(radius * radius + height * height);
+				normal[baseVert + i * (lonSliceNum + 1) + j] = { height * cos(lon_tmp) / tmp,height * sin(lon_tmp) / tmp, radius / tmp };
 				if (i < hSliceNum && j < lonSliceNum) {
 					unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
 					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
@@ -428,7 +428,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index);
+		VAO = prepareVAO(vertex, normal, index);
 	}
 };
 
@@ -551,7 +551,7 @@ private:
 	unsigned int wSliceNum, hSliceNum;
 
 	const unsigned int u_degree = 3, v_degree = 2;		// u为长度分割，v为宽度分割
-	const float k = 1.0f, SLAngle = PI / 6.0f;			// k为叶片弯曲程度，SLAngle为叶片弯曲角度
+	const float k = 10.0f, SLAngle = PI / 6.0f;			// k为叶片弯曲程度，SLAngle为叶片弯曲角度
 
 	float wFunc(float h) {
 		// 生成叶片宽度关于长度的函数
@@ -635,7 +635,7 @@ public:
 		// Leaf对象应当具有几个更新函数，应及时更新VBO的值
 		// 1.更新叶脉弯曲度的k
 		// 2. 茎叶夹角的theta
-		
+
 		//assert(wSliceNum % 2 == 0);	// 假定wSliceNum必须为偶数
 		//unsigned int veinIdx = (unsigned int)(wSliceNum / 2);
 		//x = 0.0f;

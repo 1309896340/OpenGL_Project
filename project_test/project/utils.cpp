@@ -61,14 +61,6 @@ void loadShader(GLuint shader, std::string source) {
 	const char* csource = source.c_str();
 	glShaderSource(shader, 1, &csource, NULL);
 	glCompileShader(shader);
-	GLint success;
-	GLchar infoLog[512];
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(shader, sizeof(infoLog), NULL, infoLog);
-		std::cout << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << std::endl;
-		exit(4);
-	}
 }
 
 
