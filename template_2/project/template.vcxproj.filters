@@ -41,6 +41,9 @@
     <ClInclude Include="Camera.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Scene.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="lightShader.gvs">

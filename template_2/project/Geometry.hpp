@@ -2,6 +2,8 @@
 #include "utils.h"
 #include "Shader.hpp"
 
+#pragma once
+
 typedef struct {
 	vec3 begin;
 	vec3 end;
@@ -15,7 +17,6 @@ typedef struct {
 	Shader* shader;
 }LineStructure;
 
-LineStructure lineManager;
 
 class Drawable {
 public:
@@ -433,6 +434,8 @@ public:
 };
 
 
+LineStructure lineManager;
+
 void initLineDrawing(Shader* shader) {
 	lineManager.shader = shader;
 	glGenBuffers(1, &lineManager.vbo_line);
@@ -447,7 +450,7 @@ void showLines() {
 	shader["isAuto"] = false;
 
 	while (!lineManager.lines.empty()) {
-		Line& a = lineManager.lines.back();
+		Line a = lineManager.lines.back();
 		glBindBuffer(GL_ARRAY_BUFFER, lineManager.vbo_line);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, &a.begin, GL_DYNAMIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
