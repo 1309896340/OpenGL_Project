@@ -7,31 +7,12 @@ std::string readSource(std::string filename) {
 	return ss.str();
 }
 
-//void updateUniformMatrix4fv(GLuint program, const std::string& varname, const glm::mat4& m) {
-//	GLint location = glGetUniformLocation(program, varname.c_str());
-//	glUseProgram(program);
-//	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(m));
-//	glUseProgram(0);
-//}
-//
-//void updateUniformVector3fv(GLuint program, const std::string& varname, const glm::vec3& v) {
-//	GLint location = glGetUniformLocation(program, varname.c_str());
-//	glUseProgram(program);
-//	glUniform3fv(location, 1, glm::value_ptr(v));
-//	glUseProgram(0);
-//}
-//
-//void updateUniformVector4fv(GLuint program, const std::string& varname, const glm::vec4& v) {
-//	GLint location = glGetUniformLocation(program, varname.c_str());
-//	glUseProgram(program);
-//	glUniform4fv(location, 1, glm::value_ptr(v));
-//	glUseProgram(0);
-//}
 
-GLuint prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index) {
-	GLuint VAO, vbo_pos, vbo_norm, vbo_idx;
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
+void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, GLuint* VAO, GLsizei* length) {
+	GLuint vbo_pos, vbo_norm, vbo_idx;
+	glGenVertexArrays(1, VAO);
+	glBindVertexArray(*VAO);
+	*length = index.size();
 
 	glGenBuffers(1, &vbo_pos);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
@@ -53,8 +34,6 @@ GLuint prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& norm
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-
-	return VAO;
 }
 
 void loadShader(GLuint shader, std::string source) {

@@ -51,3 +51,9 @@ typedef struct _StatusInfo {
 	double shootPos[2];
 	glm::vec3 lightPos = glm::vec3(0.1f, 0.1f, 0.1f);
 }StatusInfo;
+
+typedef struct {	// 除了MVP矩阵以外的其他定制化uniform变量
+	bool autoColor;
+	glm::vec4 color;
+}uniformTable;
+

@@ -95,34 +95,26 @@ public:
 		ShaderUniform su(glGetUniformLocation(ID, name.c_str()));
 		return su;
 	}
-
-};
-
-class GeometryShader :public Shader {
-public:
-	GeometryShader(std::string vertexSource, std::string fragmentSource) :Shader(vertexSource, fragmentSource) {}
-	GeometryShader(std::string vertexSource, std::string geometrySource, std::string fragmentSource) :Shader(vertexSource, geometrySource, fragmentSource) {}
-	// 对于统一具有model、modelBuffer的Shader，可以使用此函数设置
-	void setModel(glm::mat4 model) {
+	// 标准化配置uniform：model、modelBuffer
+	void setModel(const glm::mat4 &model) {
 		(*this)["model"] = model;
 	}
-	void setModelBuffer(glm::mat4* modelBuffer, int size) {
+	void setModelBuffer(const glm::mat4 &modelBuffer) {
 		(*this)["modelBuffer"] = modelBuffer;
-		(*this)["modelBufferSize"] = size;
 	}
+	// 定制化配置uniform
+	virtual void loadUniform(const uniformTable &uniform) = 0;
+	// 使用loadUniform来实现多态行为，在子类中实现根据不同的着色器加载不同的uniform变量
 };
 
-class DefaultShader :public GeometryShader {	// 对默认Shader的行为具体化
+
+class DefaultShader :public Shader {
 public:
-	DefaultShader() :GeometryShader("shader/shader.gvs", "shader/shader.gfs") {
-		(*this)["isAuto"] = true;
-	}
-	void setColor(glm::vec4 color) {
-		(*this)["isAuto"] = false;
-		(*this)["ncolor"] = color;
-	}
-	void setAuto() {
-		(*this)["isAuto"] = true;
+	DefaultShader() :Shader("shader/shader.gvs", "shader/shader.gfs") {}
+	virtual void loadUniform(const uniformTable& uniform) {
+		// 默认着色器定制uniform为颜色配置
+		(*this)["ncolor"] = uniform.color;
+		(*this)["isAuto"] = uniform.autoColor;
 	}
 };
 

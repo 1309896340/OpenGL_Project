@@ -4,6 +4,8 @@
 
 #pragma once
 
+
+
 typedef struct {
 	vec3 begin;
 	vec3 end;
@@ -33,39 +35,33 @@ private:
 
 protected:
 	GLuint VAO;
-	std::vector<vec3> vertex;
-	std::vector<vec3> normal;
-	std::vector<unsigned int> index;
+	GLsizei VAO_length;
+
+	uniformTable uniform;
 
 	Shader* shader;
-	glm::vec4 color;
-	bool autoColor;
 
 public:
 
-	Geometry(glm::vec3 position, Shader* shader) :autoColor(true), color(glm::vec4(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
+	Geometry(glm::vec3 position, Shader* shader) :uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
 		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)) {
-		vertex.clear();
-		index.clear();
-		normal.clear();
 	}
-	Geometry(Shader* shader) :position(glm::vec3(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), autoColor(true), color(glm::vec4(0.0f)) {
-		vertex.clear();
-		index.clear();
-		normal.clear();
+	Geometry(Shader* shader) :position(glm::vec3(0.0f)), uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
+		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0) {
 	}
-	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :position(glm::vec3(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), vertex(vertex), normal(normal), index(index), autoColor(true), color(glm::vec4(0.0f)) {
-		VAO = prepareVAO(vertex, normal, index);
+	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :position(glm::vec3(0.0f)),
+		uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)), _scale(1.0f), rotation(glm::identity<glm::quat>()),
+		VAO(0) {
+
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 
 	void setColor(glm::vec4 color) {
-		autoColor = false;
-		this->color = color;
+		uniform.autoColor = false;
+		uniform.color = color;
 	}
 	void setAutoColor(bool isAuto) {
-		autoColor = isAuto;
+		uniform.autoColor = isAuto;
 	}
 	void rotate(float angle, glm::vec3 axis) {
 		rotation = glm::angleAxis(angle, axis) * rotation;
@@ -99,23 +95,17 @@ public:
 		rotation = glm::identity<glm::quat>();
 		_scale = glm::vec3(1.0f);
 	}
-	virtual void draw() {
+	void draw() {
 		// 需要shader传输当前对象的model矩阵、颜色等信息
 		// 其次需要知道绘制点的个数、已经配置好的顶点缓冲区ID
-		Shader& sd = *shader;
-		if (autoColor) {
-			sd["isAuto"] = true;
-		}
-		else {
-			sd["isAuto"] = false;
-			sd["ncolor"] = color;
-		}
-		sd["model"] = getModelMatrix();
-		sd["modelBuffer"] = modelBuffer;
 
-		sd.use();
+		shader->setModel(getModelMatrix());
+		shader->setModelBuffer(modelBuffer);
+		shader->loadUniform(uniform);
+
+		shader->use();
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, (GLsizei)index.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, VAO_length, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
 };
@@ -142,9 +132,9 @@ public:
 		int zyNum1 = (ySliceNum + 1) * (zSliceNum + 1);
 		int xzNum1 = (xSliceNum + 1) * (zSliceNum + 1);
 
-		vertex.resize(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
-		index.resize(2 * (xyNum + zyNum + xzNum) * 6, 0);
-		normal.resize(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
+		std::vector<vec3> vertex(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index(2 * (xyNum + zyNum + xzNum) * 6, 0);
 
 		int baseVert = 0, baseIdx = 0;
 		for (int i = 0; i <= xSliceNum; i++) {
@@ -208,7 +198,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -226,9 +216,9 @@ public:
 		int lonlatNum = lonSliceNum * latSliceNum;
 		int lonlatNum1 = (latSliceNum + 1) * (lonSliceNum + 1);
 
-		vertex.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
-		index.resize(lonlatNum * 6, 0);
-		normal.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index(lonlatNum * 6, 0);
 
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= latSliceNum; j++) {
@@ -247,7 +237,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -272,9 +262,11 @@ public:
 		float lon_tmp, r_tmp, h_tmp;
 
 		int baseVert = 0, baseIdx = 0;
-		vertex.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		index.resize((2 * rlonNum + hlonNum) * 6, 0);
-		normal.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+
+		std::vector<vec3> vertex(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index((2 * rlonNum + hlonNum) * 6, 0);
+
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
@@ -315,7 +307,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -341,9 +333,10 @@ public:
 		float lon_tmp, r_tmp, h_tmp;
 
 		int baseVert = 0, baseIdx = 0;
-		vertex.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		index.resize((rlonNum + hlonNum) * 6, 0);
-		normal.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+
+		std::vector<vec3> vertex(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index((rlonNum + hlonNum) * 6, 0);
 
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
@@ -383,7 +376,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -410,9 +403,9 @@ public:
 		int lonlatNum = xSliceNum * ySliceNum;
 		int lonlatNum1 = (xSliceNum + 1) * (ySliceNum + 1);
 
-		vertex.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
-		index.resize(lonlatNum * 6, 0);
-		normal.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index(lonlatNum * 6, 0);
 
 		for (int i = 0; i <= xSliceNum; i++) {
 			for (int j = 0; j <= ySliceNum; j++) {
@@ -434,7 +427,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -619,9 +612,11 @@ public:
 
 		// 先不使用NURBS曲面，直接连线
 		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
-		vertex.resize(hwNum1, { 0 });
-		normal.resize(hwNum1, { 0 });	// 没有生成法向量
-		index.resize(hwNum * 6, 0);
+
+		std::vector<vec3> vertex(hwNum1, { 0 });
+		std::vector<vec3> normal(hwNum1, { 0 });	// 没有生成法向量
+		std::vector<GLuint> index(hwNum1 * 6, 0);
+
 		float x, y;
 		for (int i = 0; i <= hSliceNum; i++) {
 			x = (float)i / hSliceNum * height;
@@ -662,7 +657,7 @@ public:
 		//	vertex[i * (wSliceNum + 1) + veinIdx].y = y;
 		//}
 
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 

@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
 
 	camera = new Camera(glm::vec3(-0.4f, 0.8f, 3.0f), glm::vec3(0.4f, 0.5f, 0.0f));
 	Scene scene(camera);
-	DefaultShader* shader = new DefaultShader();
+	Shader* shader = new DefaultShader();
 
 	Drawable* axis = new Axis(shader);
 	Geometry* obj = new Cone(1.0f, 2.0f, 4, 8, 36, shader);
