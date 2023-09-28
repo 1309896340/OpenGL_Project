@@ -47,7 +47,7 @@ public:
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 		shaders.push_back(shader);
 	}
-	void addObj(Drawable* obj) {
+	void add(Drawable* obj) {
 		objs.push_back(obj);
 	}
 	void setCamera(Camera* camera) {

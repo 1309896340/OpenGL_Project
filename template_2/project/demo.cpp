@@ -6,7 +6,7 @@
 #include "Scene.hpp"
 
 StatusInfo status;
-Camera *camera = nullptr;
+Camera* camera = nullptr;
 
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -47,7 +47,7 @@ GLFWwindow* GLFWinit() {
 
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_LINE_SMOOTH);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	//glPolygonMode(GL_FRONT, GL_LINE);
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);
@@ -65,18 +65,37 @@ int main(int argc, char** argv) {
 	Shader* shader = new DefaultShader();
 
 	Drawable* axis = new Axis(shader);
-	Geometry* obj = new Cone(1.0f, 2.0f, 4, 8, 36, shader);
-	obj->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	Geometry* obj1 = new Cylinder(0.2f, 1.0f, 4, 20, 32, shader);
+	Geometry* obj2 = new Cylinder(0.2f, 1.0f, 4, 20, 32, shader);
+
+	obj1->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	obj1->applyTransform();
+	obj2->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	obj2->applyTransform();
+
+	obj2->translate(glm::vec3(0.0f, 1.0f, 0.0f));
+
+	Combination *com = new Combination();
+	com->add(obj1);
+	com->add(obj2);
+
 
 	scene.addShader(shader);
-	scene.addObj(axis);
-	scene.addObj(obj);
+	scene.add(axis);
+	scene.add(com);
+	//scene.addObj(obj1);
+	//scene.addObj(obj2);
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		deltTime = scene.step();
+
+		// obj->rotate(glm::radians(30 * deltTime), glm::vec3(0.0f, 0.0f, 1.0f));
+		com->rotate(glm::radians(30 * deltTime), glm::vec3(0.0f, 0.0f, 1.0f));
+		// 由于在Combination的draw()中忽略了obj自身的model，因此这句无效
+		obj2->rotate(glm::radians(20 * deltTime), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		scene.render();
 

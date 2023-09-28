@@ -4,8 +4,6 @@
 
 #pragma once
 
-
-
 typedef struct {
 	vec3 begin;
 	vec3 end;
@@ -30,7 +28,6 @@ private:
 	glm::vec3 position;
 	glm::quat rotation;
 	glm::vec3 _scale;
-
 	glm::mat4 modelBuffer;
 
 protected:
@@ -44,30 +41,30 @@ protected:
 public:
 
 	Geometry(glm::vec3 position, Shader* shader) :uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)) {
+		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), VAO_length(0), position(glm::vec3(0.0f)) {
 	}
 	Geometry(Shader* shader) :position(glm::vec3(0.0f)), uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0) {
+		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), VAO_length(0) {
 	}
 	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :position(glm::vec3(0.0f)),
 		uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)), _scale(1.0f), rotation(glm::identity<glm::quat>()),
-		VAO(0) {
+		VAO(0), VAO_length(0) {
 
 		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 
+	glm::mat4 getModelBufferMatrix() {
+		return modelBuffer;
+	}
 	void setColor(glm::vec4 color) {
 		uniform.autoColor = false;
 		uniform.color = color;
 	}
-	void setAutoColor(bool isAuto) {
-		uniform.autoColor = isAuto;
+	void setAutoColor() {
+		uniform.autoColor = true;
 	}
 	void rotate(float angle, glm::vec3 axis) {
-		rotation = glm::angleAxis(angle, axis) * rotation;
-	}
-	void rotateTo(glm::vec3 direction) {
-		//尚未实现的功能：旋转到指定方向(绝对姿态)，rotate是基于当前姿态的相对旋转
+		rotation = glm::angleAxis(angle, glm::normalize(axis)) * rotation;
 	}
 	void translate(glm::vec3 dxyz) {
 		position = position + dxyz;
@@ -95,7 +92,19 @@ public:
 		rotation = glm::identity<glm::quat>();
 		_scale = glm::vec3(1.0f);
 	}
-	void draw() {
+	Shader* getShader() {
+		return shader;
+	}
+	uniformTable& getUniform() {
+		return uniform;
+	}
+	GLuint getVAO() {
+		return VAO;
+	}
+	GLsizei getVAOLength() {
+		return VAO_length;
+	}
+	virtual void draw() {
 		// 需要shader传输当前对象的model矩阵、颜色等信息
 		// 其次需要知道绘制点的个数、已经配置好的顶点缓冲区ID
 
@@ -538,7 +547,7 @@ public:
 		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), shader);
 	}
 
-	void draw() {
+	virtual void draw() {
 		axis_x->draw();
 		axis_y->draw();
 		axis_z->draw();
@@ -668,7 +677,9 @@ private:
 	std::vector<Geometry*> objs;
 	std::vector<glm::mat4> objModel;
 public:
-	Combination(Shader* shader) :Geometry(shader) {}
+	// Combination应当禁用自己的shader，而是使用objs中各个obj自己的shader
+	// VAO和VAO_length也应当使用obj自身的
+	Combination() :Geometry(nullptr) {}
 	void add(Geometry* obj) {
 		// Combination默认的中心在原点处
 		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
@@ -676,7 +687,7 @@ public:
 		objModel.push_back(obj->getModelMatrix());
 		obj->resetModelMatrix();
 	}
-	void draw() {
+	virtual void draw() {
 		// 需要应用所有变换，这里考虑几类情况
 		// 1. Combination自身的变换，即Combination的model
 		// 2. Combination中的obj的变换，即objModel
@@ -691,8 +702,15 @@ public:
 
 		for (int i = 0; i < objs.size(); i++) {
 			// 考虑使用Combination的model、modelBuffer和objModel[i]的连乘变换，附加(左乘)在objs[i]的getModelMatrix()上，其他属性设置和原来的draw保持一致
-			// 对这里的抽象没有做到位，可能需要重新设计一下Geometry的draw方法
-			objs[i]->draw();
+			Shader* shader = objs[i]->getShader();
+			shader->setModel(getModelMatrix());
+			shader->setModelBuffer(getModelBufferMatrix() * objModel[i] * (objs[i]->getModelBufferMatrix()));
+			shader->loadUniform(objs[i]->getUniform());
+
+			shader->use();
+			glBindVertexArray(objs[i]->getVAO());
+			glDrawElements(GL_TRIANGLES, objs[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
 		}
 	}
 };
