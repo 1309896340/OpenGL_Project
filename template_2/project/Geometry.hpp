@@ -2,6 +2,8 @@
 #include "utils.h"
 #include "Shader.hpp"
 
+#pragma once
+
 typedef struct {
 	vec3 begin;
 	vec3 end;
@@ -15,7 +17,6 @@ typedef struct {
 	Shader* shader;
 }LineStructure;
 
-LineStructure lineManager;
 
 class Drawable {
 public:
@@ -63,9 +64,8 @@ public:
 		autoColor = false;
 		this->color = color;
 	}
-	void setColor(bool isAuto) {
-		if (isAuto)
-			autoColor = true;
+	void setAutoColor(bool isAuto) {
+		autoColor = isAuto;
 	}
 	void rotate(float angle, glm::vec3 axis) {
 		rotation = glm::angleAxis(angle, axis) * rotation;
@@ -81,10 +81,7 @@ public:
 	}
 	void applyTransform() {
 		modelBuffer = getModelMatrix() * modelBuffer;
-
-		position = glm::vec3(0.0f);
-		rotation = glm::identity<glm::quat>();
-		_scale = glm::vec3(1.0f);
+		resetModelMatrix();
 	}
 	void scale(glm::vec3 xyz) {
 		_scale *= xyz;
@@ -96,7 +93,15 @@ public:
 		transformation = glm::scale(transformation, _scale);
 		return transformation;
 	}
+	void resetModelMatrix() {
+		// 清除当前的Model矩阵(不清除已经应用的Model变换)
+		position = glm::vec3(0.0f);
+		rotation = glm::identity<glm::quat>();
+		_scale = glm::vec3(1.0f);
+	}
 	virtual void draw() {
+		// 绘制函数需要shader来传输当前对象的model矩阵、颜色等信息
+		// 其次需要知道绘制点的个数、已经配置好的VAO
 		Shader& sd = *shader;
 		sd.use();
 		if (autoColor) {
@@ -433,6 +438,8 @@ public:
 };
 
 
+LineStructure lineManager;
+
 void initLineDrawing(Shader* shader) {
 	lineManager.shader = shader;
 	glGenBuffers(1, &lineManager.vbo_line);
@@ -447,7 +454,7 @@ void showLines() {
 	shader["isAuto"] = false;
 
 	while (!lineManager.lines.empty()) {
-		Line& a = lineManager.lines.back();
+		Line a = lineManager.lines.back();
 		glBindBuffer(GL_ARRAY_BUFFER, lineManager.vbo_line);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, &a.begin, GL_DYNAMIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
@@ -657,3 +664,40 @@ public:
 		VAO = prepareVAO(vertex, normal, index);
 	}
 };
+
+
+class Combination : public Geometry {
+	// Combination类用于组合多个Geometry对象，其继承自Geometry类，重载translate、rotate、scale、draw等方法
+private:
+	std::vector<Geometry*> objs;
+	std::vector<glm::mat4> objModel;
+public:
+	Combination(Shader* shader) :Geometry(shader) {}
+	void add(Geometry* obj) {
+		// Combination默认的中心在原点处
+		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
+		objs.push_back(obj);
+		objModel.push_back(obj->getModelMatrix());
+		obj->resetModelMatrix();
+	}
+	void draw() {
+		// 需要应用所有变换，这里考虑几类情况
+		// 1. Combination自身的变换，即Combination的model
+		// 2. Combination中的obj的变换，即objModel
+		// 3. Combination中的obj自身的变换，即obj->getModelMatrix(),这包括了obj的model和modelBuffer
+
+		// 注意：在将obj加入Combination后，其自身的model应当始终为单位阵，即不应当再进行变换
+		// 在draw方法中也会忽略model矩阵，只考虑modelBuffer，因为modelBuffer被当作已经应用的变换
+		// 在Combination的析构函数中，应当用objModel中的矩阵重置obj的model矩阵
+
+		// 注意：目前考虑的obj只可能是Geometry类，后续考虑实现obj为Combination的情况
+		// 此时最终model矩阵的计算可能会涉及到递归
+
+		for (int i = 0; i < objs.size(); i++) {
+			// 考虑使用Combination的model、modelBuffer和objModel[i]的连乘变换，附加(左乘)在objs[i]的getModelMatrix()上，其他属性设置和原来的draw保持一致
+			// 对这里的抽象没有做到位，可能需要重新设计一下Geometry的draw方法
+			objs[i]->draw();
+		}
+	}
+};
+

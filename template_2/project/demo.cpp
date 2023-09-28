@@ -2,6 +2,7 @@
 #include "Camera.hpp"
 #include "Shader.hpp"
 #include "Geometry.hpp"
+#include "Scene.hpp"
 
 typedef struct _StatusInfo {
 	bool leftMouseButtonPressed = false;
@@ -12,11 +13,10 @@ typedef struct _StatusInfo {
 	bool shiftPressed = false;
 	double shootPos[2];
 	glm::vec3 lightPos = glm::vec3(0.1f, 0.1f, 0.1f);
-	float lastTime, currentTime, deltaTime;
 }StatusInfo;
 
 StatusInfo status;
-Camera camera(glm::vec3(-0.4f, 0.8f, 3.0f), glm::vec3(0.4f, 0.5f, 0.0f));
+Camera *camera = nullptr;
 
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -58,12 +58,16 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		status.mousePos[0] = xpos;
 		status.mousePos[1] = ypos;
 		if (status.shiftPressed == false) {
-			camera.rotate(dx, dy);	// 以相机为中心旋转
+			if (!camera)
+				return;
+			camera->rotate(dx, dy);	// 以相机为中心旋转
 		}
 		else {
+			if (!camera)
+				return;
 			// 以原点为中心旋转
-			camera.move(-dx / 100.0f, dy / 100.0f, 0.0f);
-			camera.lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+			camera->move(-dx / 100.0f, dy / 100.0f, 0.0f);
+			camera->lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
 		}
 	}
 	if (status.leftMouseButtonPressed == true) {
@@ -92,18 +96,20 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+		if (!camera)
+			return;
 		switch (key) {
 		case GLFW_KEY_W:
-			camera.move(0.0f, 0.0f, 0.1f);
+			camera->move(0.0f, 0.0f, 0.1f);
 			break;
 		case GLFW_KEY_S:
-			camera.move(0.0f, 0.0f, -0.1f);
+			camera->move(0.0f, 0.0f, -0.1f);
 			break;
 		case GLFW_KEY_A:
-			camera.move(-0.1f, 0.0f, 0.0f);
+			camera->move(-0.1f, 0.0f, 0.0f);
 			break;
 		case GLFW_KEY_D:
-			camera.move(0.1f, 0.0f, 0.0f);
+			camera->move(0.1f, 0.0f, 0.0f);
 			break;
 		case GLFW_KEY_UP:  // 控制光源的位置
 			status.lightPos.z -= 0.2f;
@@ -136,7 +142,7 @@ GLFWwindow* GLFWinit() {
 		exit(1);
 	}
 	glfwInitHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwInitHint(GLFW_VERSION_MAJOR, 3);
+	glfwInitHint(GLFW_VERSION_MAJOR, 4);
 	glfwInitHint(GLFW_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_DECORATED, GL_FALSE);
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "example", NULL, NULL);
@@ -162,9 +168,6 @@ GLFWwindow* GLFWinit() {
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetKeyCallback(window, key_callback);
 
-	status.lastTime = 0.0f;
-	status.currentTime = (float)glfwGetTime();
-
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_LINE_SMOOTH);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -178,35 +181,27 @@ GLFWwindow* GLFWinit() {
 int main(int argc, char** argv) {
 	GLFWwindow* window = GLFWinit();
 
-	Shader* normShader = new Shader("nshader.gvs", "nshader.ggs", "nshader.gfs");
+	float deltTime;
+
+	camera = new Camera(glm::vec3(-0.4f, 0.8f, 3.0f), glm::vec3(0.4f, 0.5f, 0.0f));
+	Scene scene(camera);
 	Shader* shader = new Shader("shader.gvs", "shader.gfs");
 
 	Drawable* axis = new Axis(shader);
-	Geometry* obj = new Cone(1.0f, 2.0f, 4, 8, 36, normShader);
+	Geometry* obj = new Cone(1.0f, 2.0f, 4, 8, 36, shader);
 	obj->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-
-	shader->use();
-	(*shader)["projection"] = camera.getProjectionMatrix();
-	normShader->use();
-	(*normShader)["projection"] = camera.getProjectionMatrix();
+	scene.addShader(shader);
+	scene.addObj(axis);
+	scene.addObj(obj);
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		shader->use();
-		(*shader)["view"] = camera.getViewMatrix();
-		normShader->use();
-		(*normShader)["view"] = camera.getViewMatrix();
+		deltTime = scene.step();
 
-		status.lastTime = currentTime;
-		currentTime = glfwGetTime();
-		deltaTime = currentTime - lastTime;
-
-		//leaf->draw();
-		obj->draw();
-		axis->draw();
+		scene.render();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -214,67 +209,4 @@ int main(int argc, char** argv) {
 	glfwTerminate();
 	return 0;
 }
-
-
-//int main(int argc, char** argv) {
-//
-//	GLFWwindow* window = GLFWinit();
-//
-//	Shader* sd = new Shader("lightShader.gvs", "lightShader.gfs");	//默认着色器
-//	Shader& shader = *sd;
-//
-//	std::vector<Geometry*> objs;
-//
-//	//objs.push_back(new Cube(2.0f, 3.0f, 5.0f, 8, 12, 20, shader));
-//	//objs.push_back(new Sphere(2.0f, 40, 20, shader));
-//	//objs.push_back(new Cylinder(1.0f, 6.0f, 4, 24, 40, shader));
-//	//objs.push_back(new Cone(2.0f, 3.0f, 10, 30, 60, shader));
-//	objs.push_back(new Surface(-4.0f, 4.0f, -4.0f, 4.0f, SurfaceFunc, SurfaceGrad, 320, 320, sd));
-//	objs[0]->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-//	objs[0]->translate(glm::vec3(0.0f, -2.0f, 0.0f));
-//
-//	objs.push_back(new Sphere(0.02f, 20, 40, sd));
-//	objs.back()->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-//
-//	Drawable * axis = new Axis(sd);
-//
-//	initLineDrawing(sd);
-//
-//	float deltaTime = 0.0f;
-//	float lastTime = 0.0f;
-//	float currentTime = glfwGetTime();
-//
-//	shader.use();
-//	shader["projection"] = camera.getProjectionMatrix();
-//	shader["lightColor"] = glm::vec3(1.0f, 1.0f, 1.0f);
-//	shader["lightPos"] = status.lightPos;
-//
-//	while (!glfwWindowShouldClose(window)) {
-//		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-//		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//
-//		lastTime = currentTime;
-//		currentTime = glfwGetTime();
-//		deltaTime = currentTime - lastTime;
-//
-//		shader.use();
-//		shader["view"] = camera.getViewMatrix();
-//		shader["lightPos"] = status.lightPos;
-//		objs[1]->moveTo(status.lightPos);
-//
-//		for (int i = 0; i < objs.size(); i++) {
-//			//objs[i]->rotate((32 + i * 3) * glm::radians(deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
-//			objs[i]->draw();
-//		}
-//
-//		axis->draw();
-//
-//		showLines();
-//		glfwSwapBuffers(window);
-//		glfwPollEvents();
-//	}
-//
-//	glfwTerminate();
-//	return 0;
-//}
 
