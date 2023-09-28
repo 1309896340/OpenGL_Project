@@ -60,6 +60,7 @@ public:
 
 	void render() {
 		// 更新uniform buffer中的view矩阵
+		// 不同的shader需要传递不同的uniform变量，这部分工作应该由shader自己完成
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camera->getViewMatrix()));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);

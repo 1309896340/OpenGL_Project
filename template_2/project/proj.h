@@ -30,10 +30,6 @@
 
 #define EPS 1e-7
 
-extern float deltaTime;
-extern float lastFrame;
-
-
 extern glm::vec3 _up;
 extern glm::vec3 _right;
 extern glm::vec3 _front;
@@ -44,3 +40,14 @@ typedef struct {
 typedef struct {
 	float x, y, z, w;
 }vec4;
+
+typedef struct _StatusInfo {
+	bool leftMouseButtonPressed = false;
+	bool rightMouseButtonPressed = false;
+	double mousePos[2];
+	unsigned int lastKey = 0;
+	bool startShoot = false;
+	bool shiftPressed = false;
+	double shootPos[2];
+	glm::vec3 lightPos = glm::vec3(0.1f, 0.1f, 0.1f);
+}StatusInfo;

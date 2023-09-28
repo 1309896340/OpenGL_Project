@@ -27,6 +27,9 @@
     <ClCompile Include="Shader.hpp">
       <Filter>头文件</Filter>
     </ClCompile>
+    <ClCompile Include="interaction.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="proj.h">
@@ -44,29 +47,30 @@
     <ClInclude Include="Scene.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="interaction.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="lightShader.gvs">
-      <Filter>资源文件</Filter>
-    </Text>
-    <Text Include="lightShader.gfs">
-      <Filter>资源文件</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="shader.gvs">
+    <None Include="shader\lightShader.gfs">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="shader.gfs">
+    <None Include="shader\lightShader.gvs">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="nshader.gfs">
+    <None Include="shader\nshader.gfs">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="nshader.ggs">
+    <None Include="shader\nshader.ggs">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="nshader.gvs">
+    <None Include="shader\nshader.gvs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\shader.gfs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\shader.gvs">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>

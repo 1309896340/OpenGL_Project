@@ -100,10 +100,9 @@ public:
 		_scale = glm::vec3(1.0f);
 	}
 	virtual void draw() {
-		// 绘制函数需要shader来传输当前对象的model矩阵、颜色等信息
-		// 其次需要知道绘制点的个数、已经配置好的VAO
+		// 需要shader传输当前对象的model矩阵、颜色等信息
+		// 其次需要知道绘制点的个数、已经配置好的顶点缓冲区ID
 		Shader& sd = *shader;
-		sd.use();
 		if (autoColor) {
 			sd["isAuto"] = true;
 		}
@@ -113,6 +112,8 @@ public:
 		}
 		sd["model"] = getModelMatrix();
 		sd["modelBuffer"] = modelBuffer;
+
+		sd.use();
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)index.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
