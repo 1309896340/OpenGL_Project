@@ -144,6 +144,7 @@
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="Geometry.hpp" />
     <ClInclude Include="proj.h" />
+    <ClInclude Include="Scene.hpp" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
