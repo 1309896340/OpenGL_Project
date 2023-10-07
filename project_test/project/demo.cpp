@@ -65,48 +65,37 @@ int main(int argc, char** argv) {
 	Shader* shader = new DefaultShader();
 
 	Drawable* axis = new Axis(shader);
-	Geometry* obj1 = new Cylinder(0.2f, 1.0f, 4, 20, 32, shader);
-	Geometry* obj2 = new Cylinder(0.2f, 1.0f, 4, 20, 32, shader);
 
-	obj1->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	obj1->applyTransform();
-	obj2->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	obj2->translate(glm::vec3(0.0f, 0.5f, 0.0f));
-	obj2->applyTransform();
+	Bone* a = new Bone(),*b=new Bone(), * c = new Bone(), * d = new Bone();
+	a->addChild(b);
+	a->addChild(c);
+	a->addChild(d);
 
-	obj2->translate(glm::vec3(0.0f, 0.5f, 0.0f));
-
-	Combination* com = new Combination();
-	com->add(obj1);
-	com->add(obj2);
+	delete a;
 
 
 	scene.bindShader(shader);	// °ó¶¨uniform buffer
-	scene.add(com);
 	scene.add(axis);
 
-	float t = 0.0f;
 
-	while (!glfwWindowShouldClose(window)) {
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//float t = 0.0f;
+	//while (!glfwWindowShouldClose(window)) {
+	//	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		deltaTime = scene.step();
-		t += deltaTime;
-		if (t > 1.0f) {
-			t = 0.0f;
-			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
-		}
-
-		com->rotate(glm::radians(30 * deltaTime), glm::vec3(0.0f, 0.0f, 1.0f));
-		obj2->rotate(glm::radians(70 * deltaTime), glm::vec3(1.0f, 0.0f, 0.0f));
-
-		scene.render();
+	//	deltaTime = scene.step();
+	//	t += deltaTime;
+	//	if (t > 1.0f) {
+	//		t = 0.0f;
+	//		std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
+	//	}
 
 
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
+	//	scene.render();
+
+	//	glfwSwapBuffers(window);
+	//	glfwPollEvents();
+	//}
 	glfwTerminate();
 	return 0;
 }

@@ -81,7 +81,7 @@ public:
 	Transform* transform;
 
 	Geometry(glm::vec3 position, Shader* shader) :uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		VAO(0), VAO_length(0),transform(new Transform(position)) {
+		VAO(0), VAO_length(0), transform(new Transform(position)) {
 	}
 	Geometry(Shader* shader) : uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
 		VAO(0), VAO_length(0), transform(new Transform()) {
@@ -555,6 +555,45 @@ public:
 			glBindVertexArray(objs[i]->getVAO());
 			glDrawElements(GL_TRIANGLES, objs[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
+		}
+	}
+};
+
+class Bone {
+private:
+	Bone* child;			// 父骨骼会影响子骨骼，反之不影响
+	//glm::mat4 modelBuffer;	// 主要记录当前物体的中心点在世界坐标系下的位置，和相对旋转量
+	glm::vec3 position;		// 起点位置，根骨骼的位置是有效的，其他所有子骨骼的七点位置由父骨骼确定
+	glm::vec3 vec;			// 骨骼方向向量，其大小表示骨骼的长度，方向表示骨骼的方向
+
+	// 每个Bone需要有其起止位置，或者一个起点和一个带大小的方向向量
+	// 父骨骼通过子骨骼的起始位置和方向向量来确定自己的位置，通过计算出一个位移矩阵
+public:
+	//Transform* transform;
+	Bone() :/*transform(new Transform()),*/ child(nullptr), /*modelBuffer(glm::mat4(1.0f)),*/ position(glm::vec3(0.0f)), vec(_up) {}
+	~Bone() {
+		//delete transform;
+		if (child) {
+			delete child;
+		}
+	}
+	Bone* getChild() {
+		return child;
+	}
+	void addChild(Bone* b) {
+		if (child)
+			child->addChild(b);
+		else {
+			child = b;
+			child->position = position + vec;
+		}
+	}
+	// 添加一些对单个骨骼的旋转操作，其作用是改变vec的方向(不改变大小)，并更新子骨骼的位置
+	void rotate(float angle, glm::vec3 axis) {
+		//transform->rotate(angle, axis);
+		vec = glm::rotate(glm::mat4(1.0f), angle, axis) * glm::vec4(vec, 1.0f);
+		if (child) {
+			child->position = position + vec;
 		}
 	}
 };
