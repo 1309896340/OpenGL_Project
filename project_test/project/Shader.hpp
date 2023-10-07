@@ -3,7 +3,6 @@
 
 #pragma once
 
-
 class ShaderUniform {
 private:
 	GLint location;
@@ -24,7 +23,7 @@ public:
 };
 
 class Shader {
-private:
+protected:
 	GLuint ID;
 public:
 	Shader() :ID(glCreateProgram()) {}
@@ -96,21 +95,34 @@ public:
 		return su;
 	}
 	// 标准化配置uniform：model、modelBuffer
-	void setModel(const glm::mat4 &model) {
+	void setModel(const glm::mat4& model) {
 		(*this)["model"] = model;
 	}
-	void setModelBuffer(const glm::mat4 &modelBuffer) {
+	void setModelBuffer(const glm::mat4& modelBuffer) {
 		(*this)["modelBuffer"] = modelBuffer;
 	}
 	// 定制化配置uniform
-	virtual void loadUniform(const uniformTable &uniform) = 0;
+	virtual void loadUniform(const uniformTable& uniform) = 0;
 	// 使用loadUniform来实现多态行为，在子类中实现根据不同的着色器加载不同的uniform变量
 };
 
 
 class DefaultShader :public Shader {
-public:
+private:
 	DefaultShader() :Shader("shader/shader.gvs", "shader/shader.gfs") {}
+public:
+	DefaultShader(DefaultShader&) = delete;
+	DefaultShader& operator=(DefaultShader&) = delete;
+	~DefaultShader() = default;
+
+	static DefaultShader *getDefaultShader() {
+		static DefaultShader* shader = nullptr;
+		if (shader == nullptr) {
+			shader = new DefaultShader();
+		}
+		return shader;
+	}
+
 	virtual void loadUniform(const uniformTable& uniform) {
 		// 默认着色器定制uniform为颜色配置
 		(*this)["ncolor"] = uniform.color;

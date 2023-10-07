@@ -7,6 +7,7 @@
 #include <ctime>
 #include <chrono>
 #include <vector>
+//#include <memory>
 
 #include "GLAD/glad.h"
 #include "GLFW/glfw3.h"
@@ -24,7 +25,7 @@
 #define WIDTH 1200
 #define HEIGHT 900
 
-#define PI 3.1415926535897932384626433832795
+#define PI 3.1415926535f
 
 #define DEFAULT_LINE_WIDTH 0.02f
 

@@ -57,10 +57,10 @@ public:
 	void rotate(float dx, float dy) {	// 控制相机旋转(更新front向量)
 		yaw -= dx * X_ROTATE_SENSITIVITY;
 		pitch -= dy * Y_ROTATE_SENSITIVITY;
-		if (pitch > (PI / 2 - 1e-5))
-			pitch = PI / 2 - 1e-5;
-		else if (pitch < (-PI / 2 + 1e-5))
-			pitch = -PI / 2 + 1e-5;
+		if (pitch > (PI / 2 - 1e-5f))
+			pitch = PI / 2 - 1e-5f;
+		else if (pitch < (-PI / 2 + 1e-5f))
+			pitch = -PI / 2 + 1e-5f;
 		front.x = cosf(yaw) * cosf(pitch);
 		front.y = sinf(pitch);
 		front.z = -sinf(yaw) * cosf(pitch);

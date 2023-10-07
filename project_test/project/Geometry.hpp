@@ -63,12 +63,8 @@ public:
 
 class Geometry :public Drawable {
 private:
-	//glm::vec3 position;
-	//glm::quat rotation;
-	//glm::vec3 _scale;
-
+	glm::mat4 transMatrix;
 	glm::mat4 modelBuffer;
-
 protected:
 	GLuint VAO;
 	GLsizei VAO_length;
@@ -81,14 +77,20 @@ public:
 	Transform* transform;
 
 	Geometry(glm::vec3 position, Shader* shader) :uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		VAO(0), VAO_length(0), transform(new Transform(position)) {
+		VAO(0), VAO_length(0), transform(new Transform(position)), transMatrix(glm::mat4(1.0f)){
+		if (!shader)
+			this->shader = DefaultShader::getDefaultShader();
 	}
 	Geometry(Shader* shader) : uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		VAO(0), VAO_length(0), transform(new Transform()) {
+		VAO(0), VAO_length(0), transform(new Transform()), transMatrix(glm::mat4(1.0f)) {
+		if (!shader)
+			this->shader = DefaultShader::getDefaultShader();
 	}
 	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :
 		uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		VAO(0), VAO_length(0), transform(new Transform()) {
+		VAO(0), VAO_length(0), transform(new Transform()), transMatrix(glm::mat4(1.0f)) {
+		if (!shader)
+			this->shader = DefaultShader::getDefaultShader();
 
 		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
@@ -109,6 +111,13 @@ public:
 	void applyTransform() {
 		modelBuffer = (transform->getMatrix()) * modelBuffer;
 		transform->reset();
+	}
+	void applyTransform(const glm::mat4& trans) {
+		modelBuffer = trans * modelBuffer;
+		transform->reset();
+	}
+	void setTransformMatrix(const glm::mat4& trans) {
+		transMatrix = trans;
 	}
 	// transform 适配
 	void translate(glm::vec3 dxyz) {
@@ -147,13 +156,15 @@ public:
 		// 其次需要知道绘制点的个数、已经配置好的顶点缓冲区ID
 
 		shader->setModel(transform->getMatrix());
-		shader->setModelBuffer(modelBuffer);
+		shader->setModelBuffer(transMatrix * modelBuffer);
 		shader->loadUniform(uniform);
 
 		shader->use();
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, VAO_length, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
+
+		transMatrix = glm::mat4(1.0f);
 	}
 };
 
@@ -260,15 +271,15 @@ public:
 		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
 
-		int lonlatNum = lonSliceNum * latSliceNum;
-		int lonlatNum1 = (latSliceNum + 1) * (lonSliceNum + 1);
+		unsigned int lonlatNum = lonSliceNum * latSliceNum;
+		unsigned int lonlatNum1 = (latSliceNum + 1) * (lonSliceNum + 1);
 
 		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
 		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
 		std::vector<GLuint> index(lonlatNum * 6, 0);
 
-		for (int i = 0; i <= lonSliceNum; i++) {
-			for (int j = 0; j <= latSliceNum; j++) {
+		for (unsigned int i = 0; i <= lonSliceNum; i++) {
+			for (unsigned int j = 0; j <= latSliceNum; j++) {
 				float lon = -PI + i * lonStep;
 				float lat = -PI / 2 + j * latStep;
 				vertex[i * (latSliceNum + 1) + j] = { radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) };
@@ -296,15 +307,15 @@ private:
 	int hSliceNum;
 	int lonSliceNum;
 public:
-	Cylinder(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cylinder(float radius, float height, unsigned int rSliceNum, unsigned int hSliceNum, unsigned int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
 
-		int rlonNum = rSliceNum * lonSliceNum;
-		int hlonNum = hSliceNum * lonSliceNum;
-		int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
-		int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
+		unsigned int rlonNum = rSliceNum * lonSliceNum;
+		unsigned int hlonNum = hSliceNum * lonSliceNum;
+		unsigned int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
+		unsigned int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
 
 		float lon_tmp, r_tmp, h_tmp;
 
@@ -314,8 +325,8 @@ public:
 		std::vector<vec3> normal(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
 		std::vector<GLuint> index((2 * rlonNum + hlonNum) * 6, 0);
 
-		for (int i = 0; i <= lonSliceNum; i++) {
-			for (int j = 0; j <= rSliceNum; j++) {
+		for (unsigned int i = 0; i <= lonSliceNum; i++) {
+			for (unsigned int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
 				vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
@@ -337,8 +348,8 @@ public:
 		}
 		baseVert += 2 * rlonNum1;
 		baseIdx += 2 * rlonNum * 6;
-		for (int i = 0; i <= hSliceNum; i++) {
-			for (int j = 0; j <= lonSliceNum; j++) {
+		for (unsigned int i = 0; i <= hSliceNum; i++) {
+			for (unsigned int j = 0; j <= lonSliceNum; j++) {
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
 				vertex[baseVert + i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
@@ -367,15 +378,15 @@ private:
 	int hSliceNum;
 	int lonSliceNum;
 public:
-	Cone(float radius, float height, int rSliceNum, int hSliceNum, int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cone(float radius, float height, unsigned int rSliceNum, unsigned int hSliceNum, unsigned int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
 
-		int rlonNum = rSliceNum * lonSliceNum;
-		int hlonNum = hSliceNum * lonSliceNum;
-		int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
-		int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
+		unsigned int rlonNum = rSliceNum * lonSliceNum;
+		unsigned int hlonNum = hSliceNum * lonSliceNum;
+		unsigned int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
+		unsigned int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
 
 		float lon_tmp, r_tmp, h_tmp;
 
@@ -385,8 +396,8 @@ public:
 		std::vector<vec3> normal(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
 		std::vector<GLuint> index((rlonNum + hlonNum) * 6, 0);
 
-		for (int i = 0; i <= lonSliceNum; i++) {
-			for (int j = 0; j <= rSliceNum; j++) {
+		for (unsigned int i = 0; i <= lonSliceNum; i++) {
+			for (unsigned int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
 				r_tmp = j * rStep;
 				vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
@@ -404,8 +415,8 @@ public:
 		}
 		baseVert += rlonNum1;
 		baseIdx += rlonNum * 6;
-		for (int i = 0; i <= hSliceNum; i++) {
-			for (int j = 0; j <= lonSliceNum; j++) {
+		for (unsigned int i = 0; i <= hSliceNum; i++) {
+			for (unsigned int j = 0; j <= lonSliceNum; j++) {
 				h_tmp = -height / 2 + i * hStep;
 				lon_tmp = -PI + j * lonStep;
 				r_tmp = radius * (1 - i * hStep / height);
@@ -447,15 +458,15 @@ public:
 		float x, y, z;
 		vec3 _grad;
 
-		int lonlatNum = xSliceNum * ySliceNum;
-		int lonlatNum1 = (xSliceNum + 1) * (ySliceNum + 1);
+		unsigned int lonlatNum = xSliceNum * ySliceNum;
+		unsigned int lonlatNum1 = (xSliceNum + 1) * (ySliceNum + 1);
 
 		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
 		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
 		std::vector<GLuint> index(lonlatNum * 6, 0);
 
-		for (int i = 0; i <= xSliceNum; i++) {
-			for (int j = 0; j <= ySliceNum; j++) {
+		for (unsigned int i = 0; i <= xSliceNum; i++) {
+			for (unsigned int j = 0; j <= ySliceNum; j++) {
 				x = xStart + i * dx;
 				y = yStart + j * dy;
 				z = func(x, y);
@@ -559,23 +570,46 @@ public:
 	}
 };
 
-class Bone {
+class Bone :public Drawable {
 private:
 	Bone* child;			// 父骨骼会影响子骨骼，反之不影响
-	//glm::mat4 modelBuffer;	// 主要记录当前物体的中心点在世界坐标系下的位置，和相对旋转量
+	Bone* parent;
+
 	glm::vec3 position;		// 起点位置，根骨骼的位置是有效的，其他所有子骨骼的七点位置由父骨骼确定
 	glm::vec3 vec;			// 骨骼方向向量，其大小表示骨骼的长度，方向表示骨骼的方向
+
+	// 调试用的圆柱体作为绘制实体
+	Geometry* obj = nullptr;
 
 	// 每个Bone需要有其起止位置，或者一个起点和一个带大小的方向向量
 	// 父骨骼通过子骨骼的起始位置和方向向量来确定自己的位置，通过计算出一个位移矩阵
 public:
-	//Transform* transform;
-	Bone() :/*transform(new Transform()),*/ child(nullptr), /*modelBuffer(glm::mat4(1.0f)),*/ position(glm::vec3(0.0f)), vec(_up) {}
+	Transform* transform; // 表示子骨骼相对于父骨骼的变换
+	Bone() :transform(new Transform()), child(nullptr), parent(nullptr), position(glm::vec3(0.0f)), vec(_up) {
+		obj = new Cylinder(0.06f, 1.0f, 4, 20, 36, nullptr);
+		glm::mat4 transMatrix(1.0f);
+		obj->rotate(glm::radians(-90.0f), _right);
+		obj->translateTo(glm::vec3(0.0f, 0.5f, 0.0f));
+		obj->applyTransform();	// 将中心点移动到圆柱的下端点
+		obj->applyTransform(getTransMatrix());	// 应用所有父骨骼的变换
+	}
 	~Bone() {
-		//delete transform;
+		delete transform;
 		if (child) {
 			delete child;
 		}
+	}
+	glm::mat4 getTransMatrix() {		// 遍历所有父骨骼，计算出当前骨骼坐标系变换矩阵
+		glm::mat4 modelBuffer(1.0f);
+		Bone* cur = this;
+		while (cur->parent) {
+			cur = cur->parent;
+			modelBuffer = modelBuffer * cur->transform->getMatrix();		// 由于是从子骨骼开始遍历到根骨骼，所以应该是右乘累乘
+		}
+		return modelBuffer;
+	}
+	Bone* getParent() {
+		return parent;
 	}
 	Bone* getChild() {
 		return child;
@@ -585,16 +619,23 @@ public:
 			child->addChild(b);
 		else {
 			child = b;
+			b->parent = this;
 			child->position = position + vec;
 		}
 	}
 	// 添加一些对单个骨骼的旋转操作，其作用是改变vec的方向(不改变大小)，并更新子骨骼的位置
 	void rotate(float angle, glm::vec3 axis) {
-		//transform->rotate(angle, axis);
 		vec = glm::rotate(glm::mat4(1.0f), angle, axis) * glm::vec4(vec, 1.0f);
 		if (child) {
 			child->position = position + vec;
 		}
+		transform->rotate(angle, axis);
+		transform->translateTo(vec);
+	}
+
+	virtual void draw() {	// 调试用的绘制函数
+		obj->setTransformMatrix(getTransMatrix());
+		obj->draw();
 	}
 };
 
@@ -726,18 +767,18 @@ public:
 
 		// 生成节点
 		std::vector<float> knots_u(hSliceNum + u_degree + 1, 0), knots_v(wSliceNum + v_degree + 1, 0);
-		for (int i = 0; i <= u_degree; i++) {
+		for (unsigned int i = 0; i <= u_degree; i++) {
 			knots_u[i] = 0.0f;
 			knots_u[hSliceNum + u_degree - i] = 1.0f;
 		}
-		for (int i = u_degree + 1; i < hSliceNum; i++) {
+		for (unsigned int i = u_degree + 1; i < hSliceNum; i++) {
 			knots_u[i] = (float)(i - u_degree) / (hSliceNum - u_degree);
 		}
-		for (int i = 0; i <= v_degree; i++) {
+		for (unsigned int i = 0; i <= v_degree; i++) {
 			knots_v[i] = 0.0f;
 			knots_v[wSliceNum + v_degree - i] = 1.0f;
 		}
-		for (int i = v_degree + 1; i < wSliceNum; i++) {
+		for (unsigned int i = v_degree + 1; i < wSliceNum; i++) {
 			knots_v[i] = (float)(i - v_degree) / (wSliceNum - v_degree);
 		}
 		// 生成控制点（叶鞘、叶两边、叶脉）

@@ -62,40 +62,51 @@ int main(int argc, char** argv) {
 
 	camera = new Camera(glm::vec3(-0.4f, 0.8f, 3.0f), glm::vec3(0.4f, 0.5f, 0.0f));
 	Scene scene(camera);
-	Shader* shader = new DefaultShader();
+	Shader* shader = DefaultShader::getDefaultShader();
 
 	Drawable* axis = new Axis(shader);
 
-	Bone* a = new Bone(),*b=new Bone(), * c = new Bone(), * d = new Bone();
+	Bone* a = new Bone(), * b = new Bone(), * c = new Bone(), * d = new Bone();
 	a->addChild(b);
 	a->addChild(c);
 	a->addChild(d);
 
-	delete a;
+	a->rotate(glm::radians(30.0f), _right);
+	a->rotate(glm::radians(20.0f), _up);
 
+
+	b->rotate(glm::radians(30.0f), _right);
+	b->rotate(glm::radians(-20.0f), _front);
+
+	c->rotate(glm::radians(-20.0f), _right);
+	c->rotate(glm::radians(10.0f), _up);
+
+	//delete a;
 
 	scene.bindShader(shader);	// °ó¶¨uniform buffer
 	scene.add(axis);
+	scene.add(a);
+	scene.add(b);
+	scene.add(c);
+	scene.add(d);
 
+	float t = 0.0f;
+	while (!glfwWindowShouldClose(window)) {
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//float t = 0.0f;
-	//while (!glfwWindowShouldClose(window)) {
-	//	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		deltaTime = scene.step();
+		t += deltaTime;
+		if (t > 1.0f) {
+			t = 0.0f;
+			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
+		}
 
-	//	deltaTime = scene.step();
-	//	t += deltaTime;
-	//	if (t > 1.0f) {
-	//		t = 0.0f;
-	//		std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
-	//	}
+		scene.render();
 
-
-	//	scene.render();
-
-	//	glfwSwapBuffers(window);
-	//	glfwPollEvents();
-	//}
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	}
 	glfwTerminate();
 	return 0;
 }
