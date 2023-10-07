@@ -77,7 +77,7 @@ public:
 	Transform* transform;
 
 	Geometry(glm::vec3 position, Shader* shader) :uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		VAO(0), VAO_length(0), transform(new Transform(position)), transMatrix(glm::mat4(1.0f)){
+		VAO(0), VAO_length(0), transform(new Transform(position)), transMatrix(glm::mat4(1.0f)) {
 		if (!shader)
 			this->shader = DefaultShader::getDefaultShader();
 	}
@@ -112,11 +112,7 @@ public:
 		modelBuffer = (transform->getMatrix()) * modelBuffer;
 		transform->reset();
 	}
-	void applyTransform(const glm::mat4& trans) {
-		modelBuffer = trans * modelBuffer;
-		transform->reset();
-	}
-	void setTransform(const Transform &trans) {
+	void setTransform(const Transform& trans) {
 		*(this->transform) = trans;
 	}
 	void setTransformMatrix(const glm::mat4& trans) {
@@ -158,8 +154,8 @@ public:
 		// 需要shader传输当前对象的model矩阵、颜色等信息
 		// 其次需要知道绘制点的个数、已经配置好的顶点缓冲区ID
 
-		shader->setModel(transform->getMatrix());
-		shader->setModelBuffer(transMatrix * modelBuffer);
+		shader->setModel(transMatrix * transform->getMatrix());
+		shader->setModelBuffer(modelBuffer);
 		shader->loadUniform(uniform);
 
 		shader->use();
@@ -575,7 +571,7 @@ public:
 
 class Bone :public Drawable {
 private:
-	Bone* child;			// 父骨骼会影响子骨骼，反之不影响
+	Bone* child;			// 双向链表
 	Bone* parent;
 
 	glm::vec3 position;		// 起点位置，根骨骼的位置是有效的，其他所有子骨骼的七点位置由父骨骼确定
@@ -594,7 +590,8 @@ public:
 		obj->rotate(glm::radians(-90.0f), _right);
 		obj->translateTo(glm::vec3(0.0f, 0.5f, 0.0f));
 		obj->applyTransform();	// 将中心点移动到圆柱的下端点
-		obj->applyTransform(getTransMatrix());	// 应用所有父骨骼的变换
+
+		transform->translateTo(vec);
 	}
 	~Bone() {
 		delete transform;
@@ -602,12 +599,12 @@ public:
 			delete child;
 		}
 	}
-	glm::mat4 getTransMatrix() {		// 遍历所有父骨骼，计算出当前骨骼坐标系变换矩阵
+	glm::mat4 getTransMatrix() {		// 遍历所有父骨骼，计算当前骨骼坐标系变换矩阵
 		glm::mat4 modelBuffer(1.0f);
 		Bone* cur = this;
 		while (cur->parent) {
 			cur = cur->parent;
-			modelBuffer = modelBuffer * cur->transform->getMatrix();		// 由于是从子骨骼开始遍历到根骨骼，所以应该是右乘累乘
+			modelBuffer = cur->transform->getMatrix() * modelBuffer;		// 由于是从子骨骼开始遍历到根骨骼,所以需要左乘（为什么不是右乘？）
 		}
 		return modelBuffer;
 	}

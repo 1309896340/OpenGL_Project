@@ -8,5 +8,5 @@ uniform bool isAuto;
 uniform vec4 ncolor;
 
 void main(){
-	color = isAuto ? vec4(localPos, 1.0f) : ncolor;
+	color = isAuto ? vec4(localPos+vec3(0.3, 0.1, 0.5), 1.0f) : ncolor;
 }

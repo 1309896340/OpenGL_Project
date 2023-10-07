@@ -71,14 +71,10 @@ int main(int argc, char** argv) {
 	a->addChild(c);
 	a->addChild(d);
 
-	a->rotate(glm::radians(30.0f), _right);
-	a->rotate(glm::radians(20.0f), _up);
-
-	b->rotate(glm::radians(30.0f), _right);
-	b->rotate(glm::radians(-20.0f), _front);
-
-	c->rotate(glm::radians(-20.0f), _right);
-	c->rotate(glm::radians(10.0f), _up);
+	a->rotate(glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 1.0f));
+	b->rotate(glm::radians(40.0f), glm::vec3(1.0f, 0.0f, -1.0f));
+	c->rotate(glm::radians(20.0f), glm::vec3(-1.0f, 0.0f, 1.0f));
+	d->rotate(glm::radians(-20.0f), glm::vec3(-1.0f, 0.0f, 1.0f));
 
 
 	scene.bindShader(shader);	// °ó¶¨uniform buffer
@@ -100,6 +96,10 @@ int main(int argc, char** argv) {
 			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
 		}
 
+		a->rotate(glm::radians(30.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+		b->rotate(glm::radians(-25.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+		c->rotate(glm::radians(35.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+		d->rotate(glm::radians(40.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		scene.render();
 
 		glfwSwapBuffers(window);
