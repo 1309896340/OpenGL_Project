@@ -693,9 +693,6 @@ public:
 		// 2. Combination中的obj的变换，即objModel
 		// 3. Combination中的obj自身的变换，即obj->getModelMatrix(),这包括了obj的model和modelBuffer
 
-		// 注意：在将obj加入Combination后，其自身的model应当始终为单位阵，即不应当再进行变换
-		// 在draw方法中也会忽略model矩阵，只考虑modelBuffer，因为modelBuffer被当作已经应用的变换
-		// 在Combination的析构函数中，应当用objModel中的矩阵重置obj的model矩阵
 
 		// 注意：目前考虑的obj只可能是Geometry类，后续考虑实现obj为Combination的情况
 		// 此时最终model矩阵的计算可能会涉及到递归
@@ -704,7 +701,7 @@ public:
 			// 考虑使用Combination的model、modelBuffer和objModel[i]的连乘变换，附加(左乘)在objs[i]的getModelMatrix()上，其他属性设置和原来的draw保持一致
 			Shader* shader = objs[i]->getShader();
 			shader->setModel(getModelMatrix());
-			shader->setModelBuffer(getModelBufferMatrix() * objModel[i] * (objs[i]->getModelBufferMatrix()));
+			shader->setModelBuffer(getModelBufferMatrix() * objModel[i] * (objs[i]->getModelMatrix()) * (objs[i]->getModelBufferMatrix()));
 			shader->loadUniform(objs[i]->getUniform());
 
 			shader->use();

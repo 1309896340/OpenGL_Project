@@ -137,25 +137,26 @@
   <ItemGroup>
     <ClCompile Include="demo.cpp" />
     <ClCompile Include="glad\src\glad.c" />
+    <ClCompile Include="interaction.cpp" />
     <ClCompile Include="Shader.hpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="Geometry.hpp" />
+    <ClInclude Include="interaction.h" />
     <ClInclude Include="proj.h" />
+    <ClInclude Include="Scene.hpp" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="lightShader.gfs" />
-    <Text Include="lightShader.gvs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="nshader.gfs" />
-    <None Include="nshader.ggs" />
-    <None Include="nshader.gvs" />
-    <None Include="shader.gfs" />
-    <None Include="shader.gvs" />
+    <None Include="shader\lightShader.gfs" />
+    <None Include="shader\lightShader.gvs" />
+    <None Include="shader\nshader.gfs" />
+    <None Include="shader\nshader.ggs" />
+    <None Include="shader\nshader.gvs" />
+    <None Include="shader\shader.gfs" />
+    <None Include="shader\shader.gvs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

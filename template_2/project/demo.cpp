@@ -71,9 +71,10 @@ int main(int argc, char** argv) {
 	obj1->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	obj1->applyTransform();
 	obj2->rotate(-glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	obj2->translate(glm::vec3(0.0f, 0.5f, 0.0f));
 	obj2->applyTransform();
 
-	obj2->translate(glm::vec3(0.0f, 1.0f, 0.0f));
+	obj2->translate(glm::vec3(0.0f, 0.5f, 0.0f));
 
 	Combination *com = new Combination();
 	com->add(obj1);
@@ -83,8 +84,6 @@ int main(int argc, char** argv) {
 	scene.addShader(shader);
 	scene.add(axis);
 	scene.add(com);
-	//scene.addObj(obj1);
-	//scene.addObj(obj2);
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -94,8 +93,8 @@ int main(int argc, char** argv) {
 
 		// obj->rotate(glm::radians(30 * deltTime), glm::vec3(0.0f, 0.0f, 1.0f));
 		com->rotate(glm::radians(30 * deltTime), glm::vec3(0.0f, 0.0f, 1.0f));
-		// 由于在Combination的draw()中忽略了obj自身的model，因此这句无效
-		obj2->rotate(glm::radians(20 * deltTime), glm::vec3(0.0f, 1.0f, 0.0f));
+		// 由于在Combination的draw()中忽略了obj自身的model，因此这句无效。目前的做法只能修改obj2在Combination中的model，也就是objModel
+		obj2->rotate(glm::radians(70 * deltTime), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		scene.render();
 

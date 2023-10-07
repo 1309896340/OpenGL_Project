@@ -2,6 +2,8 @@
 #include "utils.h"
 #include "Shader.hpp"
 
+#pragma once
+
 typedef struct {
 	vec3 begin;
 	vec3 end;
@@ -15,7 +17,6 @@ typedef struct {
 	Shader* shader;
 }LineStructure;
 
-LineStructure lineManager;
 
 class Drawable {
 public:
@@ -27,51 +28,43 @@ private:
 	glm::vec3 position;
 	glm::quat rotation;
 	glm::vec3 _scale;
-
 	glm::mat4 modelBuffer;
 
 protected:
 	GLuint VAO;
-	std::vector<vec3> vertex;
-	std::vector<vec3> normal;
-	std::vector<unsigned int> index;
+	GLsizei VAO_length;
+
+	uniformTable uniform;
 
 	Shader* shader;
-	glm::vec4 color;
-	bool autoColor;
 
 public:
 
-	Geometry(glm::vec3 position, Shader* shader) :autoColor(true), color(glm::vec4(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), position(glm::vec3(0.0f)) {
-		vertex.clear();
-		index.clear();
-		normal.clear();
+	Geometry(glm::vec3 position, Shader* shader) :uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
+		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), VAO_length(0), position(glm::vec3(0.0f)) {
 	}
-	Geometry(Shader* shader) :position(glm::vec3(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), autoColor(true), color(glm::vec4(0.0f)) {
-		vertex.clear();
-		index.clear();
-		normal.clear();
+	Geometry(Shader* shader) :position(glm::vec3(0.0f)), uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
+		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), VAO_length(0) {
 	}
-	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :position(glm::vec3(0.0f)), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), vertex(vertex), normal(normal), index(index), autoColor(true), color(glm::vec4(0.0f)) {
-		VAO = prepareVAO(vertex, normal, index);
+	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :position(glm::vec3(0.0f)),
+		uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)), _scale(1.0f), rotation(glm::identity<glm::quat>()),
+		VAO(0), VAO_length(0) {
+
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 
-	void setColor(glm::vec4 color) {
-		autoColor = false;
-		this->color = color;
+	glm::mat4 getModelBufferMatrix() {
+		return modelBuffer;
 	}
-	void setColor(bool isAuto) {
-		if (isAuto)
-			autoColor = true;
+	void setColor(glm::vec4 color) {
+		uniform.autoColor = false;
+		uniform.color = color;
+	}
+	void setAutoColor() {
+		uniform.autoColor = true;
 	}
 	void rotate(float angle, glm::vec3 axis) {
-		rotation = glm::angleAxis(angle, axis) * rotation;
-	}
-	void rotateTo(glm::vec3 direction) {
-		//尚未实现的功能：旋转到指定方向(绝对姿态)，rotate是基于当前姿态的相对旋转
+		rotation = glm::angleAxis(angle, glm::normalize(axis)) * rotation;
 	}
 	void translate(glm::vec3 dxyz) {
 		position = position + dxyz;
@@ -81,10 +74,7 @@ public:
 	}
 	void applyTransform() {
 		modelBuffer = getModelMatrix() * modelBuffer;
-
-		position = glm::vec3(0.0f);
-		rotation = glm::identity<glm::quat>();
-		_scale = glm::vec3(1.0f);
+		resetModelMatrix();
 	}
 	void scale(glm::vec3 xyz) {
 		_scale *= xyz;
@@ -96,20 +86,35 @@ public:
 		transformation = glm::scale(transformation, _scale);
 		return transformation;
 	}
+	void resetModelMatrix() {
+		// 清除当前的Model矩阵(不清除已经应用的Model变换)
+		position = glm::vec3(0.0f);
+		rotation = glm::identity<glm::quat>();
+		_scale = glm::vec3(1.0f);
+	}
+	Shader* getShader() {
+		return shader;
+	}
+	uniformTable& getUniform() {
+		return uniform;
+	}
+	GLuint getVAO() {
+		return VAO;
+	}
+	GLsizei getVAOLength() {
+		return VAO_length;
+	}
 	virtual void draw() {
-		Shader& sd = *shader;
-		sd.use();
-		if (autoColor) {
-			sd["isAuto"] = true;
-		}
-		else {
-			sd["isAuto"] = false;
-			sd["ncolor"] = color;
-		}
-		sd["model"] = getModelMatrix();
-		sd["modelBuffer"] = modelBuffer;
+		// 需要shader传输当前对象的model矩阵、颜色等信息
+		// 其次需要知道绘制点的个数、已经配置好的顶点缓冲区ID
+
+		shader->setModel(getModelMatrix());
+		shader->setModelBuffer(modelBuffer);
+		shader->loadUniform(uniform);
+
+		shader->use();
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, (GLsizei)index.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, VAO_length, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
 };
@@ -136,9 +141,9 @@ public:
 		int zyNum1 = (ySliceNum + 1) * (zSliceNum + 1);
 		int xzNum1 = (xSliceNum + 1) * (zSliceNum + 1);
 
-		vertex.resize(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
-		index.resize(2 * (xyNum + zyNum + xzNum) * 6, 0);
-		normal.resize(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
+		std::vector<vec3> vertex(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index(2 * (xyNum + zyNum + xzNum) * 6, 0);
 
 		int baseVert = 0, baseIdx = 0;
 		for (int i = 0; i <= xSliceNum; i++) {
@@ -202,7 +207,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -220,9 +225,9 @@ public:
 		int lonlatNum = lonSliceNum * latSliceNum;
 		int lonlatNum1 = (latSliceNum + 1) * (lonSliceNum + 1);
 
-		vertex.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
-		index.resize(lonlatNum * 6, 0);
-		normal.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index(lonlatNum * 6, 0);
 
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= latSliceNum; j++) {
@@ -241,7 +246,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -266,9 +271,11 @@ public:
 		float lon_tmp, r_tmp, h_tmp;
 
 		int baseVert = 0, baseIdx = 0;
-		vertex.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		index.resize((2 * rlonNum + hlonNum) * 6, 0);
-		normal.resize(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+
+		std::vector<vec3> vertex(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index((2 * rlonNum + hlonNum) * 6, 0);
+
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
 				lon_tmp = -PI + i * lonStep;
@@ -309,7 +316,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -335,9 +342,10 @@ public:
 		float lon_tmp, r_tmp, h_tmp;
 
 		int baseVert = 0, baseIdx = 0;
-		vertex.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		index.resize((rlonNum + hlonNum) * 6, 0);
-		normal.resize(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+
+		std::vector<vec3> vertex(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index((rlonNum + hlonNum) * 6, 0);
 
 		for (int i = 0; i <= lonSliceNum; i++) {
 			for (int j = 0; j <= rSliceNum; j++) {
@@ -377,7 +385,7 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
@@ -404,9 +412,9 @@ public:
 		int lonlatNum = xSliceNum * ySliceNum;
 		int lonlatNum1 = (xSliceNum + 1) * (ySliceNum + 1);
 
-		vertex.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
-		index.resize(lonlatNum * 6, 0);
-		normal.resize(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
+		std::vector<GLuint> index(lonlatNum * 6, 0);
 
 		for (int i = 0; i <= xSliceNum; i++) {
 			for (int j = 0; j <= ySliceNum; j++) {
@@ -428,10 +436,12 @@ public:
 				}
 			}
 		}
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
 
+
+LineStructure lineManager;
 
 void initLineDrawing(Shader* shader) {
 	lineManager.shader = shader;
@@ -447,7 +457,7 @@ void showLines() {
 	shader["isAuto"] = false;
 
 	while (!lineManager.lines.empty()) {
-		Line& a = lineManager.lines.back();
+		Line a = lineManager.lines.back();
 		glBindBuffer(GL_ARRAY_BUFFER, lineManager.vbo_line);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, &a.begin, GL_DYNAMIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, NULL);
@@ -537,7 +547,7 @@ public:
 		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), shader);
 	}
 
-	void draw() {
+	virtual void draw() {
 		axis_x->draw();
 		axis_y->draw();
 		axis_z->draw();
@@ -611,9 +621,11 @@ public:
 
 		// 先不使用NURBS曲面，直接连线
 		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
-		vertex.resize(hwNum1, { 0 });
-		normal.resize(hwNum1, { 0 });	// 没有生成法向量
-		index.resize(hwNum * 6, 0);
+
+		std::vector<vec3> vertex(hwNum1, { 0 });
+		std::vector<vec3> normal(hwNum1, { 0 });	// 没有生成法向量
+		std::vector<GLuint> index(hwNum1 * 6, 0);
+
 		float x, y;
 		for (int i = 0; i <= hSliceNum; i++) {
 			x = (float)i / hSliceNum * height;
@@ -654,6 +666,49 @@ public:
 		//	vertex[i * (wSliceNum + 1) + veinIdx].y = y;
 		//}
 
-		VAO = prepareVAO(vertex, normal, index);
+		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
 	}
 };
+
+
+class Combination : public Geometry {
+	// Combination类用于组合多个Geometry对象，其继承自Geometry类，重载translate、rotate、scale、draw等方法
+private:
+	std::vector<Geometry*> objs;
+	std::vector<glm::mat4> objModel;
+public:
+	// Combination应当禁用自己的shader，而是使用objs中各个obj自己的shader
+	// VAO和VAO_length也应当使用obj自身的
+	Combination() :Geometry(nullptr) {}
+	void add(Geometry* obj) {
+		// Combination默认的中心在原点处
+		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
+		objs.push_back(obj);
+		objModel.push_back(obj->getModelMatrix());
+		obj->resetModelMatrix();
+	}
+	virtual void draw() {
+		// 需要应用所有变换，这里考虑几类情况
+		// 1. Combination自身的变换，即Combination的model
+		// 2. Combination中的obj的变换，即objModel
+		// 3. Combination中的obj自身的变换，即obj->getModelMatrix(),这包括了obj的model和modelBuffer
+
+
+		// 注意：目前考虑的obj只可能是Geometry类，后续考虑实现obj为Combination的情况
+		// 此时最终model矩阵的计算可能会涉及到递归
+
+		for (int i = 0; i < objs.size(); i++) {
+			// 考虑使用Combination的model、modelBuffer和objModel[i]的连乘变换，附加(左乘)在objs[i]的getModelMatrix()上，其他属性设置和原来的draw保持一致
+			Shader* shader = objs[i]->getShader();
+			shader->setModel(getModelMatrix());
+			shader->setModelBuffer(getModelBufferMatrix() * objModel[i] * (objs[i]->getModelMatrix()) * (objs[i]->getModelBufferMatrix()));
+			shader->loadUniform(objs[i]->getUniform());
+
+			shader->use();
+			glBindVertexArray(objs[i]->getVAO());
+			glDrawElements(GL_TRIANGLES, objs[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
+		}
+	}
+};
+

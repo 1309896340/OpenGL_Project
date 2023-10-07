@@ -27,17 +27,13 @@ class Shader {
 private:
 	GLuint ID;
 public:
-	Shader() {
-		ID = glCreateProgram();
-	}
-	Shader(std::string vertexPath, std::string fragmentPath) {
-		ID = glCreateProgram();
+	Shader() :ID(glCreateProgram()) {}
+	Shader(std::string vertexPath, std::string fragmentPath) :ID(glCreateProgram()) {
 		compileAndAttachShader(vertexPath, GL_VERTEX_SHADER);
 		compileAndAttachShader(fragmentPath, GL_FRAGMENT_SHADER);
 		link();
 	}
-	Shader(std::string vertexPath, std::string geometryPath, std::string fragmentPath) {
-		ID = glCreateProgram();
+	Shader(std::string vertexPath, std::string geometryPath, std::string fragmentPath) :ID(glCreateProgram()) {
 		compileAndAttachShader(vertexPath, GL_VERTEX_SHADER);
 		compileAndAttachShader(geometryPath, GL_GEOMETRY_SHADER);
 		compileAndAttachShader(fragmentPath, GL_FRAGMENT_SHADER);
@@ -46,16 +42,15 @@ public:
 	~Shader() {
 		glDeleteProgram(ID);
 	}
+	GLuint getID() {
+		GLint success;
+		glGetProgramiv(ID, GL_LINK_STATUS, &success);
+		if (success != GL_TRUE) {
+			std::cout << "返回未链接成功的shader！" << std::endl;	// 调试输出
+		}
+		return ID;
+	}
 	GLint compileAndAttachShader(std::string shaderSourcePath, GLenum shaderType) {
-		////验证当前program是否有效(后来发现GL_VALIDATE_STATUS不是这么用的?)
-		//GLint success;
-		//glGetProgramiv(ID, GL_VALIDATE_STATUS, &success);
-		//if (success != GL_TRUE) {
-		//	std::cout << "当前program不可用" << std::endl;	// 调试输出
-		//	return success;
-		//}
-		//std::cout << "通过program有效验证" << std::endl;
-
 		GLuint shader = glCreateShader(shaderType);
 		loadShader(shader, readSource(shaderSourcePath));
 
@@ -85,7 +80,7 @@ public:
 		}
 		return success;
 	}
-	void use() {
+	void use() {		// 在glDrawXXX()前务必记得调用此函数
 		GLint success;
 		glGetProgramiv(ID, GL_LINK_STATUS, &success);
 		if (success == GL_TRUE)
@@ -96,8 +91,30 @@ public:
 		}
 	}
 	ShaderUniform operator[](const std::string& name) {
+		this->use();
 		ShaderUniform su(glGetUniformLocation(ID, name.c_str()));
 		return su;
+	}
+	// 标准化配置uniform：model、modelBuffer
+	void setModel(const glm::mat4 &model) {
+		(*this)["model"] = model;
+	}
+	void setModelBuffer(const glm::mat4 &modelBuffer) {
+		(*this)["modelBuffer"] = modelBuffer;
+	}
+	// 定制化配置uniform
+	virtual void loadUniform(const uniformTable &uniform) = 0;
+	// 使用loadUniform来实现多态行为，在子类中实现根据不同的着色器加载不同的uniform变量
+};
+
+
+class DefaultShader :public Shader {
+public:
+	DefaultShader() :Shader("shader/shader.gvs", "shader/shader.gfs") {}
+	virtual void loadUniform(const uniformTable& uniform) {
+		// 默认着色器定制uniform为颜色配置
+		(*this)["ncolor"] = uniform.color;
+		(*this)["isAuto"] = uniform.autoColor;
 	}
 };
 
