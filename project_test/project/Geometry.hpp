@@ -116,6 +116,9 @@ public:
 		modelBuffer = trans * modelBuffer;
 		transform->reset();
 	}
+	void setTransform(const Transform &trans) {
+		*(this->transform) = trans;
+	}
 	void setTransformMatrix(const glm::mat4& trans) {
 		transMatrix = trans;
 	}
@@ -584,7 +587,7 @@ private:
 	// 每个Bone需要有其起止位置，或者一个起点和一个带大小的方向向量
 	// 父骨骼通过子骨骼的起始位置和方向向量来确定自己的位置，通过计算出一个位移矩阵
 public:
-	Transform* transform; // 表示子骨骼相对于父骨骼的变换
+	Transform* transform; // 表示当前骨骼的子骨骼相对于当前骨骼的变换
 	Bone() :transform(new Transform()), child(nullptr), parent(nullptr), position(glm::vec3(0.0f)), vec(_up) {
 		obj = new Cylinder(0.06f, 1.0f, 4, 20, 36, nullptr);
 		glm::mat4 transMatrix(1.0f);
@@ -631,6 +634,8 @@ public:
 		}
 		transform->rotate(angle, axis);
 		transform->translateTo(vec);
+
+		obj->rotate(angle, axis);	// 对当前骨骼而言只有旋转没有位移
 	}
 
 	virtual void draw() {	// 调试用的绘制函数

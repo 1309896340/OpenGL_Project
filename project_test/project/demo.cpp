@@ -74,14 +74,12 @@ int main(int argc, char** argv) {
 	a->rotate(glm::radians(30.0f), _right);
 	a->rotate(glm::radians(20.0f), _up);
 
-
 	b->rotate(glm::radians(30.0f), _right);
 	b->rotate(glm::radians(-20.0f), _front);
 
 	c->rotate(glm::radians(-20.0f), _right);
 	c->rotate(glm::radians(10.0f), _up);
 
-	//delete a;
 
 	scene.bindShader(shader);	// °ó¶¨uniform buffer
 	scene.add(axis);
