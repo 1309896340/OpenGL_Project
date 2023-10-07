@@ -584,11 +584,11 @@ private:
 	// 父骨骼通过子骨骼的起始位置和方向向量来确定自己的位置，通过计算出一个位移矩阵
 public:
 	Transform* transform; // 表示当前骨骼的子骨骼相对于当前骨骼的变换
-	Bone() :transform(new Transform()), child(nullptr), parent(nullptr), position(glm::vec3(0.0f)), vec(_up) {
-		obj = new Cylinder(0.06f, 1.0f, 4, 20, 36, nullptr);
+	Bone(float length=1.0f) :transform(new Transform()), child(nullptr), parent(nullptr), position(glm::vec3(0.0f)), vec(length*_up) {
+		obj = new Cylinder(0.04f, length, 4, 20, 36, nullptr);
 		glm::mat4 transMatrix(1.0f);
 		obj->rotate(glm::radians(-90.0f), _right);
-		obj->translateTo(glm::vec3(0.0f, 0.5f, 0.0f));
+		obj->translateTo(glm::vec3(0.0f, length/2, 0.0f));
 		obj->applyTransform();	// 将中心点移动到圆柱的下端点
 
 		transform->translateTo(vec);
