@@ -5,7 +5,7 @@
 class Scene {
 private:
 	std::vector<Drawable*> objs;
-	std::vector<Shader*> shaders;
+	//std::vector<Shader*> shaders;
 	Camera* camera; // 当前主相机
 	GLuint uboBlock;
 
@@ -40,12 +40,11 @@ public:
 		deltaTime = currentTime - lastTime;
 		return deltaTime;
 	}
-	void addShader(Shader* shader) {
+	void bindShader(Shader* shader) {			// 仅仅只是绑定shader
 		// 绑定新的shader的uniform缓冲区
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
 		glUniformBlockBinding(shader->getID(), glGetUniformBlockIndex(shader->getID(), "Matrices"), matrixBindPoint);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		shaders.push_back(shader);
 	}
 	void add(Drawable* obj) {
 		objs.push_back(obj);

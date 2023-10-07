@@ -23,11 +23,50 @@ public:
 	virtual void draw() = 0;
 };
 
-class Geometry :public Drawable {
+class Transform {
 private:
 	glm::vec3 position;
 	glm::quat rotation;
 	glm::vec3 _scale;
+public:
+	Transform() :position(glm::vec3(0.0f)), _scale(glm::vec3(1.0f)), rotation(glm::identity<glm::quat>()) {}
+	Transform(glm::vec3 position) :position(position), _scale(glm::vec3(1.0f)), rotation(glm::identity<glm::quat>()) {}
+
+	void scale(glm::vec3 xyz) {
+		_scale *= xyz;
+	}
+	void scaleTo(glm::vec3 xyz) {
+		_scale = xyz;
+	}
+	void rotate(float angle, glm::vec3 axis) {
+		rotation = glm::angleAxis(angle, glm::normalize(axis)) * rotation;
+	}
+	void translate(glm::vec3 dxyz) {
+		position = position + dxyz;
+	}
+	void translateTo(glm::vec3 dxyz) {
+		position = dxyz;
+	}
+	void reset() {
+		position = glm::vec3(0.0f);
+		_scale = glm::vec3(1.0f);
+		rotation = glm::identity<glm::quat>();
+	}
+	glm::mat4 getMatrix() {
+		glm::mat4 Tmat(1.0f);
+		Tmat = glm::translate(Tmat, position);
+		Tmat = Tmat * glm::mat4_cast(rotation);
+		Tmat = glm::scale(Tmat, _scale);
+		return Tmat;
+	}
+};
+
+class Geometry :public Drawable {
+private:
+	//glm::vec3 position;
+	//glm::quat rotation;
+	//glm::vec3 _scale;
+
 	glm::mat4 modelBuffer;
 
 protected:
@@ -39,18 +78,22 @@ protected:
 	Shader* shader;
 
 public:
+	Transform* transform;
 
 	Geometry(glm::vec3 position, Shader* shader) :uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), VAO_length(0), position(glm::vec3(0.0f)) {
+		VAO(0), VAO_length(0),transform(new Transform(position)) {
 	}
-	Geometry(Shader* shader) :position(glm::vec3(0.0f)), uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		_scale(1.0f), rotation(glm::identity<glm::quat>()), VAO(0), VAO_length(0) {
+	Geometry(Shader* shader) : uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
+		VAO(0), VAO_length(0), transform(new Transform()) {
 	}
-	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :position(glm::vec3(0.0f)),
-		uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)), _scale(1.0f), rotation(glm::identity<glm::quat>()),
-		VAO(0), VAO_length(0) {
+	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :
+		uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
+		VAO(0), VAO_length(0), transform(new Transform()) {
 
 		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
+	}
+	~Geometry() {
+		delete transform;
 	}
 
 	glm::mat4 getModelBufferMatrix() {
@@ -63,35 +106,30 @@ public:
 	void setAutoColor() {
 		uniform.autoColor = true;
 	}
-	void rotate(float angle, glm::vec3 axis) {
-		rotation = glm::angleAxis(angle, glm::normalize(axis)) * rotation;
-	}
-	void translate(glm::vec3 dxyz) {
-		position = position + dxyz;
-	}
-	void moveTo(glm::vec3 dxyz) {
-		position = dxyz;
-	}
 	void applyTransform() {
-		modelBuffer = getModelMatrix() * modelBuffer;
-		resetModelMatrix();
+		modelBuffer = (transform->getMatrix()) * modelBuffer;
+		transform->reset();
+	}
+	// transform 适配
+	void translate(glm::vec3 dxyz) {
+		transform->translate(dxyz);
+	}
+	void rotate(float angle, glm::vec3 axis) {
+		transform->rotate(angle, axis);
 	}
 	void scale(glm::vec3 xyz) {
-		_scale *= xyz;
+		transform->scale(xyz);
 	}
-	glm::mat4 getModelMatrix() {
-		glm::mat4 transformation(1.0f);
-		transformation = glm::translate(transformation, position);
-		transformation = transformation * glm::mat4_cast(rotation);
-		transformation = glm::scale(transformation, _scale);
-		return transformation;
+	void scaleTo(glm::vec3 xyz) {
+		transform->scaleTo(xyz);
 	}
-	void resetModelMatrix() {
-		// 清除当前的Model矩阵(不清除已经应用的Model变换)
-		position = glm::vec3(0.0f);
-		rotation = glm::identity<glm::quat>();
-		_scale = glm::vec3(1.0f);
+	void translateTo(glm::vec3 dxyz) {
+		transform->translateTo(dxyz);
 	}
+	void resetTransform() {
+		transform->reset();
+	}
+
 	Shader* getShader() {
 		return shader;
 	}
@@ -108,7 +146,7 @@ public:
 		// 需要shader传输当前对象的model矩阵、颜色等信息
 		// 其次需要知道绘制点的个数、已经配置好的顶点缓冲区ID
 
-		shader->setModel(getModelMatrix());
+		shader->setModel(transform->getMatrix());
 		shader->setModelBuffer(modelBuffer);
 		shader->loadUniform(uniform);
 
@@ -479,12 +517,54 @@ void drawLine(glm::vec3 begin, glm::vec3 end, glm::vec3 color, float width, Shad
 	lineManager.lines.push_back(a);
 }
 
+
+class Combination : public Geometry {
+	// Combination类用于组合多个Geometry对象，其继承自Geometry类，重载translate、rotate、scale、draw等方法
+private:
+	std::vector<Geometry*> objs;
+	std::vector<glm::mat4> objModel;
+public:
+	// Combination应当禁用自己的shader，而是使用objs中各个obj自己的shader
+	// VAO和VAO_length也应当使用obj自身的
+	Combination() :Geometry(nullptr) {}
+	void add(Geometry* obj) {
+		// Combination默认的中心在原点处
+		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
+		objs.push_back(obj);
+		objModel.push_back(obj->transform->getMatrix());
+		obj->resetTransform();
+	}
+
+	virtual void draw() {
+		// 需要应用所有变换，这里考虑几类情况
+		// 1. Combination自身的变换，即Combination的model
+		// 2. Combination中的obj的变换，即objModel
+		// 3. Combination中的obj自身的变换，即obj->getModelMatrix(),这包括了obj的model和modelBuffer
+
+
+		// 注意：目前考虑的obj只可能是Geometry类，后续考虑实现obj为Combination的情况
+		// 此时最终model矩阵的计算可能会涉及到递归
+
+		for (int i = 0; i < objs.size(); i++) {
+			// 考虑使用Combination的model、modelBuffer和objModel[i]的连乘变换，附加(左乘)在objs[i]的getModelMatrix()上，其他属性设置和原来的draw保持一致
+			Shader* shader = objs[i]->getShader();
+			shader->setModel(transform->getMatrix());
+			shader->setModelBuffer(getModelBufferMatrix() * objModel[i] * (objs[i]->transform->getMatrix()) * (objs[i]->getModelBufferMatrix()));
+			shader->loadUniform(objs[i]->getUniform());
+			shader->use();
+			glBindVertexArray(objs[i]->getVAO());
+			glDrawElements(GL_TRIANGLES, objs[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
+		}
+	}
+};
+
 class Arrow :public Drawable {		// 比较粗暴的组合体实现
 private:
 	glm::vec3 _begin;
 	glm::vec3 _end;
 	float width;
-	float length;
+
 	glm::vec4 arrowColor;
 	glm::vec4 bodyColor;
 
@@ -494,22 +574,30 @@ private:
 	Geometry* arrow, * body;
 public:
 	Arrow(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrowColor, glm::vec4 bodyColor, Shader* shader) : _begin(_begin), _end(_end), width(width), arrowColor(arrowColor), bodyColor(bodyColor) {
-		length = glm::length(_end - _begin);
-		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio * length, 3, 4, 18, shader);
-		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio) * length, 2, (int)(length * 10), 18, shader);
+		float length = glm::length(_end - _begin);
+		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio, 3, 4, 18, shader);
+		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio), 2, (int)(length * 10), 18, shader);
 
 		arrow->setColor(arrowColor);
 		body->setColor(bodyColor);
 		// 进行组合
+		arrow->scale(glm::vec3(length, length, length));
+		body->scale(glm::vec3(length, length, length));
 		arrow->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) / 2.0f * length, 0));
 		body->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) * length / 2.0f, 0));
 		body->translate(glm::vec3(0, -arrowLengthRatio / 2.0f * length, 0));
 		// 应用变换
 		arrow->applyTransform();
 		body->applyTransform();
+		// 此时两者组合在一起，构成以原点为中点的箭头
 
-		// 变换到指定位置
+		update();
+	}
+	void update() {
+		arrow->resetTransform();
+		body->resetTransform();
+
 		glm::vec3 dir = glm::normalize(_end - _begin);
 		glm::vec3 rotate_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), dir);
 		float rotate_angle = glm::acos(glm::dot(glm::vec3(0.0f, 1.0f, 0.0f), dir));
@@ -525,12 +613,24 @@ public:
 			rotate_axis = glm::normalize(rotate_axis);
 		}
 
+		float length = glm::length(_end - _begin);
+		arrow->scale(glm::vec3(length, length, length));
+		body->scale(glm::vec3(length, length, length));
+
 		arrow->rotate(rotate_angle, rotate_axis);
+		arrow->translateTo((_end + _begin) / 2.0f);
 		body->rotate(rotate_angle, rotate_axis);
-		arrow->moveTo((_end + _begin) / 2.0f);
-		body->moveTo((_end + _begin) / 2.0f);
+		body->translateTo((_end + _begin) / 2.0f);
 	}
-	void draw() {
+	void setBegin(glm::vec3 _begin) {
+		this->_begin = _begin;
+		this->update();
+	}
+	void setEnd(glm::vec3 _end) {
+		this->_end = _end;
+		this->update();
+	}
+	virtual void draw() {
 		arrow->draw();
 		body->draw();
 	}
@@ -538,9 +638,11 @@ public:
 
 class Axis :public Drawable {
 private:
-	Arrow* axis_x, * axis_y, * axis_z;
 	Shader* shader;
+	Arrow* axis_x, * axis_y, * axis_z;
 public:
+
+
 	Axis(Shader* shader) :shader(shader) {
 		axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), shader);
 		axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), shader);
@@ -671,44 +773,5 @@ public:
 };
 
 
-class Combination : public Geometry {
-	// Combination类用于组合多个Geometry对象，其继承自Geometry类，重载translate、rotate、scale、draw等方法
-private:
-	std::vector<Geometry*> objs;
-	std::vector<glm::mat4> objModel;
-public:
-	// Combination应当禁用自己的shader，而是使用objs中各个obj自己的shader
-	// VAO和VAO_length也应当使用obj自身的
-	Combination() :Geometry(nullptr) {}
-	void add(Geometry* obj) {
-		// Combination默认的中心在原点处
-		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
-		objs.push_back(obj);
-		objModel.push_back(obj->getModelMatrix());
-		obj->resetModelMatrix();
-	}
-	virtual void draw() {
-		// 需要应用所有变换，这里考虑几类情况
-		// 1. Combination自身的变换，即Combination的model
-		// 2. Combination中的obj的变换，即objModel
-		// 3. Combination中的obj自身的变换，即obj->getModelMatrix(),这包括了obj的model和modelBuffer
 
-
-		// 注意：目前考虑的obj只可能是Geometry类，后续考虑实现obj为Combination的情况
-		// 此时最终model矩阵的计算可能会涉及到递归
-
-		for (int i = 0; i < objs.size(); i++) {
-			// 考虑使用Combination的model、modelBuffer和objModel[i]的连乘变换，附加(左乘)在objs[i]的getModelMatrix()上，其他属性设置和原来的draw保持一致
-			Shader* shader = objs[i]->getShader();
-			shader->setModel(getModelMatrix());
-			shader->setModelBuffer(getModelBufferMatrix() * objModel[i] * (objs[i]->getModelMatrix()) * (objs[i]->getModelBufferMatrix()));
-			shader->loadUniform(objs[i]->getUniform());
-
-			shader->use();
-			glBindVertexArray(objs[i]->getVAO());
-			glDrawElements(GL_TRIANGLES, objs[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
-			glBindVertexArray(0);
-		}
-	}
-};
 

@@ -58,7 +58,7 @@ GLFWwindow* GLFWinit() {
 int main(int argc, char** argv) {
 	GLFWwindow* window = GLFWinit();
 
-	float deltTime;
+	float deltaTime;
 
 	camera = new Camera(glm::vec3(-0.4f, 0.8f, 3.0f), glm::vec3(0.4f, 0.5f, 0.0f));
 	Scene scene(camera);
@@ -76,27 +76,33 @@ int main(int argc, char** argv) {
 
 	obj2->translate(glm::vec3(0.0f, 0.5f, 0.0f));
 
-	Combination *com = new Combination();
+	Combination* com = new Combination();
 	com->add(obj1);
 	com->add(obj2);
 
 
-	scene.addShader(shader);
-	scene.add(axis);
+	scene.bindShader(shader);	// 绑定uniform buffer
 	scene.add(com);
+	scene.add(axis);
+
+	float t = 0.0f;
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		deltTime = scene.step();
+		deltaTime = scene.step();
+		t += deltaTime;
+		if (t > 1.0f) {
+			t = 0.0f;
+			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
+		}
 
-		// obj->rotate(glm::radians(30 * deltTime), glm::vec3(0.0f, 0.0f, 1.0f));
-		com->rotate(glm::radians(30 * deltTime), glm::vec3(0.0f, 0.0f, 1.0f));
-		// 由于在Combination的draw()中忽略了obj自身的model，因此这句无效。目前的做法只能修改obj2在Combination中的model，也就是objModel
-		obj2->rotate(glm::radians(70 * deltTime), glm::vec3(1.0f, 0.0f, 0.0f));
+		com->rotate(glm::radians(30 * deltaTime), glm::vec3(0.0f, 0.0f, 1.0f));
+		obj2->rotate(glm::radians(70 * deltaTime), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		scene.render();
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
