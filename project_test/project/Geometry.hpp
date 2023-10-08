@@ -134,7 +134,7 @@ private:
 	int xSliceNum, ySliceNum, zSliceNum;
 	float xLength, yLength, zLength;
 public:
-	Cube(float xLength, float yLength, float zLength, int xSliceNum=10, int ySliceNum=10, int zSliceNum=10) :
+	Cube(float xLength, float yLength, float zLength, int xSliceNum = 10, int ySliceNum = 10, int zSliceNum = 10) :
 		Geometry(), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
 		xLength(xLength), yLength(yLength), zLength(zLength) {
 
@@ -228,7 +228,7 @@ private:
 	int latSliceNum;
 
 public:
-	Sphere(float radius, unsigned int lonSliceNum=36, unsigned int latSliceNum=20) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
+	Sphere(float radius, unsigned int lonSliceNum = 36, unsigned int latSliceNum = 20) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
 		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
 
@@ -268,7 +268,7 @@ private:
 	int hSliceNum;
 	int lonSliceNum;
 public:
-	Cylinder(float radius, float height, unsigned int rSliceNum=10, unsigned int hSliceNum=20, unsigned int lonSliceNum=36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cylinder(float radius, float height, unsigned int rSliceNum = 10, unsigned int hSliceNum = 20, unsigned int lonSliceNum = 36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -339,7 +339,7 @@ private:
 	int hSliceNum;
 	int lonSliceNum;
 public:
-	Cone(float radius, float height, unsigned int rSliceNum=10, unsigned int hSliceNum=20, unsigned int lonSliceNum=36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cone(float radius, float height, unsigned int rSliceNum = 10, unsigned int hSliceNum = 20, unsigned int lonSliceNum = 36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -533,10 +533,11 @@ public:
 
 class Bone {
 private:
-	Bone* child{ 0 };			// 暂时只考虑一个子骨骼
+	//Bone* child{ 0 };			// 暂时只考虑一个子骨骼
+	std::vector<Bone*> children;
 	Bone* parent{ 0 };
 
-	glm::vec3 position{ 0.0f,0.0f,0.0f };			// 起点位置，根骨骼的位置是有效的，其他所有子骨骼的七点位置由父骨骼确定
+	//glm::vec3 position{ 0.0f,0.0f,0.0f };			// 起点位置，根骨骼的位置是有效的，其他所有子骨骼的起点位置由父骨骼确定  // 后来发现这个是多余的，坐标变换矩阵已经包含了这个信息
 	glm::vec3 vec{ 0.0f,0.0f,0.0f };			// 骨骼方向向量，其大小表示骨骼的长度，方向表示骨骼的方向
 
 	// 用来调试绘制的圆柱体（可去除）
@@ -556,9 +557,10 @@ public:
 		obj->applyTransform();	// 将中心点移动到圆柱的下端点
 	}
 	~Bone() {
-		if (child) {
+		for (auto& child : children) {
 			delete child;
 		}
+		children.clear();
 	}
 	glm::mat4 getTransMatrix() {		// 遍历所有父骨骼，计算当前骨骼坐标系变换矩阵
 		glm::mat4 transMatrix(1.0f);
@@ -572,24 +574,20 @@ public:
 	Bone* getParent() {
 		return parent;
 	}
-	Bone* getChild() {	// 暂时只考虑一个子骨骼
-		return child;
+	Bone* getChild(unsigned int index) {
+		return children[index];
 	}
-	void addChild(Bone* b) {	// 暂时只考虑一个子骨骼
-		if (child)
-			child->addChild(b);
-		else {
-			child = b;
+	std::vector<Bone*>& getChildren() {
+		return children;
+	}
+	void addChild(Bone* b) {
+		if (b != nullptr) {
 			b->parent = this;
-			child->position = position + vec;
+			children.push_back(b);
 		}
 	}
-	// 添加一些对单个骨骼的旋转操作，其作用是改变vec的方向(不改变大小)，并更新子骨骼的位置
 	void rotate(float angle, glm::vec3 axis) {
 		vec = glm::rotate(glm::mat4(1.0f), angle, axis) * glm::vec4(vec, 1.0f);
-		if (child) {
-			child->position = position + vec;
-		}
 		transform.rotate(angle, axis);	// 对其子骨骼的变换矩阵而言既要考虑旋转又要进行位移
 		transform.translateTo(vec);
 
@@ -599,6 +597,17 @@ public:
 	// 用来调试绘制的圆柱体（可去除）
 	Geometry* getObj() {
 		return obj;
+	}
+};
+
+class Skeleton {
+private:
+	Bone* root{ 0 };
+public:
+	Skeleton() {}
+	Skeleton(Bone* root) :root(root) {}
+	Bone* getRoot() {
+		return root;
 	}
 };
 

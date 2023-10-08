@@ -64,15 +64,22 @@ int main(int argc, char** argv) {
 
 	Axis* axis = new Axis();
 
-	Bone* a = new Bone(), * b = new Bone(), * c = new Bone(), * d = new Bone();
+	Bone* a = new Bone(), * b = new Bone(0.4f), * c = new Bone(0.8f), * d = new Bone(0.7f), * e = new Bone(1.0f), * f = new Bone(1.5f), * g = new Bone(1.2f);
+	Skeleton skeleton(a);
+
 	a->addChild(b);
 	a->addChild(c);
-	a->addChild(d);
+	a->addChild(f);
+	c->addChild(d);
+	d->addChild(e);
+	
 
 	a->rotate(glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 1.0f));
 	b->rotate(glm::radians(40.0f), glm::vec3(1.0f, 0.0f, -1.0f));
 	c->rotate(glm::radians(20.0f), glm::vec3(-1.0f, 0.0f, 1.0f));
 	d->rotate(glm::radians(-20.0f), glm::vec3(-1.0f, 0.0f, 1.0f));
+	e->rotate(glm::radians(-40.0f), glm::vec3(-1.0f, 1.0f, 1.0f));
+	f->rotate(glm::radians(35.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
 
 
 	scene.bindShader(DefaultShader::getDefaultShader());	// °ó¶¨uniform buffer
@@ -91,15 +98,13 @@ int main(int argc, char** argv) {
 
 		a->rotate(glm::radians(30.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		b->rotate(glm::radians(-25.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
-		c->rotate(glm::radians(35.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
-		d->rotate(glm::radians(40.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
+		c->rotate(glm::radians(35.0f * deltaTime), glm::vec3(1.0f, 1.0f, 0.0f));
+		d->rotate(glm::radians(40.0f * deltaTime), glm::vec3(0.0f, 1.0f, 1.0f));
+		e->rotate(glm::radians(40.0f * deltaTime), glm::vec3(0.0f, 1.0f, 1.0f));
+		f->rotate(glm::radians(40.0f * deltaTime), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		scene.render(axis);
-
-		scene.render(a);
-		scene.render(b);
-		scene.render(c);
-		scene.render(d);
+		scene.render(&skeleton);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

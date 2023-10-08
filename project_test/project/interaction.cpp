@@ -13,7 +13,7 @@ void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods)
 		if (action == GLFW_PRESS && !status.leftMouseButtonPressed) {
 			status.leftMouseButtonPressed = true;
 			status.startShoot = true;
-			glfwGetCursorPos(window, &status.shootPos[0], &status.shootPos[1]);
+			glfwGetCursorPos(window, &status.mousePos[0], &status.mousePos[1]);
 			//std::cout << "发出射线:(" << status.shootPos[0] << "," << status.shootPos[1] << ")" << std::endl;
 		}
 		else if (action == GLFW_RELEASE && status.leftMouseButtonPressed) {
@@ -38,24 +38,30 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		dy = ypos - status.mousePos[1];
 		status.mousePos[0] = xpos;
 		status.mousePos[1] = ypos;
+		if (!camera)
+			return;
 		if (status.shiftPressed == false) {
-			if (!camera)
-				return;
-			camera->rotate(dx, dy);	// 以相机为中心旋转
+			camera->rotate((float)dx, (float)dy);	// 以相机为中心旋转
 		}
 		else {
-			if (!camera)
-				return;
 			// 以原点为中心旋转
-			camera->move(-dx / 100.0f, dy / 100.0f, 0.0f);
+			camera->move(-(float)dx, (float)dy, 0.0f);
 			camera->lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
 		}
 	}
 	if (status.leftMouseButtonPressed == true) {
-		// 移动射线准心
-		status.shootPos[0] = xpos;
-		status.shootPos[1] = ypos;
-		std::cout << "移动射线:(" << xpos << "," << ypos << ")" << std::endl;
+		dx = xpos - status.mousePos[0];
+		dy = ypos - status.mousePos[1];
+		status.mousePos[0] = xpos;
+		status.mousePos[1] = ypos;
+		if (!camera)
+			return;
+		if (status.shiftPressed == false) {
+			camera->move(-(float)dx, (float)dy, 0.0f);
+		}
+		else {
+
+		}
 	}
 }
 
@@ -81,16 +87,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			return;
 		switch (key) {
 		case GLFW_KEY_W:
-			camera->move(0.0f, 0.0f, 0.1f);
+			camera->move(0.0f, 0.0f, 10.0f);
 			break;
 		case GLFW_KEY_S:
-			camera->move(0.0f, 0.0f, -0.1f);
+			camera->move(0.0f, 0.0f, -10.0f);
 			break;
 		case GLFW_KEY_A:
-			camera->move(-0.1f, 0.0f, 0.0f);
+			camera->move(-10.0f, 0.0f, 0.0f);
 			break;
 		case GLFW_KEY_D:
-			camera->move(0.1f, 0.0f, 0.0f);
+			camera->move(10.0f, 0.0f, 0.0f);
 			break;
 		case GLFW_KEY_UP:  // 控制光源的位置
 			status.lightPos.z -= 0.2f;

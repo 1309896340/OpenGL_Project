@@ -5,9 +5,9 @@
 #define X_ROTATE_SENSITIVITY 0.001f
 #define Y_ROTATE_SENSITIVITY 0.001f
 
-#define X_MOVE_SENSITIVITY 1.0f
-#define Y_MOVE_SENSITIVITY 1.0f
-#define Z_MOVE_SENSITIVITY 1.0f
+#define X_MOVE_SENSITIVITY 0.01f
+#define Y_MOVE_SENSITIVITY 0.01f
+#define Z_MOVE_SENSITIVITY 0.01f
 
 class Camera {
 private:

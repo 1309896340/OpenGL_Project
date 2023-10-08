@@ -70,8 +70,8 @@ public:
 		(*shader)["model"] = obj->transform.getMatrix();
 		(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
 		// 传入材质信息 （片段着色器）
-		shader->loadUniform(obj->getAttribute());
-		
+		shader->loadAttribute(obj->getAttribute());
+
 		// 绘图
 		glBindVertexArray(obj->getVAO());
 		glDrawElements(GL_TRIANGLES, obj->getVAOLength(), GL_UNSIGNED_INT, 0);
@@ -99,14 +99,27 @@ public:
 		}
 		shader->use();
 		// 传入model矩阵、modelBuffer矩阵 （顶点着色器）
-		(*shader)["model"] = obj->getTransMatrix() * obj->getObj()->transform.getMatrix();
-		(*shader)["modelBuffer"] = obj->getObj()->getModelBufferMatrix();
+		(*shader)["model"] = obj->getTransMatrix() * obj->getObj()->transform.getMatrix();		// model使用的是Bone的transMatrix(所有父骨骼变换)和Geometry的model(自身只有旋转没有位移的变换)矩阵的乘积
+		(*shader)["modelBuffer"] = obj->getObj()->getModelBufferMatrix();									// modelBuffer使用的是Bone的Geometry成员自身的
 		// 传入材质信息 （片段着色器）
-		shader->loadUniform(obj->getObj()->getAttribute());
+		shader->loadAttribute(obj->getObj()->getAttribute());
 
 		// 绘图
 		glBindVertexArray(obj->getObj()->getVAO());
 		glDrawElements(GL_TRIANGLES, obj->getObj()->getVAOLength(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
+	}
+	void render(Skeleton* obj) {
+		// 遍历，渲染所有骨骼节点
+		std::deque<Bone*> buf{ obj->getRoot() };
+		Bone* tmp = nullptr;
+		while (!buf.empty()) {
+			tmp = buf.front();
+			buf.pop_front();
+			render(tmp);
+			for (auto& child : tmp->getChildren()) {
+				buf.push_back(child);
+			}
+		}
 	}
 };

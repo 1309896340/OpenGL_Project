@@ -102,7 +102,7 @@ public:
 		(*this)["modelBuffer"] = modelBuffer;
 	}
 	// 定制化配置uniform
-	virtual void loadUniform(const uniformTable& uniform) = 0;
+	virtual void loadAttribute(const uniformTable& attribute) = 0;
 	// 使用loadUniform来实现多态行为，在子类中实现根据不同的着色器加载不同的uniform变量
 };
 
@@ -123,10 +123,10 @@ public:
 		return shader;
 	}
 
-	virtual void loadUniform(const uniformTable& uniform) {
+	virtual void loadAttribute(const uniformTable& attribute) {
 		// 默认着色器定制uniform为颜色配置
-		(*this)["ncolor"] = uniform.color;
-		(*this)["isAuto"] = uniform.autoColor;
+		(*this)["ncolor"] = attribute.color;
+		(*this)["isAuto"] = attribute.autoColor;
 	}
 };
 
