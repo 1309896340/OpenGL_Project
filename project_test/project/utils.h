@@ -7,4 +7,4 @@ GLuint loadProgramFromFile(std::string vertexSourcePath, std::string fragmentSou
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v);
 
-void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, GLuint* VAO, GLsizei* length);
+void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, GLuint* VAO, GLuint* VBO, GLsizei* length);

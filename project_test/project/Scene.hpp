@@ -71,30 +71,42 @@ public:
 		(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
 		// 传入材质信息 （片段着色器）
 		shader->loadUniform(obj->getAttribute());
+		
+		// 绘图
+		glBindVertexArray(obj->getVAO());
+		glDrawElements(GL_TRIANGLES, obj->getVAOLength(), GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
 	}
 
 	void render(Arrow* obj) {
-		if (this->shader == nullptr) {
-			bindShader(DefaultShader::getDefaultShader());
-		}
 		render(obj->getArrow());
 		render(obj->getBody());
 	}
 
 	void render(Axis* obj) {
-		if (this->shader == nullptr) {
-			bindShader(DefaultShader::getDefaultShader());
-		}
 		render(obj->getAxis_x());
 		render(obj->getAxis_y());
 		render(obj->getAxis_z());
 	}
 
 	void render(Bone* obj) {
+		// 两种方案，仅渲染一个骨骼节点，或渲染该骨骼上所有子骨骼节点。这里暂时先选择第一种方案
+		// Bone的渲染不能直接调用render(Geometry*)，因为Bone需要考虑所有父骨骼的变换
+		// 另外，Bone并不继承自Geometry，Bone和Geometry仅仅是组合关系
+
 		if (this->shader == nullptr) {
-			bindShader(DefaultShader::getDefaultShader());
+			bindShader(DefaultShader::getDefaultShader());	// 如果没有预先bindShader，则绑定默认的shader
 		}
-		// 两种方案，仅渲染一个骨骼节点，或渲染该骨骼上所有子骨骼节点
-		// 。。。
+		shader->use();
+		// 传入model矩阵、modelBuffer矩阵 （顶点着色器）
+		(*shader)["model"] = obj->getTransMatrix() * obj->getObj()->transform.getMatrix();
+		(*shader)["modelBuffer"] = obj->getObj()->getModelBufferMatrix();
+		// 传入材质信息 （片段着色器）
+		shader->loadUniform(obj->getObj()->getAttribute());
+
+		// 绘图
+		glBindVertexArray(obj->getObj()->getVAO());
+		glDrawElements(GL_TRIANGLES, obj->getObj()->getVAOLength(), GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
 	}
 };

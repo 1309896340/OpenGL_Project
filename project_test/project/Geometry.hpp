@@ -47,6 +47,9 @@ public:
 		_scale = glm::vec3(1.0f);
 		rotation = glm::identity<glm::quat>();
 	}
+	glm::quat getRotation() {
+		return rotation;
+	}
 	glm::mat4 getMatrix() {
 		glm::mat4 Tmat(1.0f);
 		Tmat = glm::translate(Tmat, position);
@@ -61,8 +64,8 @@ private:
 	glm::mat4 transMatrix;
 	glm::mat4 modelBuffer;
 protected:
-	GLuint VAO{ 0 }, VBO{ 0 }, EBO{ 0 };
-	GLsizei index_size;
+	GLuint VAO{ 0 }, VBO[3]{ 0,0,0 };
+	GLsizei index_size{ 0 };
 	uniformTable attribute;
 public:
 	Transform transform;
@@ -71,7 +74,7 @@ public:
 	Geometry() : modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {}
 	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index) :
 		modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {
-		prepareVAO(vertex, normal, index, &VAO, &index_size);
+		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 	~Geometry() {}
 
@@ -131,7 +134,7 @@ private:
 	int xSliceNum, ySliceNum, zSliceNum;
 	float xLength, yLength, zLength;
 public:
-	Cube(float xLength, float yLength, float zLength, int xSliceNum, int ySliceNum, int zSliceNum) :
+	Cube(float xLength, float yLength, float zLength, int xSliceNum=10, int ySliceNum=10, int zSliceNum=10) :
 		Geometry(), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
 		xLength(xLength), yLength(yLength), zLength(zLength) {
 
@@ -214,7 +217,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &index_size);
+		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 
@@ -225,7 +228,7 @@ private:
 	int latSliceNum;
 
 public:
-	Sphere(float radius, unsigned int lonSliceNum, unsigned int latSliceNum) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
+	Sphere(float radius, unsigned int lonSliceNum=36, unsigned int latSliceNum=20) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
 		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
 
@@ -253,7 +256,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &index_size);
+		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 
@@ -265,7 +268,7 @@ private:
 	int hSliceNum;
 	int lonSliceNum;
 public:
-	Cylinder(float radius, float height, unsigned int rSliceNum, unsigned int hSliceNum, unsigned int lonSliceNum) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cylinder(float radius, float height, unsigned int rSliceNum=10, unsigned int hSliceNum=20, unsigned int lonSliceNum=36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -323,7 +326,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &index_size);
+		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 
@@ -336,7 +339,7 @@ private:
 	int hSliceNum;
 	int lonSliceNum;
 public:
-	Cone(float radius, float height, unsigned int rSliceNum, unsigned int hSliceNum, unsigned int lonSliceNum) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cone(float radius, float height, unsigned int rSliceNum=10, unsigned int hSliceNum=20, unsigned int lonSliceNum=36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -392,7 +395,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &index_size);
+		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 
@@ -443,7 +446,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &index_size);
+		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 
@@ -530,11 +533,11 @@ public:
 
 class Bone {
 private:
-	Bone* child;			// 双向链表
-	Bone* parent;
+	Bone* child{ 0 };			// 暂时只考虑一个子骨骼
+	Bone* parent{ 0 };
 
-	glm::vec3 position;		// 起点位置，根骨骼的位置是有效的，其他所有子骨骼的七点位置由父骨骼确定
-	glm::vec3 vec;			// 骨骼方向向量，其大小表示骨骼的长度，方向表示骨骼的方向
+	glm::vec3 position{ 0.0f,0.0f,0.0f };			// 起点位置，根骨骼的位置是有效的，其他所有子骨骼的七点位置由父骨骼确定
+	glm::vec3 vec{ 0.0f,0.0f,0.0f };			// 骨骼方向向量，其大小表示骨骼的长度，方向表示骨骼的方向
 
 	// 调试用的圆柱体作为绘制实体
 	Geometry* obj = nullptr;
@@ -542,38 +545,37 @@ private:
 	// 每个Bone需要有其起止位置，或者一个起点和一个带大小的方向向量
 	// 父骨骼通过子骨骼的起始位置和方向向量来确定自己的位置，通过计算出一个位移矩阵
 public:
-	Transform* transform; // 表示当前骨骼的子骨骼相对于当前骨骼的变换
-	Bone(float length = 1.0f) :transform(new Transform()), child(nullptr), parent(nullptr), position(glm::vec3(0.0f)), vec(length* _up) {
+	Transform transform; // 表示当前骨骼的子骨骼相对于当前骨骼的变换
+	Bone(float length = 1.0f) : vec(length* _up) {
 		obj = new Cylinder(0.04f, length, 4, 20, 36);
 		glm::mat4 transMatrix(1.0f);
 		obj->rotate(glm::radians(-90.0f), _right);
 		obj->translateTo(glm::vec3(0.0f, length / 2, 0.0f));
 		obj->applyTransform();	// 将中心点移动到圆柱的下端点
 
-		transform->translateTo(vec);
+		transform.translateTo(vec);	// 变换矩阵为骨骼末端相对于骨骼起始点的平移矩阵
 	}
 	~Bone() {
-		delete transform;
 		if (child) {
 			delete child;
 		}
 	}
 	glm::mat4 getTransMatrix() {		// 遍历所有父骨骼，计算当前骨骼坐标系变换矩阵
-		glm::mat4 modelBuffer(1.0f);
+		glm::mat4 transMatrix(1.0f);
 		Bone* cur = this;
 		while (cur->parent) {
 			cur = cur->parent;
-			modelBuffer = cur->transform->getMatrix() * modelBuffer;		// 由于是从子骨骼开始遍历到根骨骼,所以需要左乘（为什么不是右乘？）
+			transMatrix = cur->transform.getMatrix() * transMatrix;
 		}
-		return modelBuffer;
+		return transMatrix;
 	}
 	Bone* getParent() {
 		return parent;
 	}
-	Bone* getChild() {
+	Bone* getChild() {	// 暂时只考虑一个子骨骼
 		return child;
 	}
-	void addChild(Bone* b) {
+	void addChild(Bone* b) {	// 暂时只考虑一个子骨骼
 		if (child)
 			child->addChild(b);
 		else {
@@ -588,12 +590,14 @@ public:
 		if (child) {
 			child->position = position + vec;
 		}
-		transform->rotate(angle, axis);
-		transform->translateTo(vec);
+		transform.rotate(angle, axis);	// 对其子骨骼的变换矩阵而言既要考虑旋转又要进行位移
+		transform.translateTo(vec);
 
-		obj->rotate(angle, axis);	// 对当前骨骼而言只有旋转没有位移
+		obj->rotate(angle, axis);	// 对当前绘制的骨骼而言只有旋转没有位移
 	}
-
+	Geometry* getObj() {
+		return obj;
+	}
 	//virtual void draw() {	// 调试用的绘制函数
 	//	obj->setTransformMatrix(getTransMatrix());
 	//	obj->draw();
@@ -613,15 +617,16 @@ private:
 public:
 	Arrow(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrowColor, glm::vec4 bodyColor) :
 		_begin(_begin), _end(_end), width(width) {
-		float length = glm::length(_end - _begin);
+		glm::vec3 dir = _end - _begin;
+		float length = glm::length(dir);
 		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio, 3, 4, 18);
 		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio), 2, (int)(length * 10), 18);
 
 		arrow->setColor(arrowColor);
 		body->setColor(bodyColor);
 		// 进行组合
-		arrow->scale(_end - _begin);
-		body->scale(_end - _begin);
+		arrow->scale(glm::vec3(1.0f, length, 1.0f));	// 由于局部坐标系中物体按照y轴方向绘制，所以只需要在这个方向上进行缩放，就能改变长度
+		body->scale(glm::vec3(1.0f, length, 1.0f));
 		arrow->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) / 2.0f * length, 0));
 		body->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -683,10 +688,9 @@ public:
 
 class Axis {
 private:
-	Shader* shader;
 	Arrow* axis_x, * axis_y, * axis_z;
 public:
-	Axis(Shader* shader) :shader(shader) {
+	Axis() {
 		axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 		axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
 		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
@@ -780,9 +784,9 @@ public:
 		std::vector<GLuint> index(hwNum1 * 6, 0);
 
 		float x, y;
-		for (int i = 0; i <= hSliceNum; i++) {
+		for (unsigned int i = 0; i <= hSliceNum; i++) {
 			x = (float)i / hSliceNum * height;
-			for (int j = 0; j <= wSliceNum; j++) {
+			for (unsigned int j = 0; j <= wSliceNum; j++) {
 				y = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
 				vertex[i * (wSliceNum + 1) + j] = { x,veinFunc(x),y };
 				if (i < hSliceNum && j < wSliceNum) {
@@ -819,7 +823,7 @@ public:
 		//	vertex[i * (wSliceNum + 1) + veinIdx].y = y;
 		//}
 
-		prepareVAO(vertex, normal, index, &VAO, &index_size);
+		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 

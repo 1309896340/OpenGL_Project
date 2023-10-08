@@ -12,7 +12,6 @@ glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
 glm::vec3 _front = glm::vec3(0.0f, 0.0f, -1.0f);
 
-
 GLFWwindow* GLFWinit() {
 	if (glfwInit() != GLFW_TRUE) {
 		std::cout << "glfw初始化失败" << std::endl;
@@ -62,9 +61,8 @@ int main(int argc, char** argv) {
 
 	camera = new Camera(glm::vec3(-0.4f, 0.8f, 3.0f), glm::vec3(0.4f, 0.5f, 0.0f));
 	Scene scene(camera);
-	Shader* shader = DefaultShader::getDefaultShader();
 
-	Axis* axis = new Axis(shader);
+	Axis* axis = new Axis();
 
 	Bone* a = new Bone(), * b = new Bone(), * c = new Bone(), * d = new Bone();
 	a->addChild(b);
@@ -77,7 +75,7 @@ int main(int argc, char** argv) {
 	d->rotate(glm::radians(-20.0f), glm::vec3(-1.0f, 0.0f, 1.0f));
 
 
-	scene.bindShader(shader);	// 绑定uniform buffer
+	scene.bindShader(DefaultShader::getDefaultShader());	// 绑定uniform buffer
 
 	float t = 0.0f;
 	while (!glfwWindowShouldClose(window)) {
