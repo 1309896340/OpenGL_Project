@@ -539,7 +539,7 @@ private:
 	glm::vec3 position{ 0.0f,0.0f,0.0f };			// 起点位置，根骨骼的位置是有效的，其他所有子骨骼的七点位置由父骨骼确定
 	glm::vec3 vec{ 0.0f,0.0f,0.0f };			// 骨骼方向向量，其大小表示骨骼的长度，方向表示骨骼的方向
 
-	// 调试用的圆柱体作为绘制实体
+	// 用来调试绘制的圆柱体（可去除）
 	Geometry* obj = nullptr;
 
 	// 每个Bone需要有其起止位置，或者一个起点和一个带大小的方向向量
@@ -547,13 +547,13 @@ private:
 public:
 	Transform transform; // 表示当前骨骼的子骨骼相对于当前骨骼的变换
 	Bone(float length = 1.0f) : vec(length* _up) {
+		transform.translateTo(vec);	// 变换矩阵为骨骼末端相对于骨骼起始点的平移矩阵
+
+		// 用来调试绘制的圆柱体（可去除）
 		obj = new Cylinder(0.04f, length, 4, 20, 36);
-		glm::mat4 transMatrix(1.0f);
 		obj->rotate(glm::radians(-90.0f), _right);
 		obj->translateTo(glm::vec3(0.0f, length / 2, 0.0f));
 		obj->applyTransform();	// 将中心点移动到圆柱的下端点
-
-		transform.translateTo(vec);	// 变换矩阵为骨骼末端相对于骨骼起始点的平移矩阵
 	}
 	~Bone() {
 		if (child) {
@@ -593,15 +593,13 @@ public:
 		transform.rotate(angle, axis);	// 对其子骨骼的变换矩阵而言既要考虑旋转又要进行位移
 		transform.translateTo(vec);
 
+		// 用来调试绘制的圆柱体（可去除）
 		obj->rotate(angle, axis);	// 对当前绘制的骨骼而言只有旋转没有位移
 	}
+	// 用来调试绘制的圆柱体（可去除）
 	Geometry* getObj() {
 		return obj;
 	}
-	//virtual void draw() {	// 调试用的绘制函数
-	//	obj->setTransformMatrix(getTransMatrix());
-	//	obj->draw();
-	//}
 };
 
 class Arrow {		// 比较粗暴的组合体实现
