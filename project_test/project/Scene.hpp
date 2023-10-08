@@ -4,52 +4,56 @@
 
 class Scene {
 private:
-	std::vector<Drawable*> objs;
-	//std::vector<Shader*> shaders;
-	Camera* camera; // 当前主相机
-	GLuint uboBlock;
+	std::vector<Geometry*> objs;
+	Camera* camera{ 0 }; // 当前主相机
+	Shader* shader{ 0 }; // 当前使用的shader
+	GLuint uboBlock{ 0 };
 
-	float lastTime, currentTime, deltaTime;
+	float lastTime{ 0 }, currentTime{ 0 }, deltaTime{ 0 };
 
 	const GLuint matrixBindPoint = 0;
 
 public:
-	Scene() :uboBlock(0), camera(0), lastTime(0.0f), currentTime(glfwGetTime()), deltaTime(0.0f) {
+	Scene() :currentTime(glfwGetTime()) {
 		// 初始化uniform缓冲区
 		glGenBuffers(1, &uboBlock);
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
-		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);	// VIEW矩阵是会发生变化的，不清楚是否应该GL_DYNAMIC_DRAW
+		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);	// View矩阵是会发生变化的，不清楚是否应该GL_DYNAMIC_DRAW
 		// 数据载入uniform缓冲区
 		glBindBufferBase(GL_UNIFORM_BUFFER, matrixBindPoint, uboBlock);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(glm::mat4(1.0)));	// 初始化PROJECTION矩阵
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(glm::mat4(1.0)));	// 初始化VIEW矩阵
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(glm::mat4(1.0)));					// 默认初始化Projection矩阵
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(glm::mat4(1.0)));	// 默认初始化View矩阵
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
-	Scene(Camera* camera) :uboBlock(0), lastTime(0.0f), currentTime(glfwGetTime()), deltaTime(0.0f) {
+	Scene(Camera* camera) : currentTime(glfwGetTime()) {
 		// 初始化uniform缓冲区
 		glGenBuffers(1, &uboBlock);
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
 		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, matrixBindPoint, uboBlock);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		// 根据Camera初始化Projection和View矩阵
 		setCamera(camera);
 	}
-	float step() { // 更新计时，并返回时间步长
+	float step() { // 渲染循环中每一轮调用一次，更新视图变换矩阵，更新计时，并返回时间步长
+		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camera->getViewMatrix()));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 		lastTime = currentTime;
 		currentTime = glfwGetTime();
 		deltaTime = currentTime - lastTime;
 		return deltaTime;
 	}
 	void bindShader(Shader* shader) {			// 仅仅只是绑定shader
-		// 绑定新的shader的uniform缓冲区
+		// 绑定新的shader的uniform缓冲区（共享projection和view两个矩阵）
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
 		glUniformBlockBinding(shader->getID(), glGetUniformBlockIndex(shader->getID(), "Matrices"), matrixBindPoint);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		this->shader = shader;
 	}
-	void add(Drawable* obj) {
-		objs.push_back(obj);
-	}
-	void setCamera(Camera* camera) {
+
+	void setCamera(Camera* camera) {	// 即时更新
 		this->camera = camera;
 		// 更新uniform buffer中的Projection矩阵
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
@@ -57,14 +61,40 @@ public:
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
-	void render() {
-		// 更新uniform buffer中的view矩阵
-		// 不同的shader需要传递不同的uniform变量，这部分工作应该由shader自己完成
-		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camera->getViewMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		for (auto ptr = objs.begin(); ptr != objs.end(); ptr++) {
-			(*ptr)->draw();
+	void render(Geometry* obj) {
+		if (this->shader == nullptr) {
+			bindShader(DefaultShader::getDefaultShader());	// 如果没有预先bindShader，则绑定默认的shader
 		}
+		shader->use();
+		// 传入model矩阵、modelBuffer矩阵 （顶点着色器）
+		(*shader)["model"] = obj->transform.getMatrix();
+		(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
+		// 传入材质信息 （片段着色器）
+		shader->loadUniform(obj->getAttribute());
+	}
+
+	void render(Arrow* obj) {
+		if (this->shader == nullptr) {
+			bindShader(DefaultShader::getDefaultShader());
+		}
+		render(obj->getArrow());
+		render(obj->getBody());
+	}
+
+	void render(Axis* obj) {
+		if (this->shader == nullptr) {
+			bindShader(DefaultShader::getDefaultShader());
+		}
+		render(obj->getAxis_x());
+		render(obj->getAxis_y());
+		render(obj->getAxis_z());
+	}
+
+	void render(Bone* obj) {
+		if (this->shader == nullptr) {
+			bindShader(DefaultShader::getDefaultShader());
+		}
+		// 两种方案，仅渲染一个骨骼节点，或渲染该骨骼上所有子骨骼节点
+		// 。。。
 	}
 };

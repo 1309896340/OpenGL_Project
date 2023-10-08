@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
 	Scene scene(camera);
 	Shader* shader = DefaultShader::getDefaultShader();
 
-	Drawable* axis = new Axis(shader);
+	Axis* axis = new Axis(shader);
 
 	Bone* a = new Bone(), * b = new Bone(), * c = new Bone(), * d = new Bone();
 	a->addChild(b);
@@ -78,11 +78,6 @@ int main(int argc, char** argv) {
 
 
 	scene.bindShader(shader);	// °ó¶¨uniform buffer
-	scene.add(axis);
-	scene.add(a);
-	scene.add(b);
-	scene.add(c);
-	scene.add(d);
 
 	float t = 0.0f;
 	while (!glfwWindowShouldClose(window)) {
@@ -100,7 +95,13 @@ int main(int argc, char** argv) {
 		b->rotate(glm::radians(-25.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		c->rotate(glm::radians(35.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
 		d->rotate(glm::radians(40.0f * deltaTime), glm::vec3(0.0f, 1.0f, 0.0f));
-		scene.render();
+
+		scene.render(axis);
+
+		scene.render(a);
+		scene.render(b);
+		scene.render(c);
+		scene.render(d);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

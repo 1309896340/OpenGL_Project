@@ -54,7 +54,7 @@ typedef struct _StatusInfo {
 }StatusInfo;
 
 typedef struct {	// 除了MVP矩阵以外的其他定制化uniform变量
-	bool autoColor;
-	glm::vec4 color;
+	bool autoColor{ true };
+	glm::vec4 color{ 0.0f,0.0f,0.0f,0.0f };
 }uniformTable;
 

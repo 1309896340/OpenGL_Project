@@ -18,11 +18,6 @@ typedef struct {
 }LineStructure;
 
 
-class Drawable {
-public:
-	virtual void draw() = 0;
-};
-
 class Transform {
 private:
 	glm::vec3 position;
@@ -61,109 +56,73 @@ public:
 	}
 };
 
-class Geometry :public Drawable {
+class Geometry {
 private:
 	glm::mat4 transMatrix;
 	glm::mat4 modelBuffer;
 protected:
-	GLuint VAO;
-	GLsizei VAO_length;
-
-	uniformTable uniform;
-
-	Shader* shader;
-
+	GLuint VAO{ 0 }, VBO{ 0 }, EBO{ 0 };
+	GLsizei index_size;
+	uniformTable attribute;
 public:
-	Transform* transform;
+	Transform transform;
 
-	Geometry(glm::vec3 position, Shader* shader) :uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		VAO(0), VAO_length(0), transform(new Transform(position)), transMatrix(glm::mat4(1.0f)) {
-		if (!shader)
-			this->shader = DefaultShader::getDefaultShader();
+	Geometry(glm::vec3 position) : modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {}
+	Geometry() : modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {}
+	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index) :
+		modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {
+		prepareVAO(vertex, normal, index, &VAO, &index_size);
 	}
-	Geometry(Shader* shader) : uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		VAO(0), VAO_length(0), transform(new Transform()), transMatrix(glm::mat4(1.0f)) {
-		if (!shader)
-			this->shader = DefaultShader::getDefaultShader();
-	}
-	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, Shader* shader) :
-		uniform({ true, glm::vec4(0.0f) }), shader(shader), modelBuffer(glm::mat4(1.0f)),
-		VAO(0), VAO_length(0), transform(new Transform()), transMatrix(glm::mat4(1.0f)) {
-		if (!shader)
-			this->shader = DefaultShader::getDefaultShader();
-
-		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
-	}
-	~Geometry() {
-		delete transform;
-	}
+	~Geometry() {}
 
 	glm::mat4 getModelBufferMatrix() {
 		return modelBuffer;
 	}
 	void setColor(glm::vec4 color) {
-		uniform.autoColor = false;
-		uniform.color = color;
+		attribute.autoColor = false;
+		attribute.color = color;
 	}
 	void setAutoColor() {
-		uniform.autoColor = true;
+		attribute.autoColor = true;
 	}
 	void applyTransform() {
-		modelBuffer = (transform->getMatrix()) * modelBuffer;
-		transform->reset();
+		modelBuffer = (transform.getMatrix()) * modelBuffer;
+		transform.reset();
 	}
 	void setTransform(const Transform& trans) {
-		*(this->transform) = trans;
+		transform = trans;
 	}
 	void setTransformMatrix(const glm::mat4& trans) {
 		transMatrix = trans;
 	}
 	// transform 适配
 	void translate(glm::vec3 dxyz) {
-		transform->translate(dxyz);
+		transform.translate(dxyz);
 	}
 	void rotate(float angle, glm::vec3 axis) {
-		transform->rotate(angle, axis);
+		transform.rotate(angle, axis);
 	}
 	void scale(glm::vec3 xyz) {
-		transform->scale(xyz);
+		transform.scale(xyz);
 	}
 	void scaleTo(glm::vec3 xyz) {
-		transform->scaleTo(xyz);
+		transform.scaleTo(xyz);
 	}
 	void translateTo(glm::vec3 dxyz) {
-		transform->translateTo(dxyz);
+		transform.translateTo(dxyz);
 	}
 	void resetTransform() {
-		transform->reset();
+		transform.reset();
 	}
 
-	Shader* getShader() {
-		return shader;
-	}
-	uniformTable& getUniform() {
-		return uniform;
+	uniformTable& getAttribute() {
+		return attribute;
 	}
 	GLuint getVAO() {
 		return VAO;
 	}
 	GLsizei getVAOLength() {
-		return VAO_length;
-	}
-	virtual void draw() {
-		// 需要shader传输当前对象的model矩阵、颜色等信息
-		// 其次需要知道绘制点的个数、已经配置好的顶点缓冲区ID
-
-		shader->setModel(transMatrix * transform->getMatrix());
-		shader->setModelBuffer(modelBuffer);
-		shader->loadUniform(uniform);
-
-		shader->use();
-		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, VAO_length, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
-
-		transMatrix = glm::mat4(1.0f);
+		return index_size;
 	}
 };
 
@@ -172,8 +131,8 @@ private:
 	int xSliceNum, ySliceNum, zSliceNum;
 	float xLength, yLength, zLength;
 public:
-	Cube(float xLength, float yLength, float zLength, int xSliceNum, int ySliceNum, int zSliceNum, Shader* shader) :
-		Geometry(glm::vec3(0.0), shader), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
+	Cube(float xLength, float yLength, float zLength, int xSliceNum, int ySliceNum, int zSliceNum) :
+		Geometry(), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
 		xLength(xLength), yLength(yLength), zLength(zLength) {
 
 		float dx, dy, dz;
@@ -255,7 +214,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
+		prepareVAO(vertex, normal, index, &VAO, &index_size);
 	}
 };
 
@@ -266,7 +225,7 @@ private:
 	int latSliceNum;
 
 public:
-	Sphere(float radius, unsigned int lonSliceNum, unsigned int latSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
+	Sphere(float radius, unsigned int lonSliceNum, unsigned int latSliceNum) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
 		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
 
@@ -294,7 +253,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
+		prepareVAO(vertex, normal, index, &VAO, &index_size);
 	}
 };
 
@@ -306,7 +265,7 @@ private:
 	int hSliceNum;
 	int lonSliceNum;
 public:
-	Cylinder(float radius, float height, unsigned int rSliceNum, unsigned int hSliceNum, unsigned int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cylinder(float radius, float height, unsigned int rSliceNum, unsigned int hSliceNum, unsigned int lonSliceNum) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -364,7 +323,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
+		prepareVAO(vertex, normal, index, &VAO, &index_size);
 	}
 };
 
@@ -377,7 +336,7 @@ private:
 	int hSliceNum;
 	int lonSliceNum;
 public:
-	Cone(float radius, float height, unsigned int rSliceNum, unsigned int hSliceNum, unsigned int lonSliceNum, Shader* shader) :Geometry(glm::vec3(0.0), shader), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+	Cone(float radius, float height, unsigned int rSliceNum, unsigned int hSliceNum, unsigned int lonSliceNum) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -433,7 +392,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
+		prepareVAO(vertex, normal, index, &VAO, &index_size);
 	}
 };
 
@@ -450,8 +409,8 @@ private:
 	zFunc func;
 	zGrad grad;
 public:
-	Surface(float xStart, float xEnd, float yStart, float yEnd, zFunc func, zGrad grad, unsigned int xSliceNum, unsigned int ySliceNum, Shader* shader) :
-		Geometry(glm::vec3(0.0), shader), xStart(xStart), xEnd(xEnd), yStart(yStart), yEnd(yEnd), func(func), grad(grad), xSliceNum(xSliceNum), ySliceNum(ySliceNum) {
+	Surface(float xStart, float xEnd, float yStart, float yEnd, zFunc func, zGrad grad, unsigned int xSliceNum, unsigned int ySliceNum) :
+		Geometry(), xStart(xStart), xEnd(xEnd), yStart(yStart), yEnd(yEnd), func(func), grad(grad), xSliceNum(xSliceNum), ySliceNum(ySliceNum) {
 		float dx = (xEnd - xStart) / xSliceNum;
 		float dy = (yEnd - yStart) / ySliceNum;
 		float x, y, z;
@@ -484,7 +443,7 @@ public:
 				}
 			}
 		}
-		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
+		prepareVAO(vertex, normal, index, &VAO, &index_size);
 	}
 };
 
@@ -536,40 +495,40 @@ private:
 public:
 	// Combination应当禁用自己的shader，而是使用objs中各个obj自己的shader
 	// VAO和VAO_length也应当使用obj自身的
-	Combination() :Geometry(nullptr) {}
+	Combination() :Geometry() {}
 	void add(Geometry* obj) {
 		// Combination默认的中心在原点处
 		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
 		objs.push_back(obj);
-		objModel.push_back(obj->transform->getMatrix());
+		objModel.push_back(obj->transform.getMatrix());
 		obj->resetTransform();
 	}
 
-	virtual void draw() {
-		// 需要应用所有变换，这里考虑几类情况
-		// 1. Combination自身的变换，即Combination的model
-		// 2. Combination中的obj的变换，即objModel
-		// 3. Combination中的obj自身的变换，即obj->getModelMatrix(),这包括了obj的model和modelBuffer
+	//virtual void draw() {
+	//	// 需要应用所有变换，这里考虑几类情况
+	//	// 1. Combination自身的变换，即Combination的model
+	//	// 2. Combination中的obj的变换，即objModel
+	//	// 3. Combination中的obj自身的变换，即obj->getModelMatrix(),这包括了obj的model和modelBuffer
 
 
-		// 注意：目前考虑的obj只可能是Geometry类，后续考虑实现obj为Combination的情况
-		// 此时最终model矩阵的计算可能会涉及到递归
+	//	// 注意：目前考虑的obj只可能是Geometry类，后续考虑实现obj为Combination的情况
+	//	// 此时最终model矩阵的计算可能会涉及到递归
 
-		for (int i = 0; i < objs.size(); i++) {
-			// 考虑使用Combination的model、modelBuffer和objModel[i]的连乘变换，附加(左乘)在objs[i]的getModelMatrix()上，其他属性设置和原来的draw保持一致
-			Shader* shader = objs[i]->getShader();
-			shader->setModel(transform->getMatrix());
-			shader->setModelBuffer(getModelBufferMatrix() * objModel[i] * (objs[i]->transform->getMatrix()) * (objs[i]->getModelBufferMatrix()));
-			shader->loadUniform(objs[i]->getUniform());
-			shader->use();
-			glBindVertexArray(objs[i]->getVAO());
-			glDrawElements(GL_TRIANGLES, objs[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
-			glBindVertexArray(0);
-		}
-	}
+	//	for (int i = 0; i < objs.size(); i++) {
+	//		// 考虑使用Combination的model、modelBuffer和objModel[i]的连乘变换，附加(左乘)在objs[i]的getModelMatrix()上，其他属性设置和原来的draw保持一致
+	//		Shader* shader = objs[i]->getShader();
+	//		shader->setModel(transform->getMatrix());
+	//		shader->setModelBuffer(getModelBufferMatrix() * objModel[i] * (objs[i]->transform->getMatrix()) * (objs[i]->getModelBufferMatrix()));
+	//		shader->loadUniform(objs[i]->getUniform());
+	//		shader->use();
+	//		glBindVertexArray(objs[i]->getVAO());
+	//		glDrawElements(GL_TRIANGLES, objs[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
+	//		glBindVertexArray(0);
+	//	}
+	//}
 };
 
-class Bone :public Drawable {
+class Bone {
 private:
 	Bone* child;			// 双向链表
 	Bone* parent;
@@ -584,11 +543,11 @@ private:
 	// 父骨骼通过子骨骼的起始位置和方向向量来确定自己的位置，通过计算出一个位移矩阵
 public:
 	Transform* transform; // 表示当前骨骼的子骨骼相对于当前骨骼的变换
-	Bone(float length=1.0f) :transform(new Transform()), child(nullptr), parent(nullptr), position(glm::vec3(0.0f)), vec(length*_up) {
-		obj = new Cylinder(0.04f, length, 4, 20, 36, nullptr);
+	Bone(float length = 1.0f) :transform(new Transform()), child(nullptr), parent(nullptr), position(glm::vec3(0.0f)), vec(length* _up) {
+		obj = new Cylinder(0.04f, length, 4, 20, 36);
 		glm::mat4 transMatrix(1.0f);
 		obj->rotate(glm::radians(-90.0f), _right);
-		obj->translateTo(glm::vec3(0.0f, length/2, 0.0f));
+		obj->translateTo(glm::vec3(0.0f, length / 2, 0.0f));
 		obj->applyTransform();	// 将中心点移动到圆柱的下端点
 
 		transform->translateTo(vec);
@@ -635,36 +594,34 @@ public:
 		obj->rotate(angle, axis);	// 对当前骨骼而言只有旋转没有位移
 	}
 
-	virtual void draw() {	// 调试用的绘制函数
-		obj->setTransformMatrix(getTransMatrix());
-		obj->draw();
-	}
+	//virtual void draw() {	// 调试用的绘制函数
+	//	obj->setTransformMatrix(getTransMatrix());
+	//	obj->draw();
+	//}
 };
 
-class Arrow :public Drawable {		// 比较粗暴的组合体实现
+class Arrow {		// 比较粗暴的组合体实现
 private:
-	glm::vec3 _begin;
-	glm::vec3 _end;
-	float width;
-
-	glm::vec4 arrowColor;
-	glm::vec4 bodyColor;
+	glm::vec3 _begin{ 0.0f,0.0f,0.0f };
+	glm::vec3 _end{ 0.0f,0.0f,0.0f };
+	float width{ 1.0f };
 
 	const float arrowLengthRatio = 0.2f;
 	const float arrowRadiusRatio = 2.5f;
 
 	Geometry* arrow, * body;
 public:
-	Arrow(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrowColor, glm::vec4 bodyColor, Shader* shader) : _begin(_begin), _end(_end), width(width), arrowColor(arrowColor), bodyColor(bodyColor) {
+	Arrow(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrowColor, glm::vec4 bodyColor) :
+		_begin(_begin), _end(_end), width(width) {
 		float length = glm::length(_end - _begin);
-		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio, 3, 4, 18, shader);
-		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio), 2, (int)(length * 10), 18, shader);
+		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio, 3, 4, 18);
+		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio), 2, (int)(length * 10), 18);
 
 		arrow->setColor(arrowColor);
 		body->setColor(bodyColor);
 		// 进行组合
-		arrow->scale(glm::vec3(length, length, length));
-		body->scale(glm::vec3(length, length, length));
+		arrow->scale(_end - _begin);
+		body->scale(_end - _begin);
 		arrow->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) / 2.0f * length, 0));
 		body->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -675,6 +632,16 @@ public:
 		// 此时两者组合在一起，构成以原点为中点的箭头
 
 		update();
+	}
+	~Arrow() {
+		delete arrow;
+		delete body;
+	}
+	Geometry* getArrow() {
+		return arrow;
+	}
+	Geometry* getBody() {
+		return body;
 	}
 	void update() {
 		arrow->resetTransform();
@@ -712,29 +679,31 @@ public:
 		this->_end = _end;
 		this->update();
 	}
-	virtual void draw() {
-		arrow->draw();
-		body->draw();
-	}
 };
 
-class Axis :public Drawable {
+class Axis {
 private:
 	Shader* shader;
 	Arrow* axis_x, * axis_y, * axis_z;
 public:
-
-
 	Axis(Shader* shader) :shader(shader) {
-		axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), shader);
-		axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), shader);
-		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), shader);
+		axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+		axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 	}
-
-	virtual void draw() {
-		axis_x->draw();
-		axis_y->draw();
-		axis_z->draw();
+	~Axis() {
+		delete axis_x;
+		delete axis_y;
+		delete axis_z;
+	}
+	Arrow* getAxis_x() {
+		return axis_x;
+	}
+	Arrow* getAxis_y() {
+		return axis_y;
+	}
+	Arrow* getAxis_z() {
+		return axis_z;
 	}
 };
 
@@ -756,8 +725,8 @@ private:
 		return -k * width / height * x * x + tanf(PI / 2 - SLAngle) * x;
 	}
 public:
-	Leaf(float width, float height, unsigned int wSliceNum, unsigned int hSliceNum, Shader* shader) :
-		Geometry(shader), width(width), height(height), wSliceNum(wSliceNum), hSliceNum(hSliceNum), theta(0.35f) {
+	Leaf(float width, float height, unsigned int wSliceNum, unsigned int hSliceNum) :
+		Geometry(), width(width), height(height), wSliceNum(wSliceNum), hSliceNum(hSliceNum), theta(0.35f) {
 
 		if (wSliceNum < v_degree + 1 || hSliceNum < u_degree + 1) {
 			std::cout << "节点分割数太少" << std::endl;
@@ -850,7 +819,7 @@ public:
 		//	vertex[i * (wSliceNum + 1) + veinIdx].y = y;
 		//}
 
-		prepareVAO(vertex, normal, index, &VAO, &VAO_length);
+		prepareVAO(vertex, normal, index, &VAO, &index_size);
 	}
 };
 
