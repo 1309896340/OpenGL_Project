@@ -36,6 +36,13 @@ void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal
 	glBindVertexArray(0);
 }
 
+void updateVertexPosition(GLuint VAO, GLuint VBO, std::vector<vec3> vertex) {
+	// 更新VBO[0]数据(顶点坐标)
+	glBindVertexArray(VAO);
+	glNamedBufferData(VBO, vertex.size() * sizeof(vec3), vertex.data(), GL_DYNAMIC_DRAW);
+	glBindVertexArray(0);
+}
+
 void loadShader(GLuint shader, std::string source) {
 	const char* csource = source.c_str();
 	glShaderSource(shader, 1, &csource, NULL);

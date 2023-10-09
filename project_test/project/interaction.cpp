@@ -1,8 +1,11 @@
 #include "proj.h"
 #include "Camera.hpp"
 
+//#include "Geometry.hpp"
+
 extern StatusInfo status;
 extern Camera* camera;
+
 
 void framebuff_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -60,7 +63,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 			camera->move(-(float)dx, (float)dy, 0.0f);
 		}
 		else {
-
+			// ¿ØÖÆÒ¶Æ¬ÖáÏòÅ¤Çú£¿
+			//if (leaf != nullptr) {
+			//	leaf->addTheta((float)dx);
+			//	leaf->addK((float)dy);
+			//}
 		}
 	}
 }

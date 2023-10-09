@@ -122,4 +122,10 @@ public:
 			}
 		}
 	}
+
+	void render(Leaf* obj) {
+		if (obj->isChangedMesh())
+			obj->updateMesh();
+		render(dynamic_cast<Geometry*>(obj));
+	}
 };

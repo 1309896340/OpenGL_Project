@@ -76,7 +76,10 @@ public:
 		modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {
 		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
-	~Geometry() {}
+	~Geometry() {
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(3, VBO);
+	}
 
 	glm::mat4 getModelBufferMatrix() {
 		return modelBuffer;
@@ -697,10 +700,10 @@ class Axis {
 private:
 	Arrow* axis_x, * axis_y, * axis_z;
 public:
-	Axis() {
-		axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-		axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.f, 0.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.06f, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+	Axis(float length = 1.0f) {
+		axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(length, 0.0f, 0.0f), 0.06f * length, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+		axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, length, 0.0f), 0.06f * length, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, length), 0.06f * length, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 	}
 	~Axis() {
 		delete axis_x;
@@ -724,8 +727,10 @@ private:
 	float width, height, theta;
 	unsigned int wSliceNum, hSliceNum;
 
+	float k = 4.4f, SLAngle = PI / 6.0f;			// k为叶片弯曲程度，SLAngle为叶片弯曲角度
+	bool isChanged = false;							// 标记叶片网格是否被改变
+
 	const unsigned int u_degree = 3, v_degree = 2;		// u为长度分割，v为宽度分割
-	const float k = 10.0f, SLAngle = PI / 6.0f;			// k为叶片弯曲程度，SLAngle为叶片弯曲角度
 
 	float wFunc(float h) {
 		// 生成叶片宽度关于长度的函数
@@ -736,53 +741,23 @@ private:
 		return -k * width / height * x * x + tanf(PI / 2 - SLAngle) * x;
 	}
 public:
+
+	void updateMesh() {		// 在scene的render(Leaf)中判断isChanged为true后调用此函数更新网格，后将isChanged置为false
+		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
+		std::vector<vec3> vertex(hwNum1, { 0 });
+		float x, y;
+		for (unsigned int i = 0; i <= hSliceNum; i++) {
+			x = (float)i / hSliceNum * height;
+			for (unsigned int j = 0; j <= wSliceNum; j++) {
+				y = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
+				vertex[i * (wSliceNum + 1) + j] = { x,veinFunc(x),y };
+			}
+		}
+		updateVertexPosition(VAO, VBO[0], vertex);
+		isChanged = false;
+	}
 	Leaf(float width, float height, unsigned int wSliceNum, unsigned int hSliceNum) :
 		Geometry(), width(width), height(height), wSliceNum(wSliceNum), hSliceNum(hSliceNum), theta(0.35f) {
-
-		if (wSliceNum < v_degree + 1 || hSliceNum < u_degree + 1) {
-			std::cout << "节点分割数太少" << std::endl;
-			exit(0);
-		}
-
-		tinynurbs::array2<glm::vec3> ctrl_pts(hSliceNum, wSliceNum, glm::vec3(0.0f));
-		tinynurbs::array2<float> weight(hSliceNum, wSliceNum, 1.0f);
-
-		// 生成节点
-		std::vector<float> knots_u(hSliceNum + u_degree + 1, 0), knots_v(wSliceNum + v_degree + 1, 0);
-		for (unsigned int i = 0; i <= u_degree; i++) {
-			knots_u[i] = 0.0f;
-			knots_u[hSliceNum + u_degree - i] = 1.0f;
-		}
-		for (unsigned int i = u_degree + 1; i < hSliceNum; i++) {
-			knots_u[i] = (float)(i - u_degree) / (hSliceNum - u_degree);
-		}
-		for (unsigned int i = 0; i <= v_degree; i++) {
-			knots_v[i] = 0.0f;
-			knots_v[wSliceNum + v_degree - i] = 1.0f;
-		}
-		for (unsigned int i = v_degree + 1; i < wSliceNum; i++) {
-			knots_v[i] = (float)(i - v_degree) / (wSliceNum - v_degree);
-		}
-		// 生成控制点（叶鞘、叶两边、叶脉）
-		//float x;
-		//for (int i = 0; i < hSliceNum; i++) {
-		//	for (int j = 0; j < wSliceNum; j++) {
-		//		x = (float)i / (hSliceNum - 1) * height;
-		//		ctrl_pts(i, j) = glm::vec3(
-		//			x,
-		//			veinFunc(x),
-		//			(j - (wSliceNum - 1) / 2.0f) / ((wSliceNum - 1) / 2.0f) * wFunc(x) / 2.0f
-		//		);
-		//	}
-		//}
-
-		//tinynurbs::RationalSurface3f srf(
-		//	u_degree, v_degree, knots_u, knots_v, ctrl_pts, weight
-		//);
-
-		//assert(tinynurbs::surfaceIsValid(srf));
-
-
 		// 先不使用NURBS曲面，直接连线
 		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
 
@@ -807,30 +782,30 @@ public:
 				}
 			}
 		}
-		// 目前没有处理好叶脉方程，也没有使用NURBS曲面描述，暂时不知道如何处理
-		// Leaf对象应当具有几个更新函数，应及时更新VBO的值
-		// 1.更新叶脉弯曲度的k
-		// 2. 茎叶夹角的theta
-
-		//assert(wSliceNum % 2 == 0);	// 假定wSliceNum必须为偶数
-		//unsigned int veinIdx = (unsigned int)(wSliceNum / 2);
-		//x = 0.0f;
-		//y = 0.0f;
-		//float a = -k * width / height, b = tanf(PI / 2 - SLAngle), tmp1, tmp2;
-		//for (int i = 0; i <= hSliceNum; i++) {
-		//	//tmp1 = 2 * a * x + b;
-		//	//tmp2 = height / (hSliceNum + 1) / sqrtf(1 + powf(tmp1, 2));
-		//	//x = x + tmp2;
-		//	//y = y + tmp1 * tmp2;
-		//	//vertex[i * (wSliceNum + 1) + veinIdx] = { x,y,0 };
-		//	x = vertex[i * (wSliceNum + 1) + veinIdx].x;
-		//	tmp1 = 2 * a * x + b;
-		//	tmp2 = height / (hSliceNum + 1) / sqrtf(1 + powf(tmp1, 2));
-		//	y = y + tmp1 * tmp2;
-		//	vertex[i * (wSliceNum + 1) + veinIdx].y = y;
-		//}
-
 		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+	}
+	void addTheta(float delta) {
+		theta += delta;
+		if (theta > PI / 2.0f - 0.01f) {
+			theta = PI / 2.0f - 0.01f;
+		}
+		else if (theta < 0.0f) {
+			theta = 0.0f;
+		}
+		isChanged = true;
+	}
+	void addK(float delta) {
+		k += delta;
+		if (k > 20.0f) {
+			k = 20.0f;
+		}
+		else if (k < 0.0f) {
+			k = 0.0f;
+		}
+		isChanged = true;
+	}
+	bool isChangedMesh() {
+		return isChanged;
 	}
 };
 
