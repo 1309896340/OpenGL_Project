@@ -10,7 +10,9 @@
 #include "backends/imgui_impl_opengl3.h"
 #include "misc/cpp/imgui_stdlib.h"
 
-#pragma once
+
+extern StatusInfo status;
+extern Leaf *leaf;
 
 class GUI {
 private:
@@ -48,11 +50,18 @@ public:
 		ImGui::NewFrame();
 		//ImGui::ShowDemoWindow();
 		// 绘制自定义的控件
+		
+		bool isChanged = false;
 
-		ImGui::Begin(u8"按钮窗口");
-		if (ImGui::Button(u8"按钮")) {
-			ImGui::Text(u8"文本框被激活");
-			std::cout << "按钮被按下" << std::endl;
+		ImGui::Begin(u8"交互窗口");
+		if (ImGui::SliderFloat(u8"叶宽因子", &status.leafstatus.theta, 0.0f, 0.5f)) {
+			leaf->setTheta(status.leafstatus.theta);
+		}
+		if (ImGui::SliderFloat(u8"茎叶夹角", &status.leafstatus.SLAngle, 0.1f, 120.0f)) {
+			leaf->setSLAngle(status.leafstatus.SLAngle);
+		}
+		if (ImGui::SliderFloat(u8"弯曲系数", &status.leafstatus.k, 0.0f, 30.0f)) {
+			leaf->setK(status.leafstatus.k);
 		}
 		ImGui::End();
 	}

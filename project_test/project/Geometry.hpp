@@ -672,11 +672,11 @@ public:
 
 class Leaf :public Geometry {
 private:
-	float width, height, theta;
+	float width, height;
 	unsigned int wSliceNum, hSliceNum;
 
-	float k = 4.4f, SLAngle = PI / 6.0f;			// k为叶片弯曲程度，SLAngle为叶片弯曲角度
-	bool isChanged = false;							// 标记叶片网格是否被改变
+	float k = 4.4f, SLAngle = 30.0f, theta = 0.2f;				// k为叶片弯曲程度，SLAngle为叶片弯曲角度，theta为叶宽因子
+	bool isChanged = false;												// 标记叶片网格是否被改变
 
 	const unsigned int u_degree = 3, v_degree = 2;		// u为长度分割，v为宽度分割
 
@@ -686,7 +686,7 @@ private:
 	}
 	float veinFunc(float x) {
 		// 生成叶脉关于长度的函数
-		return -k * width / height * x * x + tanf(PI / 2 - SLAngle) * x;
+		return -k * width / height * x * x + tanf(PI / 2.0f - SLAngle * PI / 180.0f) * x;
 	}
 public:
 
@@ -732,6 +732,11 @@ public:
 		}
 		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
+
+	void setTheta(float theta) {
+		this->theta = theta;
+		isChanged = true;
+	}
 	void addTheta(float delta) {
 		theta += delta;
 		if (theta > 0.5f - 0.01f) {
@@ -740,7 +745,10 @@ public:
 		else if (theta < 0.0f) {
 			theta = 0.0f;
 		}
-		std::cout << "theta=" << theta << std::endl;
+		isChanged = true;
+	}
+	void setK(float k) {
+		this->k = k;
 		isChanged = true;
 	}
 	void addK(float delta) {
@@ -751,7 +759,20 @@ public:
 		else if (k < 0.0f) {
 			k = 0.0f;
 		}
-		std::cout << "k=" << k << std::endl;
+		isChanged = true;
+	}
+	void setSLAngle(float angle) {
+		this->SLAngle = angle;
+		isChanged = true;
+	}
+	void addSLAngle(float delta) {
+		SLAngle += delta;
+		if (SLAngle > 90.0f) {
+			SLAngle = 90.0f;
+		}
+		else if (SLAngle < 0.1f) {
+			SLAngle = 0.1f;
+		}
 		isChanged = true;
 	}
 	bool isChangedMesh() {

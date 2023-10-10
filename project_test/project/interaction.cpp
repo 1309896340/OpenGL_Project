@@ -13,7 +13,6 @@ void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods)
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		if (action == GLFW_PRESS && !status.leftMouseButtonPressed) {
 			status.leftMouseButtonPressed = true;
-			status.startShoot = true;
 			glfwGetCursorPos(window, &status.mousePos[0], &status.mousePos[1]);
 			//std::cout << "·¢³öÉäÏß:(" << status.shootPos[0] << "," << status.shootPos[1] << ")" << std::endl;
 		}

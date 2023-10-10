@@ -28,24 +28,33 @@ extern glm::vec3 _up;
 extern glm::vec3 _right;
 extern glm::vec3 _front;
 
-typedef struct _vec3{
+typedef struct _vec3 {
 	float x, y, z;
 }vec3;
 
-typedef struct _vec4{
+typedef struct _vec4 {
 	float x, y, z, w;
 }vec4;
+
+typedef struct _LeafInfo {
+	float theta = 0.2f;				// 叶宽因子
+	float k = 5.0f;						// 叶片弯曲系数
+	float SLAngle = 30.0f;			// 茎叶夹角
+	float MVAngle = 0.0f;			// 主叶脉扭曲角度
+} LeafInfo;
 
 typedef struct _StatusInfo {
 	bool leftMouseButtonPressed = false;
 	bool rightMouseButtonPressed = false;
 	double mousePos[2];
-	unsigned int lastKey = 0;
-	bool startShoot = false;
 	bool shiftPressed = false;
-	double shootPos[2];
+	unsigned int lastKey = 0;
 	glm::vec3 lightPos = glm::vec3(0.1f, 0.1f, 0.1f);
+	//bool startShoot = false;
+	//double shootPos[2];
+	LeafInfo leafstatus;
 }StatusInfo;
+
 
 typedef struct _uniformTable {	// 除了MVP矩阵以外的其他定制化uniform变量
 	bool autoColor{ true };
