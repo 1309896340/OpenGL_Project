@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _WIND_MAIN_HEADER
+#define _WIND_MAIN_HEADER
 
 #include <iostream>
 #include <fstream>
@@ -19,21 +20,19 @@
 
 #define WIDTH 1600
 #define HEIGHT 1200
-
 #define PI 3.1415926535f
-
 #define DEFAULT_LINE_WIDTH 0.02f
-
 #define EPS 1e-7
 
 extern glm::vec3 _up;
 extern glm::vec3 _right;
 extern glm::vec3 _front;
 
-typedef struct {
+typedef struct _vec3{
 	float x, y, z;
 }vec3;
-typedef struct {
+
+typedef struct _vec4{
 	float x, y, z, w;
 }vec4;
 
@@ -53,3 +52,4 @@ typedef struct _uniformTable {	// 除了MVP矩阵以外的其他定制化uniform变量
 	glm::vec4 color{ 0.0f,0.0f,0.0f,0.0f };
 }uniformTable;
 
+#endif

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __WIND_CAMERA
+#define __WIND_CAMERA
 
 #include "proj.h"
 
@@ -101,3 +102,5 @@ public:
 		return up;
 	}
 };
+
+#endif

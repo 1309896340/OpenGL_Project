@@ -22,6 +22,9 @@
     <Filter Include="源文件\ImGui">
       <UniqueIdentifier>{b552b274-61d6-4b5c-ae7d-2b1f14f78624}</UniqueIdentifier>
     </Filter>
+    <Filter Include="类">
+      <UniqueIdentifier>{4a3c3105-9415-474d-98c9-761a135a8888}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="demo.cpp">
@@ -29,9 +32,6 @@
     </ClCompile>
     <ClCompile Include="utils.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Shader.hpp">
-      <Filter>头文件</Filter>
     </ClCompile>
     <ClCompile Include="interaction.cpp">
       <Filter>源文件</Filter>
@@ -66,21 +66,15 @@
     <ClCompile Include="imgui\backends\imgui_impl_opengl3.cpp">
       <Filter>头文件\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Shader.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="proj.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Geometry.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="utils.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="interaction.h">
@@ -89,8 +83,17 @@
     <ClInclude Include="line.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Camera.hpp">
+      <Filter>类</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometry.hpp">
+      <Filter>类</Filter>
+    </ClInclude>
     <ClInclude Include="GUI.hpp">
-      <Filter>头文件</Filter>
+      <Filter>类</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.hpp">
+      <Filter>类</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

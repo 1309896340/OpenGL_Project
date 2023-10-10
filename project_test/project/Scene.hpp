@@ -1,3 +1,6 @@
+#ifndef __WIND_SCENE
+#define __WIND_SCENE
+
 #include "proj.h"
 #include "Camera.hpp"
 #include "Geometry.hpp"
@@ -129,3 +132,5 @@ public:
 		render(dynamic_cast<Geometry*>(obj));
 	}
 };
+
+#endif

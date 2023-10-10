@@ -1,3 +1,6 @@
+#ifndef __WIND_GUI
+#define __WIND_GUI
+
 #include "proj.h"
 #include "Geometry.hpp"
 #include "Shader.hpp"
@@ -24,10 +27,11 @@ public:
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;		// 启用键盘控制
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;	// 启用手柄控制
+		ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 30.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
+		ImGui::GetIO().FontDefault = font;
 
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
-
-		bool flag = ImGui_ImplOpenGL3_Init();
+		bool flag = ImGui_ImplGlfw_InitForOpenGL(window, true);
+		flag &= ImGui_ImplOpenGL3_Init();
 		if (!flag) {
 			std::cout << "ImGui init failed!" << flag << std::endl;
 			exit(10);
@@ -42,10 +46,20 @@ public:
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
+		// 绘制自定义的控件
+
+		ImGui::Begin(u8"按钮窗口");
+		if (ImGui::Button(u8"按钮")) {
+			ImGui::Text(u8"文本框被激活");
+			std::cout << "按钮被按下" << std::endl;
+		}
+		ImGui::End();
 	}
 	void render() {
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	}
 };
+
+#endif

@@ -1,7 +1,8 @@
-#pragma once
+#ifndef __WIND_GEOMETRY
+#define __WIND_GEOMETRY
 
-#include "proj.h"
 #include "utils.h"
+#include "proj.h"
 #include "Shader.hpp"
 
 class Transform {
@@ -758,3 +759,4 @@ public:
 	}
 };
 
+#endif

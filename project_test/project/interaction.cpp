@@ -58,14 +58,15 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		if (!camera)
 			return;
 		if (status.shiftPressed == false) {
-			camera->move(-(float)dx, (float)dy, 0.0f);
+			//camera->move(-(float)dx, (float)dy, 0.0f);
 		}
 		else {
-			// ¿ØÖÆÒ¶Æ¬ÖáÏòÅ¤Çú£¿
-			if (leaf != nullptr) {
-				leaf->addTheta((float)dx / 400.0f);
-				leaf->addK((float)dy / 50.0f);
-			}
+			camera->move(-(float)dx, (float)dy, 0.0f);
+			//// ¿ØÖÆÒ¶Æ¬ÖáÏòÅ¤Çú£¿
+			//if (leaf != nullptr) {
+			//	leaf->addTheta((float)dx / 400.0f);
+			//	leaf->addK((float)dy / 50.0f);
+			//}
 		}
 	}
 }

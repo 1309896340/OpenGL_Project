@@ -1,7 +1,8 @@
-#pragma once
+#ifndef __WIND_SHADER
+#define __WIND_SHADER
 
-#include "proj.h"
 #include "utils.h"
+#include "proj.h"
 
 class ShaderUniform {
 private:
@@ -131,3 +132,4 @@ public:
 };
 
 
+#endif

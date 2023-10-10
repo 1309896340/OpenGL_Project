@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __WIND_INTERACTION
+#define __WIND_INTERACTION
 
 #include "proj.h"
 #include "Camera.hpp"
@@ -9,3 +10,4 @@ void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods)
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
+#endif

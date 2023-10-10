@@ -1,3 +1,6 @@
+#ifndef _WIND_UTILS
+#define _WIND_UTILS
+
 #include "proj.h"
 
 std::string readSource(std::string filename);
@@ -16,3 +19,6 @@ extern void framebuff_size_callback(GLFWwindow* window, int width, int height);
 extern void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods);
 extern void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 extern void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+
+#endif

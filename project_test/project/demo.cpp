@@ -1,9 +1,12 @@
-#include "proj.h"
 #include "Camera.hpp"
 #include "Shader.hpp"
 #include "Geometry.hpp"
 #include "Scene.hpp"
 #include "GUI.hpp"
+#include "interaction.h"
+#include "line.h"
+#include "utils.h"
+#include "proj.h"
 
 
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
