@@ -14,7 +14,7 @@ private:
 	const GLuint matrixBindPoint = 0;
 
 public:
-	Scene() :currentTime(glfwGetTime()) {
+	Scene() :currentTime((float)glfwGetTime()) {
 		// 初始化uniform缓冲区
 		glGenBuffers(1, &uboBlock);
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
@@ -25,7 +25,7 @@ public:
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(glm::mat4(1.0)));	// 默认初始化View矩阵
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
-	Scene(Camera* camera) : currentTime(glfwGetTime()) {
+	Scene(Camera* camera) : currentTime((float)glfwGetTime()) {
 		// 初始化uniform缓冲区
 		glGenBuffers(1, &uboBlock);
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
@@ -41,7 +41,7 @@ public:
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		lastTime = currentTime;
-		currentTime = glfwGetTime();
+		currentTime = (float)glfwGetTime();
 		deltaTime = currentTime - lastTime;
 		return deltaTime;
 	}
