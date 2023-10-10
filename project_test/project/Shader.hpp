@@ -1,7 +1,7 @@
+#pragma once
+
 #include "proj.h"
 #include "utils.h"
-
-#pragma once
 
 class ShaderUniform {
 private:

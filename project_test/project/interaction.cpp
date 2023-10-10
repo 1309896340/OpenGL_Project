@@ -1,4 +1,3 @@
-#include "proj.h"
 #include "interaction.h"
 
 extern StatusInfo status;
