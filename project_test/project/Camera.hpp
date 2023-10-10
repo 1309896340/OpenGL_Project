@@ -1,6 +1,6 @@
-#include "proj.h"
-
 #pragma once
+
+#include "proj.h"
 
 #define X_ROTATE_SENSITIVITY 0.001f
 #define Y_ROTATE_SENSITIVITY 0.001f

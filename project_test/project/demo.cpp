@@ -8,6 +8,8 @@
 StatusInfo status;
 Camera* camera = nullptr;
 
+Leaf* leaf = nullptr;
+
 
 glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -64,7 +66,7 @@ int main(int argc, char** argv) {
 	Scene scene(camera);
 
 	Axis* axis = new Axis();
-	Leaf *leaf = new Leaf(0.2f, 3.0f, 5, 30);
+	leaf = new Leaf(0.2f, 3.0f, 5, 30);
 
 	scene.bindShader(DefaultShader::getDefaultShader());	// °ó¶¨uniform buffer
 
@@ -79,7 +81,6 @@ int main(int argc, char** argv) {
 			t = 0.0f;
 			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
 		}
-
 
 		scene.render(axis);
 		scene.render(leaf);

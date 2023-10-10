@@ -1,11 +1,10 @@
 #include "proj.h"
-#include "Camera.hpp"
-
-//#include "Geometry.hpp"
+#include "interaction.h"
 
 extern StatusInfo status;
 extern Camera* camera;
 
+extern Leaf* leaf;
 
 void framebuff_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -64,10 +63,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		}
 		else {
 			// ¿ØÖÆÒ¶Æ¬ÖáÏòÅ¤Çú£¿
-			//if (leaf != nullptr) {
-			//	leaf->addTheta((float)dx);
-			//	leaf->addK((float)dy);
-			//}
+			if (leaf != nullptr) {
+				leaf->addTheta((float)dx / 400.0f);
+				leaf->addK((float)dy / 50.0f);
+			}
 		}
 	}
 }
