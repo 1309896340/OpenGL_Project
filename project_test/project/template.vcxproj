@@ -137,6 +137,14 @@
   <ItemGroup>
     <ClCompile Include="demo.cpp" />
     <ClCompile Include="glad\src\glad.c" />
+    <ClCompile Include="imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="imgui\backends\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="imgui\imgui.cpp" />
+    <ClCompile Include="imgui\imgui_demo.cpp" />
+    <ClCompile Include="imgui\imgui_draw.cpp" />
+    <ClCompile Include="imgui\imgui_tables.cpp" />
+    <ClCompile Include="imgui\imgui_widgets.cpp" />
+    <ClCompile Include="imgui\misc\cpp\imgui_stdlib.cpp" />
     <ClCompile Include="interaction.cpp" />
     <ClCompile Include="line.cpp" />
     <ClCompile Include="Shader.hpp" />
@@ -145,6 +153,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="Geometry.hpp" />
+    <ClInclude Include="GUI.hpp" />
     <ClInclude Include="interaction.h" />
     <ClInclude Include="line.h" />
     <ClInclude Include="proj.h" />

@@ -9,6 +9,10 @@
 #define Y_MOVE_SENSITIVITY 0.01f
 #define Z_MOVE_SENSITIVITY 0.01f
 
+glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
+glm::vec3 _front = glm::vec3(0.0f, 0.0f, -1.0f);			// 这里将z负方向作为front方向，所以涉及它的运算要采用左手坐标系，在做cross运算时需要特别注意
+
 class Camera {
 private:
 	glm::vec3 position;

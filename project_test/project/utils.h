@@ -1,4 +1,6 @@
 #include "proj.h"
+#include "interaction.h"
+
 
 std::string readSource(std::string filename);
 void loadShader(GLuint shader, std::string source);
@@ -9,3 +11,5 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& v);
 
 void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, GLuint* VAO, GLuint* VBO, GLsizei* length);
 void updateVertexPosition(GLuint VAO, GLuint VBO, std::vector<vec3> vertex);
+
+GLFWwindow* GLFWinit();
