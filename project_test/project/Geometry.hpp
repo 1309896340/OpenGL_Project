@@ -684,43 +684,83 @@ private:
 		// 生成叶片宽度关于长度的函数
 		return (-1.0f / powf(height, 2) * powf(h, 2) + 2 * theta / height * h + (1 - 2 * theta)) * width / powf(1 - theta, 2);
 	}
-	float veinFunc(float x) {
-		// 生成叶脉关于长度的函数
-		return -k * width / height * x * x + tanf(PI / 2.0f - SLAngle * PI / 180.0f) * x;
-	}
+	//float veinFunc(float x) {
+	//	// 生成叶脉关于长度的函数
+	//	return -k * width / height * x * x + tanf(PI / 2.0f - SLAngle * PI / 180.0f) * x;
+	//}
 public:
 
+	//void updateMesh() {		// 在scene的render(Leaf)中判断isChanged为true后调用此函数更新网格，后将isChanged置为false
+	//	int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
+	//	std::vector<vec3> vertex(hwNum1, { 0 });
+	//	float x, z, x_rt;
+	//	for (unsigned int i = 0; i <= hSliceNum; i++) {
+	//		x_rt = (float)i / hSliceNum;
+	//		x = x_rt * height;
+	//		// 关于主叶脉进行旋转。当前长度分位点为 x_rt，旋转角度为 MVAngle*x_rt，旋转对象为vertex[i * (wSliceNum + 1) + j]，j=0,1,...,wSliceNum
+	//		// 旋转轴向量为当前主叶脉的方向向量，旋转中心为当前主叶脉的起点。以此进行一个仿射变换，先平移，再旋转，再平移回来
+	//		float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);		// 准备好旋转矩阵
+	//		float tmp = 2.0f * a * x + b;
+	//		float frac = sqrtf(1.0f + tmp * tmp);
+	//		float c = 1.0f / frac, s = tmp / frac;
+	//		glm::vec3 offset = glm::vec3(x, veinFunc(x), 0.0f);
+	//		glm::vec3 axis = glm::vec3(c, s, 0.0f);
+	//		glm::mat4 trans(1.0f);
+	//		trans = glm::translate(trans, offset);
+	//		trans = glm::rotate(trans, glm::radians(MVAngle * x_rt), axis);
+	//		trans = glm::translate(trans, -offset);
+	//		// 根据 MVAngle 以主叶脉为轴，以叶长为参数旋转叶片
+	//		// MVAngle为叶片末端的旋转角度，叶身的旋转角度通过插值得到
+	//		for (unsigned int j = 0; j <= wSliceNum; j++) {
+	//			z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
+	//			vec4 tp = toVec(trans * glm::vec4(x, veinFunc(x), z, 1.0f));
+	//			vertex[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
+	//		}
+	//	}
+	//	updateVertexPosition(VAO, VBO[0], vertex);
+	//	isChanged = false;
+	//}
 	void updateMesh() {		// 在scene的render(Leaf)中判断isChanged为true后调用此函数更新网格，后将isChanged置为false
 		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
 		std::vector<vec3> vertex(hwNum1, { 0 });
 		float x, z, x_rt;
+
+		float x_accum = 0.0f, y_accum = 0.0f;
+		float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);
+		float ds = height / hSliceNum;
+		float tmp, frac, costheta, sintheta;
+		vec4 tp;
+		glm::vec3 offset, axis;
+		glm::mat4 trans(1.0f);
+
 		for (unsigned int i = 0; i <= hSliceNum; i++) {
 			x_rt = (float)i / hSliceNum;
 			x = x_rt * height;
-			// 关于主叶脉进行旋转。当前长度分位点为 x_rt，旋转角度为 MVAngle*x_rt，旋转对象为vertex[i * (wSliceNum + 1) + j]，j=0,1,...,wSliceNum
-			// 旋转轴向量为当前主叶脉的方向向量，旋转中心为当前主叶脉的起点。以此进行一个仿射变换，先平移，再旋转，再平移回来
-			float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);		// 准备好旋转矩阵
-			float tmp = 2.0f * a * x + b;
-			float frac = sqrtf(1.0f + tmp * tmp);
-			float c = 1.0f / frac, s = tmp / frac;
-			glm::vec3 offset = glm::vec3(x, veinFunc(x), 0.0f);
-			glm::vec3 axis = glm::vec3(c, s, 0.0f);
-			glm::mat4 trans(1.0f);
-			trans = glm::translate(trans, offset);
-			trans = glm::rotate(trans, glm::radians(MVAngle * x_rt), axis);
-			trans = glm::translate(trans, -offset);
-			// 根据 MVAngle 以主叶脉为轴，以叶长为参数旋转叶片
-			// MVAngle为叶片末端的旋转角度，叶身的旋转角度通过插值得到
 			for (unsigned int j = 0; j <= wSliceNum; j++) {
 				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
-				vec4 tp = toVec(trans * glm::vec4(x, veinFunc(x), z, 1.0f));
+				// 进行主叶脉旋转
+				tp = toVec(trans * glm::vec4(x_accum, y_accum, z, 1.0f));
 				vertex[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
 			}
+			// 计算x和y的新坐标
+			tmp = 2.0f * a * x + b;
+			frac = sqrtf(1.0f + tmp * tmp);
+			costheta = 1.0f / frac;
+			sintheta = tmp / frac;
+			x_accum += ds * costheta;
+			y_accum += ds * sintheta;
+			// 相同长度分位点、不同宽度分位点的节点，使用相同的旋转矩阵进行变换，不知道这里是否应该用compute shader实现更好
+			offset = glm::vec3(x_accum, y_accum, 0.0f);
+			axis = glm::vec3(costheta, sintheta, 0.0f);
+			trans = glm::translate(glm::mat4(1.0f), offset);
+			trans = glm::rotate(trans, glm::radians(MVAngle * x_rt), axis);
+			trans = glm::translate(trans, -offset);
 		}
 
 		updateVertexPosition(VAO, VBO[0], vertex);
 		isChanged = false;
 	}
+
 	Leaf(float width, float height, unsigned int wSliceNum, unsigned int hSliceNum) :
 		Geometry(), width(width), height(height), hSliceNum(hSliceNum), wSliceNum(wSliceNum), theta(0.35f) {
 
@@ -731,12 +771,17 @@ public:
 		std::vector<vec3> normal(hwNum1, { 0 });	// 没有生成法向量
 		std::vector<GLuint> index(hwNum1 * 6, 0);
 
-		float x, y;
+		float x, z;
+		float x_accum = 0.0f, y_accum = 0.0f;
+		float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);
+		float ds = height / hSliceNum;
+		float tmp, frac, costheta, sintheta;
+
 		for (unsigned int i = 0; i <= hSliceNum; i++) {
 			x = (float)i / hSliceNum * height;
 			for (unsigned int j = 0; j <= wSliceNum; j++) {
-				y = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
-				vertex[i * (wSliceNum + 1) + j] = { x,veinFunc(x),y };
+				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
+				vertex[i * (wSliceNum + 1) + j] = { x_accum,y_accum,z };
 				if (i < hSliceNum && j < wSliceNum) {
 					unsigned int* ptr = &index[(i * wSliceNum + j) * 6];
 					*ptr++ = i * (wSliceNum + 1) + j;
@@ -747,6 +792,13 @@ public:
 					*ptr++ = (i + 1) * (wSliceNum + 1) + j;
 				}
 			}
+			// 计算x和y的新坐标
+			tmp = 2.0f * a * x + b;
+			frac = sqrtf(1.0f + tmp * tmp);
+			costheta = 1.0f / frac;
+			sintheta = tmp / frac;
+			x_accum += ds * costheta;
+			y_accum += ds * sintheta;
 		}
 		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
