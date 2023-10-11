@@ -69,6 +69,14 @@ public:
 		front = glm::normalize(front);
 		updateLocalCoordiante();
 	}
+	void rotateByAxis(float dx, float dy, glm::vec3 axis = _up) {
+		// 默认以世界坐标y轴为旋转轴
+		glm::mat3 rotMat = glm::mat3(glm::rotate(glm::rotate(glm::mat4(1.0f), -dx * X_ROTATE_SENSITIVITY, axis), -dy * Y_ROTATE_SENSITIVITY, right));
+		position = rotMat * position;
+		front = rotMat * front;
+		updateAttitude();
+		updateLocalCoordiante();
+	}
 	void move(float dx, float dy, float dz = 0.0f) {	// // 控制相机旋转(更新相机位置) 
 		position += dx * X_MOVE_SENSITIVITY * right + dy * Y_MOVE_SENSITIVITY * up + dz * Z_MOVE_SENSITIVITY * front;
 	}

@@ -15,7 +15,7 @@ void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal
 
 	glGenBuffers(1, VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-	glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), vertex.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), vertex.data(), GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), NULL);
 	glEnableVertexAttribArray(0);
 
@@ -38,7 +38,8 @@ void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal
 void updateVertexPosition(GLuint VAO, GLuint VBO, std::vector<vec3> vertex) {
 	// 更新VBO[0]数据(顶点坐标)
 	glBindVertexArray(VAO);
-	glNamedBufferData(VBO, vertex.size() * sizeof(vec3), vertex.data(), GL_DYNAMIC_DRAW);
+	//glNamedBufferData(VBO, vertex.size() * sizeof(vec3), vertex.data(), GL_DYNAMIC_DRAW);
+	glNamedBufferSubData(VBO, NULL, vertex.size() * sizeof(vec3), vertex.data());
 	glBindVertexArray(0);
 }
 
