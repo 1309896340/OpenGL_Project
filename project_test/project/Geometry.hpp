@@ -675,7 +675,7 @@ private:
 	float width, height;
 	unsigned int wSliceNum, hSliceNum;
 
-	float k = 4.4f, SLAngle = 30.0f, theta = 0.2f;				// k为叶片弯曲程度，SLAngle为叶片弯曲角度，theta为叶宽因子
+	float k = 4.4f, SLAngle = 30.0f, MVAngle = 0.0f, theta = 0.2f;				// k为叶片弯曲程度，SLAngle为叶片弯曲角度，theta为叶宽因子
 	bool isChanged = false;												// 标记叶片网格是否被改变
 
 	const unsigned int u_degree = 3, v_degree = 2;		// u为长度分割，v为宽度分割
@@ -693,20 +693,38 @@ public:
 	void updateMesh() {		// 在scene的render(Leaf)中判断isChanged为true后调用此函数更新网格，后将isChanged置为false
 		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
 		std::vector<vec3> vertex(hwNum1, { 0 });
-		float x, y;
+		float x, z, x_rt;
 		for (unsigned int i = 0; i <= hSliceNum; i++) {
-			x = (float)i / hSliceNum * height;
+			x_rt = (float)i / hSliceNum;
+			x = x_rt * height;
+			// 关于主叶脉进行旋转。当前长度分位点为 x_rt，旋转角度为 MVAngle*x_rt，旋转对象为vertex[i * (wSliceNum + 1) + j]，j=0,1,...,wSliceNum
+			// 旋转轴向量为当前主叶脉的方向向量，旋转中心为当前主叶脉的起点。以此进行一个仿射变换，先平移，再旋转，再平移回来
+			float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);		// 准备好旋转矩阵
+			float tmp = 2.0f * a * x + b;
+			float frac = sqrtf(1.0f + tmp * tmp);
+			float c = 1.0f / frac, s = tmp / frac;
+			glm::vec3 offset = glm::vec3(x, veinFunc(x), 0.0f);
+			glm::vec3 axis = glm::vec3(c, s, 0.0f);
+			glm::mat4 trans(1.0f);
+			trans = glm::translate(trans, offset);
+			trans = glm::rotate(trans, glm::radians(MVAngle * x_rt), axis);
+			trans = glm::translate(trans, -offset);
+			// 根据 MVAngle 以主叶脉为轴，以叶长为参数旋转叶片
+			// MVAngle为叶片末端的旋转角度，叶身的旋转角度通过插值得到
 			for (unsigned int j = 0; j <= wSliceNum; j++) {
-				y = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
-				vertex[i * (wSliceNum + 1) + j] = { x,veinFunc(x),y };
+				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
+				vec4 tp = toVec(trans * glm::vec4(x, veinFunc(x), z, 1.0f));
+				vertex[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
 			}
 		}
+
 		updateVertexPosition(VAO, VBO[0], vertex);
 		isChanged = false;
 	}
 	Leaf(float width, float height, unsigned int wSliceNum, unsigned int hSliceNum) :
-		Geometry(), width(width), height(height), wSliceNum(wSliceNum), hSliceNum(hSliceNum), theta(0.35f) {
-		// 先不使用NURBS曲面，直接连线
+		Geometry(), width(width), height(height), hSliceNum(hSliceNum), wSliceNum(wSliceNum), theta(0.35f) {
+
+		// 不使用NURBS曲面，直接连线
 		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
 
 		std::vector<vec3> vertex(hwNum1, { 0 });
@@ -773,6 +791,10 @@ public:
 		else if (SLAngle < 0.1f) {
 			SLAngle = 0.1f;
 		}
+		isChanged = true;
+	}
+	void setMVAngle(float angle) {
+		this->MVAngle = angle;
 		isChanged = true;
 	}
 	bool isChangedMesh() {

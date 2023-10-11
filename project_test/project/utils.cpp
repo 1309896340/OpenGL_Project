@@ -125,3 +125,18 @@ GLFWwindow* GLFWinit() {
 	return window;
 }
 
+
+glm::vec3 toGlm(const vec3& v) {
+	return glm::vec3(v.x, v.y, v.z);
+}
+
+glm::vec4 toGlm(const vec4& v) {
+	return glm::vec4(v.x, v.y, v.z, v.w);
+}
+
+vec3 toVec(const glm::vec3& v) {
+	return { v.x, v.y, v.z };
+}
+vec4 toVec(const glm::vec4& v) {
+	return { v.x, v.y, v.z ,v.w };
+}

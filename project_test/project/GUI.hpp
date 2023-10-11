@@ -63,6 +63,9 @@ public:
 		if (ImGui::SliderFloat(u8"ÍäÇúÏµÊý", &status.leafstatus.k, 0.0f, 30.0f)) {
 			leaf->setK(status.leafstatus.k);
 		}
+		if (ImGui::SliderFloat(u8"Ö÷Ò¶ÂöÅ¤Çú½Ç", &status.leafstatus.MVAngle, -360.0f, 360.0f)) {
+			leaf->setMVAngle(status.leafstatus.MVAngle);
+		}
 		ImGui::End();
 	}
 	void render() {

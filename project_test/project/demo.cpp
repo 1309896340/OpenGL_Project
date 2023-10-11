@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
 	float deltaTime;
 
-	camera = new Camera(glm::vec3(-0.4f, 0.8f, 3.0f), glm::vec3(0.4f, 0.5f, 0.0f));
+	camera = new Camera(glm::vec3(-0.4f, 1.8f, 7.0f), glm::vec3(0.4f, 0.5f, 0.0f));
 	Scene scene(camera);
 
 	Axis* axis = new Axis();

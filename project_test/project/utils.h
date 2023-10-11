@@ -15,6 +15,12 @@ void updateVertexPosition(GLuint VAO, GLuint VBO, std::vector<vec3> vertex);
 
 GLFWwindow* GLFWinit();
 
+glm::vec3 toGlm(const vec3& v);
+glm::vec4 toGlm(const vec4& v);
+
+vec3 toVec(const glm::vec3& v);
+vec4 toVec(const glm::vec4& v);
+
 extern void framebuff_size_callback(GLFWwindow* window, int width, int height);
 extern void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods);
 extern void mouse_callback(GLFWwindow* window, double xpos, double ypos);
