@@ -27,7 +27,19 @@ int main(int argc, char** argv) {
 	Scene scene(camera);
 
 	Axis* axis = new Axis();
+
+	Geometry* stalk = new Cylinder(0.1f, 1.0f);
 	leaf = new Leaf(0.2f, 3.0f, 5, 30);
+
+	stalk->rotate(glm::radians(-90.0f), _right);
+	stalk->translate(glm::vec3(0.0f, 0.5f, 0.0f));
+	stalk->applyTransform();
+
+	leaf->translateTo(glm::vec3(0.1f, 0.95f, 0.0f));
+
+	Combination* com = new Combination();
+	com->add(leaf);
+	com->add(stalk);
 
 	scene.bindShader(DefaultShader::getDefaultShader());	// °ó¶¨uniform buffer
 
@@ -46,7 +58,8 @@ int main(int argc, char** argv) {
 		}
 
 		scene.render(axis);
-		scene.render(leaf);
+		//scene.render(leaf);
+		scene.render(com);
 
 		gui.render();
 

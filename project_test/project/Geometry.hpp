@@ -444,8 +444,8 @@ public:
 class Combination : public Geometry {
 	// Combination类用于组合多个Geometry对象，其继承自Geometry类，重载translate、rotate、scale、draw等方法
 private:
-	std::vector<Geometry*> objs;
-	std::vector<glm::mat4> objModel;
+	std::vector<Geometry*> children;
+	std::vector<glm::mat4> childModel;
 public:
 	// Combination应当禁用自己的shader，而是使用objs中各个obj自己的shader
 	// VAO和VAO_length也应当使用obj自身的
@@ -453,9 +453,15 @@ public:
 	void add(Geometry* obj) {
 		// Combination默认的中心在原点处
 		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
-		objs.push_back(obj);
-		objModel.push_back(obj->transform.getMatrix());
+		children.push_back(obj);
+		childModel.push_back(obj->transform.getMatrix());
 		obj->resetTransform();
+	}
+	std::vector<Geometry *> &getChildren() {
+		return children;
+	}
+	glm::mat4 &getChildModel(int i) {
+		return childModel[i];
 	}
 
 	//virtual void draw() {

@@ -131,6 +131,22 @@ public:
 			obj->updateMesh();
 		render(dynamic_cast<Geometry*>(obj));
 	}
+
+	void render(Combination* obj) {
+		std::vector<Geometry*> children = obj->getChildren();
+		for (int i = 0; i < children.size(); i++) {
+			// 此时，child是一个Geometry*  （暂时不考虑child可能是Combination*的情况）
+			// child的modelBuffer需要被考虑，其model在加入Combination时被复位
+			// Combination自身的model和modelBuffer需要被考虑，其childModel在加入Combination时被置为对应child的model
+			shader->use();
+			(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
+			(*shader)["model"] = (obj->transform.getMatrix()) * obj->getChildModel(i) * (children[i]->transform.getMatrix()) * (children[i]->getModelBufferMatrix());
+			shader->loadAttribute(children[i]->getAttribute());
+			glBindVertexArray(children[i]->getVAO());
+			glDrawElements(GL_TRIANGLES, children[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
+		}
+	}
 };
 
 #endif
