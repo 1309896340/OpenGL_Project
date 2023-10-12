@@ -116,7 +116,7 @@ public:
 	DefaultShader& operator=(DefaultShader&) = delete;
 	~DefaultShader() = default;
 
-	static DefaultShader *getDefaultShader() {
+	static DefaultShader* getDefaultShader() {
 		static DefaultShader* shader = nullptr;
 		if (shader == nullptr) {
 			shader = new DefaultShader();
@@ -131,5 +131,43 @@ public:
 	}
 };
 
+
+class ComputeShader {
+private:
+	GLuint ID;
+public:
+	ComputeShader() :ID(glCreateProgram()) {}
+	ComputeShader(std::string csource) :ID(glCreateProgram()) {
+		GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+		const char* sourcePtr = csource.c_str();
+		glShaderSource(shader, 1, &sourcePtr, NULL);
+		glCompileShader(shader);
+		// 检查
+		GLint success;
+		GLchar infoLog[512];
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+		if (!success) {
+			GLint length;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+			glGetShaderInfoLog(shader, length * sizeof(GLchar), NULL, infoLog);
+			std::cout << "计算着色器编译失败！\n" << infoLog << std::endl;			// 调试输出
+			exit(4);
+		}
+		glAttachShader(ID, shader);
+		glLinkProgram(ID);
+		glGetProgramiv(ID, GL_LINK_STATUS, &success);
+		if (success != GL_TRUE) {
+			char info[512];
+			GLsizei length;
+			glGetProgramInfoLog(ID, 512, &length, info);
+			std::cout << "计算着色器program链接失败！\n" << info << std::endl;
+			exit(5);
+		}
+	}
+	~ComputeShader() {
+		glDeleteProgram(ID);
+	}
+
+};
 
 #endif
