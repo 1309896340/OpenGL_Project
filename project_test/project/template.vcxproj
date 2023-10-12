@@ -161,6 +161,7 @@
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shader.fcs" />
     <None Include="shader\lightShader.gfs" />
     <None Include="shader\lightShader.gvs" />
     <None Include="shader\nshader.gfs" />

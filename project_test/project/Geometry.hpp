@@ -705,7 +705,7 @@ public:
 			x = x_rt * height;
 			for (unsigned int j = 0; j <= wSliceNum; j++) {
 				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
-				// 进行主叶脉旋转
+				// 进行主脉旋转
 				tp = toVec(trans * glm::vec4(x_accum, y_accum, z, 1.0f));
 				vertex[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
 			}
@@ -748,7 +748,7 @@ public:
 			x = (float)i / hSliceNum * height;
 			for (unsigned int j = 0; j <= wSliceNum; j++) {
 				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
-				vertex[i * (wSliceNum + 1) + j] = { x_accum,y_accum,z };
+				vertex[i * (wSliceNum + 1) + j] = { x_accum, y_accum, z };
 				if (i < hSliceNum && j < wSliceNum) {
 					unsigned int* ptr = &index[(i * wSliceNum + j) * 6];
 					*ptr++ = i * (wSliceNum + 1) + j;

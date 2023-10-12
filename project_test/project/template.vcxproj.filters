@@ -118,5 +118,8 @@
     <None Include="shader\shader.gvs">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="shader.fcs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
