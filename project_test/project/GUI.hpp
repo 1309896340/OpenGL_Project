@@ -53,17 +53,17 @@ public:
 		
 		bool isChanged = false;
 
-		ImGui::Begin(u8"½»»¥´°¿Ú");
-		if (ImGui::SliderFloat(u8"Ò¶¿íÒò×Ó", &status.leafstatus.theta, 0.0f, 0.5f)) {
+		ImGui::Begin("½»»¥´°¿Ú");
+		if (ImGui::SliderFloat("Ò¶¿íÒò×Ó", &status.leafstatus.theta, 0.0f, 0.5f)) {
 			leaf->setTheta(status.leafstatus.theta);
 		}
-		if (ImGui::SliderFloat(u8"¾¥Ò¶¼Ð½Ç", &status.leafstatus.SLAngle, 0.1f, 120.0f)) {
+		if (ImGui::SliderFloat("¾¥Ò¶¼Ð½Ç", &status.leafstatus.SLAngle, 0.1f, 120.0f)) {
 			leaf->setSLAngle(status.leafstatus.SLAngle);
 		}
-		if (ImGui::SliderFloat(u8"ÍäÇúÏµÊý", &status.leafstatus.k, 0.0f, 30.0f)) {
+		if (ImGui::SliderFloat("ÍäÇúÏµÊý", &status.leafstatus.k, 0.0f, 30.0f)) {
 			leaf->setK(status.leafstatus.k);
 		}
-		if (ImGui::SliderFloat(u8"Ö÷Ò¶ÂöÅ¤Çú½Ç", &status.leafstatus.MVAngle, -360.0f, 360.0f)) {
+		if (ImGui::SliderFloat("Ö÷Ò¶ÂöÅ¤Çú½Ç", &status.leafstatus.MVAngle, -360.0f, 360.0f)) {
 			leaf->setMVAngle(status.leafstatus.MVAngle);
 		}
 		ImGui::End();
