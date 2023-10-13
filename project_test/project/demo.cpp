@@ -23,12 +23,12 @@ int main(int argc, char** argv) {
 
 	float deltaTime;
 
-	camera = new Camera(glm::vec3(-0.4f, 1.8f, 7.0f), glm::vec3(0.4f, 0.5f, 0.0f));
+	//camera = new Camera(glm::vec3(-0.4f, 1.8f, 7.0f), glm::vec3(0.4f, 0.5f, 0.0f));
+	camera = new Camera(glm::vec3(-0.4f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 	Scene scene(camera);
 
-	//Axis* axis = new Axis();
+	Axis* axis = new Axis();
 
-	Geometry* stalk = new Cylinder(0.1f, 1.0f);
 	//leaf = new Leaf(0.2f, 3.0f, 5, 30);
 	//leaf->translateTo(glm::vec3(0.1f, 0.95f, 0.0f));
 
@@ -50,10 +50,9 @@ int main(int argc, char** argv) {
 			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
 		}
 
-		//scene.render(axis);
+		scene.render(axis);
 		//scene.render(leaf);
 		//scene.render(com);
-		scene.render(stalk);
 
 		gui.render();
 

@@ -69,20 +69,17 @@ public:
 		glGenBuffers(3, VBO);
 
 		glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-		glBufferData(GL_ARRAY_BUFFER, getVertexSize() * sizeof(vec3), nullptr, GL_DYNAMIC_DRAW);		// 只分配空间，不填充数据
+		glBufferData(GL_ARRAY_BUFFER, getVertexSize() * sizeof(vec3), nullptr, GL_DYNAMIC_DRAW);		// position
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
 		glEnableVertexAttribArray(0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-		glBufferData(GL_ARRAY_BUFFER, getVertexSize() * sizeof(vec3), nullptr, GL_DYNAMIC_DRAW);		// 只分配空间，不填充数据
+		glBufferData(GL_ARRAY_BUFFER, getVertexSize() * sizeof(vec3), nullptr, GL_DYNAMIC_DRAW);		// normal
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
 		glEnableVertexAttribArray(1);
 
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[2]);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, getIndexSize() * sizeof(GLuint), nullptr, GL_STATIC_DRAW);		// 只分配空间，不填充数据
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, getIndexSize() * sizeof(GLuint), nullptr, GL_STATIC_DRAW);		// index
 
 		glBindVertexArray(0);
 	}
@@ -93,8 +90,8 @@ public:
 	void connect() {
 		// 默认以行优先连接（指第1行连完后开始第2行）
 		GLuint* ptr;
-		glBindVertexArray(VAO);
 		GLuint* index_ptr = (GLuint*)glMapNamedBuffer(VBO[2], GL_WRITE_ONLY);
+		assert(index_ptr);
 		for (unsigned int i = 0; i < uSize - 1; i++) {
 			for (unsigned int j = 0; j < vSize - 1; j++) {
 				ptr = index_ptr + (i * (vSize - 1) + j) * 6;	// 采用逆时针绕行
@@ -107,35 +104,33 @@ public:
 			}
 		}
 		glUnmapNamedBuffer(VBO[2]);
-		glBindVertexArray(0);
 	}
 	void updateVertexPositionByFunc(std::function<vec3(unsigned int, unsigned int)> func) {
-		glBindVertexArray(VAO);
 		vec3* vbo_ptr = (vec3*)glMapNamedBuffer(VBO[0], GL_WRITE_ONLY);
+		assert(vbo_ptr);
 		for (unsigned int i = 0; i < uSize; i++) {
 			for (unsigned int j = 0; j < vSize; j++) {
 				vbo_ptr[i * vSize + j] = func(i, j);
 			}
 		}
 		glUnmapNamedBuffer(VBO[0]);
-		glBindVertexArray(0);
 	}
 	void updateVertexNormalByFunc(std::function<vec3(unsigned int, unsigned int)> func) {
-		glBindVertexArray(VAO);
 		vec3* normal_ptr = (vec3*)glMapNamedBuffer(VBO[1], GL_WRITE_ONLY);
+		assert(normal_ptr);
 		for (unsigned int i = 0; i < uSize; i++) {
 			for (unsigned int j = 0; j < vSize; j++) {
 				normal_ptr[i * vSize + j] = func(i, j);
 			}
 		}
 		glUnmapNamedBuffer(VBO[1]);
-		glBindVertexArray(0);
 	}
 
 	void updateVertexNormalByFunc(std::function<vec3(float, float, float)> func) {
-		glBindVertexArray(VAO);
 		vec3* vbo_ptr = (vec3*)glMapNamedBuffer(VBO[0], GL_READ_ONLY);
 		vec3* normal_ptr = (vec3*)glMapNamedBuffer(VBO[1], GL_WRITE_ONLY);
+		assert(vbo_ptr);
+		assert(normal_ptr);
 		vec3 pos;
 		for (unsigned int i = 0; i < uSize; i++) {
 			for (unsigned int j = 0; j < vSize; j++) {
@@ -145,7 +140,6 @@ public:
 		}
 		glUnmapNamedBuffer(VBO[0]);
 		glUnmapNamedBuffer(VBO[1]);
-		glBindVertexArray(0);
 	}
 	GLuint getVAO() {
 		return VAO;
@@ -158,13 +152,12 @@ public:
 	}
 
 	virtual void draw() {
-		// 使用着色器，设置uniform变量
 		shader->use();
-		(*shader)["modelBuffer"] = glm::mat4(1.0f);			// 网格不进行model变换，使用局部坐标，同时保持默认渲染属性
+		(*shader)["modelBuffer"] = glm::mat4(1.0f);
 		(*shader)["model"] = glm::mat4(1.0f);
 		shader->loadAttribute({ true, glm::vec4(0.0f,0.0f,0.0f,0.0f) });
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, getIndexSize(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, getIndexSize(), GL_UNSIGNED_INT, 0);		//
 		glBindVertexArray(0);
 	}
 };
@@ -232,7 +225,7 @@ public:
 		(*shader)["modelBuffer"] = modelBuffer;
 		(*shader)["model"] = transform.getMatrix();
 		shader->loadAttribute(attribute);
-		for (auto &mesh : meshes) {
+		for (auto& mesh : meshes) {
 			glBindVertexArray(mesh->getVAO());
 			glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
@@ -270,22 +263,22 @@ public:
 
 		// 顶点位置
 		meshes[0]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
-			return vec3{ -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength };
+			return vec3{ -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength / 2 };
 			});
 		meshes[1]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
-			return vec3{ -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength };
+			return vec3{ -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength / 2 };
 			});
 		meshes[2]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
-			return vec3{ -xLength / 2 + i * dx, -yLength / 2 , -zLength + j * dz };
+			return vec3{ -xLength / 2 + i * dx, -yLength / 2 , -zLength / 2 + j * dz };
 			});
 		meshes[3]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
-			return vec3{ -xLength / 2 + i * dx, yLength / 2 , -zLength + j * dz };
+			return vec3{ -xLength / 2 + i * dx, yLength / 2 , -zLength / 2 + j * dz };
 			});
 		meshes[4]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
-			return vec3{ -xLength / 2 , yLength / 2 + i * dy , -zLength + j * dz };
+			return vec3{ -xLength / 2 , -yLength / 2 + i * dy , -zLength / 2 + j * dz };
 			});
 		meshes[5]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
-			return vec3{ xLength / 2 , yLength / 2 + i * dy , -zLength + j * dz };
+			return vec3{ xLength / 2 , -yLength / 2 + i * dy , -zLength / 2 + j * dz };
 			});
 
 		// 顶点法线
@@ -319,50 +312,20 @@ private:
 public:
 	Sphere(float radius, unsigned int lonSliceNum = 36, unsigned int latSliceNum = 20) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
 
-		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
+		float lonStep = 2 * PI / lonSliceNum;
 
 		meshes.push_back(new Mesh(latSliceNum + 1, lonSliceNum + 1));
 		meshes[0]->connect();
 		meshes[0]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
-			float lon = -PI + i * lonStep;
-			float lat = -PI / 2 + j * latStep;
+			float lat = -PI / 2 + i * latStep;
+			float lon = -PI + j * lonStep;
 			return vec3{ radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) };
 			});
 		meshes[0]->updateVertexNormalByFunc([=](float x, float y, float z) {
 			float norm = sqrtf(x * x + y * y + z * z);
 			return vec3{ x / norm,y / norm,z / norm };
 			});
-
-
-		//float lonStep = 2 * PI / lonSliceNum;
-		//float latStep = PI / latSliceNum;
-
-		//unsigned int lonlatNum = lonSliceNum * latSliceNum;
-		//unsigned int lonlatNum1 = (latSliceNum + 1) * (lonSliceNum + 1);
-
-		//std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
-		//std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
-		//std::vector<GLuint> index(lonlatNum * 6, 0);
-
-		//for (unsigned int i = 0; i <= lonSliceNum; i++) {
-		//	for (unsigned int j = 0; j <= latSliceNum; j++) {
-		//		float lon = -PI + i * lonStep;
-		//		float lat = -PI / 2 + j * latStep;
-		//		vertex[i * (latSliceNum + 1) + j] = { radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) };
-		//		normal[i * (latSliceNum + 1) + j] = { cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat) };
-		//		if (i < lonSliceNum && j < latSliceNum) {
-		//			unsigned int* ptr = &index[(i * latSliceNum + j) * 6];
-		//			*ptr++ = i * (latSliceNum + 1) + j;
-		//			*ptr++ = i * (latSliceNum + 1) + j + 1;
-		//			*ptr++ = (i + 1) * (latSliceNum + 1) + j + 1;
-		//			*ptr++ = i * (latSliceNum + 1) + j;
-		//			*ptr++ = (i + 1) * (latSliceNum + 1) + j + 1;
-		//			*ptr++ = (i + 1) * (latSliceNum + 1) + j;
-		//		}
-		//	}
-		//}
-		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 
@@ -389,13 +352,13 @@ public:
 
 		// 顶点位置
 		meshes[0]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {		// 下圆面
-			float lon_tmp = -PI + i * lonStep;
-			float r_tmp = j * rStep;
+			float r_tmp = i * rStep;
+			float lon_tmp = -PI + j * lonStep;
 			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
 			});
 		meshes[1]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {		// 上圆面
-			float lon_tmp = -PI + i * lonStep;
-			float r_tmp = j * rStep;
+			float r_tmp = i * rStep;
+			float lon_tmp = -PI + j * lonStep;
 			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
 			});
 		meshes[2]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {		// 侧面
@@ -415,65 +378,6 @@ public:
 			float norm = sqrtf(x * x + y * y);
 			return vec3{ x / norm,y / norm,0.0f };
 			});
-
-		//float rStep = radius / rSliceNum;
-		//float hStep = height / hSliceNum;
-		//float lonStep = 2 * PI / lonSliceNum;
-
-		//unsigned int rlonNum = rSliceNum * lonSliceNum;
-		//unsigned int hlonNum = hSliceNum * lonSliceNum;
-		//unsigned int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
-		//unsigned int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
-
-		//float lon_tmp, r_tmp, h_tmp;
-
-		//int baseVert = 0, baseIdx = 0;
-
-		//std::vector<vec3> vertex(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		//std::vector<vec3> normal(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		//std::vector<GLuint> index((2 * rlonNum + hlonNum) * 6, 0);
-
-		//for (unsigned int i = 0; i <= lonSliceNum; i++) {
-		//	for (unsigned int j = 0; j <= rSliceNum; j++) {
-		//		lon_tmp = -PI + i * lonStep;
-		//		r_tmp = j * rStep;
-		//		vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
-		//		vertex[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
-		//		normal[baseVert + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
-		//		normal[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,1.0f };
-		//		if (i < lonSliceNum && j < rSliceNum) {
-		//			for (int k = 0; k < 2; k++) {
-		//				unsigned int* ptr = &index[baseIdx + (k * rlonNum + i * rSliceNum + j) * 6];
-		//				*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j;
-		//				*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j + 1;
-		//				*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1;
-		//				*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j;
-		//				*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1;
-		//				*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j;
-		//			}
-		//		}
-		//	}
-		//}
-		//baseVert += 2 * rlonNum1;
-		//baseIdx += 2 * rlonNum * 6;
-		//for (unsigned int i = 0; i <= hSliceNum; i++) {
-		//	for (unsigned int j = 0; j <= lonSliceNum; j++) {
-		//		h_tmp = -height / 2 + i * hStep;
-		//		lon_tmp = -PI + j * lonStep;
-		//		vertex[baseVert + i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
-		//		normal[baseVert + i * (lonSliceNum + 1) + j] = { cos(lon_tmp), sin(lon_tmp), 0.0f };
-		//		if (i < hSliceNum && j < lonSliceNum) {
-		//			unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
-		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
-		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
-		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j;
-		//		}
-		//	}
-		//}
-		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 
@@ -499,15 +403,15 @@ public:
 
 		// 顶点位置
 		meshes[0]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {	// 下圆面
-			float lon_tmp = -PI + i * lonStep;
-			float r_tmp = j * rStep;
+			float r_tmp = i * rStep;
+			float lon_tmp = -PI + j * lonStep;
 			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
 			});
 		meshes[1]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {	// 侧斜面
 			float h_tmp = -height / 2 + i * hStep;
 			float lon_tmp = -PI + j * lonStep;
 			float r_tmp = radius * (1 - i * hStep / height);
-			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
 			});
 
 		// 顶点法线
@@ -520,115 +424,9 @@ public:
 			return vec3{ height * cos(lon_tmp) / tmp,height * sin(lon_tmp) / tmp, radius / tmp };
 			});
 
-		//float rStep = radius / rSliceNum;
-		//float hStep = height / hSliceNum;
-		//float lonStep = 2 * PI / lonSliceNum;
-
-		//unsigned int rlonNum = rSliceNum * lonSliceNum;
-		//unsigned int hlonNum = hSliceNum * lonSliceNum;
-		//unsigned int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
-		//unsigned int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
-
-		//float lon_tmp, r_tmp, h_tmp;
-
-		//int baseVert = 0, baseIdx = 0;
-
-		//std::vector<vec3> vertex(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		//std::vector<vec3> normal(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		//std::vector<GLuint> index((rlonNum + hlonNum) * 6, 0);
-
-		//for (unsigned int i = 0; i <= lonSliceNum; i++) {
-		//	for (unsigned int j = 0; j <= rSliceNum; j++) {
-		//		lon_tmp = -PI + i * lonStep;
-		//		r_tmp = j * rStep;
-		//		vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
-		//		normal[baseVert + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
-		//		if (i < lonSliceNum && j < rSliceNum) {
-		//			unsigned int* ptr = &index[baseIdx + (i * rSliceNum + j) * 6];
-		//			*ptr++ = baseVert + i * (rSliceNum + 1) + j;
-		//			*ptr++ = baseVert + i * (rSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + i * (rSliceNum + 1) + j;
-		//			*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j;
-		//		}
-		//	}
-		//}
-		//baseVert += rlonNum1;
-		//baseIdx += rlonNum * 6;
-		//for (unsigned int i = 0; i <= hSliceNum; i++) {
-		//	for (unsigned int j = 0; j <= lonSliceNum; j++) {
-		//		h_tmp = -height / 2 + i * hStep;
-		//		lon_tmp = -PI + j * lonStep;
-		//		r_tmp = radius * (1 - i * hStep / height);
-		//		vertex[baseVert + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
-		//		float tmp = sqrt(radius * radius + height * height);
-		//		normal[baseVert + i * (lonSliceNum + 1) + j] = { height * cos(lon_tmp) / tmp,height * sin(lon_tmp) / tmp, radius / tmp };
-		//		if (i < hSliceNum && j < lonSliceNum) {
-		//			unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
-		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
-		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
-		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
-		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j;
-		//		}
-		//	}
-		//}
-		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 };
 
-
-//typedef float (*zFunc)(float x, float y);
-//typedef vec3(*zGrad)(float x, float y, float z);
-//
-//class Surface : public Geometry {
-//private:
-//	int xSliceNum;
-//	int ySliceNum;
-//	float xStart, xEnd;
-//	float yStart, yEnd;
-//	zFunc func;
-//	zGrad grad;
-//public:
-//	Surface(float xStart, float xEnd, float yStart, float yEnd, zFunc func, zGrad grad, unsigned int xSliceNum, unsigned int ySliceNum) :
-//		Geometry(), xStart(xStart), xEnd(xEnd), yStart(yStart), yEnd(yEnd), func(func), grad(grad), xSliceNum(xSliceNum), ySliceNum(ySliceNum) {
-//		float dx = (xEnd - xStart) / xSliceNum;
-//		float dy = (yEnd - yStart) / ySliceNum;
-//		float x, y, z;
-//		vec3 _grad;
-//
-//		unsigned int lonlatNum = xSliceNum * ySliceNum;
-//		unsigned int lonlatNum1 = (xSliceNum + 1) * (ySliceNum + 1);
-//
-//		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
-//		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
-//		std::vector<GLuint> index(lonlatNum * 6, 0);
-//
-//		for (unsigned int i = 0; i <= xSliceNum; i++) {
-//			for (unsigned int j = 0; j <= ySliceNum; j++) {
-//				x = xStart + i * dx;
-//				y = yStart + j * dy;
-//				z = func(x, y);
-//				_grad = grad(x, y, z);
-//
-//				vertex[i * (ySliceNum + 1) + j] = { x,y,z };
-//				normal[i * (ySliceNum + 1) + j] = { _grad.x, _grad.y, _grad.z };
-//				if (i < xSliceNum && j < ySliceNum) {
-//					unsigned int* ptr = &index[(i * ySliceNum + j) * 6];
-//					*ptr++ = i * (ySliceNum + 1) + j;
-//					*ptr++ = i * (ySliceNum + 1) + j + 1;
-//					*ptr++ = (i + 1) * (ySliceNum + 1) + j + 1;
-//					*ptr++ = i * (ySliceNum + 1) + j;
-//					*ptr++ = (i + 1) * (ySliceNum + 1) + j + 1;
-//					*ptr++ = (i + 1) * (ySliceNum + 1) + j;
-//				}
-//			}
-//		}
-//		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
-//	}
-//};
 
 
 //class Combination : public Geometry {
