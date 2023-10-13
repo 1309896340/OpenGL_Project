@@ -26,22 +26,15 @@ int main(int argc, char** argv) {
 	camera = new Camera(glm::vec3(-0.4f, 1.8f, 7.0f), glm::vec3(0.4f, 0.5f, 0.0f));
 	Scene scene(camera);
 
-	Axis* axis = new Axis();
+	//Axis* axis = new Axis();
 
 	Geometry* stalk = new Cylinder(0.1f, 1.0f);
-	leaf = new Leaf(0.2f, 3.0f, 5, 30);
+	//leaf = new Leaf(0.2f, 3.0f, 5, 30);
+	//leaf->translateTo(glm::vec3(0.1f, 0.95f, 0.0f));
 
-	stalk->rotate(glm::radians(-90.0f), _right);
-	stalk->translate(glm::vec3(0.0f, 0.5f, 0.0f));
-	stalk->applyTransform();
-
-	leaf->translateTo(glm::vec3(0.1f, 0.95f, 0.0f));
-
-	Combination* com = new Combination();
-	com->add(leaf);
-	com->add(stalk);
-
-	scene.bindShader(DefaultShader::getDefaultShader());	// °ó¶¨uniform buffer
+	//Combination* com = new Combination();
+	//com->add(leaf);
+	//com->add(stalk);
 
 	float t = 0.0f;
 	while (!glfwWindowShouldClose(window)) {
@@ -57,9 +50,10 @@ int main(int argc, char** argv) {
 			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
 		}
 
-		scene.render(axis);
+		//scene.render(axis);
 		//scene.render(leaf);
-		scene.render(com);
+		//scene.render(com);
+		scene.render(stalk);
 
 		gui.render();
 

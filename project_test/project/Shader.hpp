@@ -91,7 +91,7 @@ public:
 		}
 	}
 	ShaderUniform operator[](const std::string& name) {
-		this->use();
+		//this->use();
 		ShaderUniform su(glGetUniformLocation(ID, name.c_str()));
 		return su;
 	}

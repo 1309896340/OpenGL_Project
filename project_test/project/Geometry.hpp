@@ -46,14 +46,23 @@ public:
 	}
 };
 
-class Mesh {
+class Drawable {
+public:
+	virtual void draw() = 0;
+};
+
+class Mesh : public Drawable {
 	// 通过内存映射直接操作VBO和EBO
 private:
 	unsigned int uSize{ 0 }, vSize{ 0 };		// u为第几行，v为第几列
 	GLuint VAO{ 0 }, VBO[3]{ 0,0,0 };
 
+	Shader* shader{ nullptr };
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
+		if (!shader)
+			shader = DefaultShader::getDefaultShader();
+
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
 
@@ -112,7 +121,19 @@ public:
 		glUnmapNamedBuffer(VBO[0]);
 		glBindVertexArray(0);
 	}
-	void updateVertexNormalByFunc(std::function<vec3(float x, float y, float z)> func) {
+	void updateVertexNormalByFunc(std::function<vec3(unsigned int, unsigned int)> func) {
+		glBindVertexArray(VAO);
+		vec3* normal_ptr = (vec3*)glMapNamedBuffer(VBO[1], GL_WRITE_ONLY);
+		for (unsigned int i = 0; i < uSize; i++) {
+			for (unsigned int j = 0; j < vSize; j++) {
+				normal_ptr[i * vSize + j] = func(i, j);
+			}
+		}
+		glUnmapNamedBuffer(VBO[0]);
+		glBindVertexArray(0);
+	}
+
+	void updateVertexNormalByFunc(std::function<vec3(float, float, float)> func) {
 		glBindVertexArray(VAO);
 		vec3* vbo_ptr = (vec3*)glMapNamedBuffer(VBO[0], GL_READ_ONLY);
 		vec3* normal_ptr = (vec3*)glMapNamedBuffer(VBO[1], GL_WRITE_ONLY);
@@ -136,13 +157,28 @@ public:
 	unsigned int getIndexSize() {
 		return (uSize - 1) * (vSize - 1) * 6;
 	}
+
+	virtual void draw() {
+		// 使用着色器，设置uniform变量
+		shader->use();
+		(*shader)["modelBuffer"] = glm::mat4(1.0f);			// 网格不进行model变换，使用局部坐标，同时保持默认渲染属性
+		(*shader)["model"] = glm::mat4(1.0f);
+		shader->loadAttribute({ true, glm::vec4(0.0f,0.0f,0.0f,0.0f) });
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, getIndexSize(), GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+	}
 };
 
-class Geometry {
+
+class Geometry : public Drawable {
+	// Geometry没有生成网格，但已经实现了draw()，直接调用会报错
+	// 网格在子类构造函数中生成
 private:
 protected:
 	glm::mat4 modelBuffer{ glm::mat4(1.0f) };		// 用于进行一个预变换
 	Mesh* mesh{ nullptr };
+	Shader* shader{ nullptr };
 public:
 	Transform transform;
 	uniformTable attribute;
@@ -151,7 +187,13 @@ public:
 
 	~Geometry() {
 		delete mesh;
-		*mesh = nullptr;
+		mesh = nullptr;
+	}
+
+	virtual void pose() {
+		// 设置一个默认的姿态，可以在子类中是实现不同的姿态
+		transform.rotate(glm::radians(-90.0f), _right);
+		applyTransform();
 	}
 
 	// 预变换相关
@@ -183,8 +225,15 @@ public:
 		transform.reset();
 	}
 
-	uniformTable& getAttribute() {
-		return attribute;
+	virtual void draw() {
+		// 使用着色器，设置uniform变量
+		shader->use();
+		(*shader)["modelBuffer"] = modelBuffer;
+		(*shader)["model"] = transform.getMatrix();
+		shader->loadAttribute(attribute);
+		glBindVertexArray(mesh->getVAO());
+		glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
 	}
 };
 
@@ -196,6 +245,8 @@ public:
 	Cube(float xLength, float yLength, float zLength, int xSliceNum = 10, int ySliceNum = 10, int zSliceNum = 10) :
 		Geometry(), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
 		xLength(xLength), yLength(yLength), zLength(zLength) {
+		if (!shader)
+			shader = DefaultShader::getDefaultShader();
 
 		float dx, dy, dz;
 		dx = xLength / xSliceNum;
@@ -203,12 +254,12 @@ public:
 		dz = zLength / zSliceNum;
 
 		// 立方体存在6个面，因此有6个Mesh实例
-		mesh = new Mesh[6]{ {xLength,yLength}, {xLength,yLength}, {xLength,zLength}, {xLength,zLength}, {yLength,zLength}, {yLength,zLength} };
+		mesh = new Mesh[6]{ {xSliceNum + 1,ySliceNum + 1}, {xSliceNum + 1,ySliceNum + 1}, {xSliceNum + 1,zSliceNum + 1}, {xSliceNum + 1,zSliceNum + 1}, {ySliceNum + 1,zSliceNum + 1}, {ySliceNum + 1,zSliceNum + 1} };
 
 		// 顶点索引
-		for (unsigned int i = 0; i < 6; i++) 
+		for (unsigned int i = 0; i < 6; i++)
 			mesh[i].connect();
-		
+
 		// 顶点位置
 		mesh[0].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
 			return vec3{ -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength };
@@ -249,6 +300,9 @@ public:
 			return vec3{ 1.0f, 0.0f, 0.0f };
 			});
 	}
+	~Cube() {
+		delete [] mesh;
+	}
 };
 
 class Sphere : public Geometry {
@@ -259,34 +313,54 @@ private:
 
 public:
 	Sphere(float radius, unsigned int lonSliceNum = 36, unsigned int latSliceNum = 20) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
+
 		float lonStep = 2 * PI / lonSliceNum;
 		float latStep = PI / latSliceNum;
 
-		unsigned int lonlatNum = lonSliceNum * latSliceNum;
-		unsigned int lonlatNum1 = (latSliceNum + 1) * (lonSliceNum + 1);
+		mesh = new Mesh(latSliceNum + 1, lonSliceNum + 1);
+		mesh->connect();
+		mesh->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
+			float lon = -PI + i * lonStep;
+			float lat = -PI / 2 + j * latStep;
+			return vec3{ radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) };
+			});
+		mesh->updateVertexNormalByFunc([=](float x, float y, float z) {
+			float norm = sqrtf(x * x + y * y + z * z);
+			return vec3{ x / norm,y / norm,z / norm };
+			});
 
-		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
-		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
-		std::vector<GLuint> index(lonlatNum * 6, 0);
 
-		for (unsigned int i = 0; i <= lonSliceNum; i++) {
-			for (unsigned int j = 0; j <= latSliceNum; j++) {
-				float lon = -PI + i * lonStep;
-				float lat = -PI / 2 + j * latStep;
-				vertex[i * (latSliceNum + 1) + j] = { radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) };
-				normal[i * (latSliceNum + 1) + j] = { cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat) };
-				if (i < lonSliceNum && j < latSliceNum) {
-					unsigned int* ptr = &index[(i * latSliceNum + j) * 6];
-					*ptr++ = i * (latSliceNum + 1) + j;
-					*ptr++ = i * (latSliceNum + 1) + j + 1;
-					*ptr++ = (i + 1) * (latSliceNum + 1) + j + 1;
-					*ptr++ = i * (latSliceNum + 1) + j;
-					*ptr++ = (i + 1) * (latSliceNum + 1) + j + 1;
-					*ptr++ = (i + 1) * (latSliceNum + 1) + j;
-				}
-			}
-		}
-		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+		//float lonStep = 2 * PI / lonSliceNum;
+		//float latStep = PI / latSliceNum;
+
+		//unsigned int lonlatNum = lonSliceNum * latSliceNum;
+		//unsigned int lonlatNum1 = (latSliceNum + 1) * (lonSliceNum + 1);
+
+		//std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
+		//std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
+		//std::vector<GLuint> index(lonlatNum * 6, 0);
+
+		//for (unsigned int i = 0; i <= lonSliceNum; i++) {
+		//	for (unsigned int j = 0; j <= latSliceNum; j++) {
+		//		float lon = -PI + i * lonStep;
+		//		float lat = -PI / 2 + j * latStep;
+		//		vertex[i * (latSliceNum + 1) + j] = { radius * cos(lat) * cos(lon), radius * cos(lat) * sin(lon), radius * sin(lat) };
+		//		normal[i * (latSliceNum + 1) + j] = { cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat) };
+		//		if (i < lonSliceNum && j < latSliceNum) {
+		//			unsigned int* ptr = &index[(i * latSliceNum + j) * 6];
+		//			*ptr++ = i * (latSliceNum + 1) + j;
+		//			*ptr++ = i * (latSliceNum + 1) + j + 1;
+		//			*ptr++ = (i + 1) * (latSliceNum + 1) + j + 1;
+		//			*ptr++ = i * (latSliceNum + 1) + j;
+		//			*ptr++ = (i + 1) * (latSliceNum + 1) + j + 1;
+		//			*ptr++ = (i + 1) * (latSliceNum + 1) + j;
+		//		}
+		//	}
+		//}
+		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+	}
+	~Sphere() {
+		delete [] mesh;
 	}
 };
 
@@ -299,64 +373,106 @@ private:
 	int lonSliceNum;
 public:
 	Cylinder(float radius, float height, unsigned int rSliceNum = 10, unsigned int hSliceNum = 20, unsigned int lonSliceNum = 36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
 
-		unsigned int rlonNum = rSliceNum * lonSliceNum;
-		unsigned int hlonNum = hSliceNum * lonSliceNum;
-		unsigned int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
-		unsigned int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
+		mesh = new Mesh[3]{ {rSliceNum + 1,lonSliceNum + 1},{rSliceNum + 1,lonSliceNum + 1},{hSliceNum + 1,lonSliceNum + 1} };
 
-		float lon_tmp, r_tmp, h_tmp;
+		for (unsigned int i = 0; i < 3; i++)
+			mesh[i].connect();
 
-		int baseVert = 0, baseIdx = 0;
+		// 顶点位置
+		mesh[0].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {		// 下圆面
+			float lon_tmp = -PI + i * lonStep;
+			float r_tmp = j * rStep;
+			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+			});
+		mesh[1].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {		// 上圆面
+			float lon_tmp = -PI + i * lonStep;
+			float r_tmp = j * rStep;
+			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
+			});
+		mesh[2].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {		// 侧面
+			float h_tmp = -height / 2 + i * hStep;
+			float lon_tmp = -PI + j * lonStep;
+			return vec3{ radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
+			});
 
-		std::vector<vec3> vertex(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		std::vector<vec3> normal(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		std::vector<GLuint> index((2 * rlonNum + hlonNum) * 6, 0);
+		// 顶点法线
+		mesh[0].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ 0.0f,-1.0f,0.0f };
+			});
+		mesh[1].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ 0.0f,1.0f,0.0f };
+			});
+		mesh[2].updateVertexNormalByFunc([=](float x, float y, float z) {
+			float norm = sqrtf(x * x + y * y);
+			return vec3{ x / norm,y / norm,0.0f };
+			});
 
-		for (unsigned int i = 0; i <= lonSliceNum; i++) {
-			for (unsigned int j = 0; j <= rSliceNum; j++) {
-				lon_tmp = -PI + i * lonStep;
-				r_tmp = j * rStep;
-				vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
-				vertex[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
-				normal[baseVert + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
-				normal[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,1.0f };
-				if (i < lonSliceNum && j < rSliceNum) {
-					for (int k = 0; k < 2; k++) {
-						unsigned int* ptr = &index[baseIdx + (k * rlonNum + i * rSliceNum + j) * 6];
-						*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j;
-						*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j;
-						*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j;
-					}
-				}
-			}
-		}
-		baseVert += 2 * rlonNum1;
-		baseIdx += 2 * rlonNum * 6;
-		for (unsigned int i = 0; i <= hSliceNum; i++) {
-			for (unsigned int j = 0; j <= lonSliceNum; j++) {
-				h_tmp = -height / 2 + i * hStep;
-				lon_tmp = -PI + j * lonStep;
-				vertex[baseVert + i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
-				normal[baseVert + i * (lonSliceNum + 1) + j] = { cos(lon_tmp), sin(lon_tmp), 0.0f };
-				if (i < hSliceNum && j < lonSliceNum) {
-					unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
-					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
-					*ptr++ = baseVert + i * (lonSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
-					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j;
-				}
-			}
-		}
-		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+		//float rStep = radius / rSliceNum;
+		//float hStep = height / hSliceNum;
+		//float lonStep = 2 * PI / lonSliceNum;
+
+		//unsigned int rlonNum = rSliceNum * lonSliceNum;
+		//unsigned int hlonNum = hSliceNum * lonSliceNum;
+		//unsigned int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
+		//unsigned int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
+
+		//float lon_tmp, r_tmp, h_tmp;
+
+		//int baseVert = 0, baseIdx = 0;
+
+		//std::vector<vec3> vertex(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		//std::vector<vec3> normal(2 * rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		//std::vector<GLuint> index((2 * rlonNum + hlonNum) * 6, 0);
+
+		//for (unsigned int i = 0; i <= lonSliceNum; i++) {
+		//	for (unsigned int j = 0; j <= rSliceNum; j++) {
+		//		lon_tmp = -PI + i * lonStep;
+		//		r_tmp = j * rStep;
+		//		vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+		//		vertex[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), height / 2 };
+		//		normal[baseVert + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
+		//		normal[baseVert + rlonNum1 + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,1.0f };
+		//		if (i < lonSliceNum && j < rSliceNum) {
+		//			for (int k = 0; k < 2; k++) {
+		//				unsigned int* ptr = &index[baseIdx + (k * rlonNum + i * rSliceNum + j) * 6];
+		//				*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j;
+		//				*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j + 1;
+		//				*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1;
+		//				*ptr++ = baseVert + k * rlonNum1 + i * (rSliceNum + 1) + j;
+		//				*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j + 1;
+		//				*ptr++ = baseVert + k * rlonNum1 + (i + 1) * (rSliceNum + 1) + j;
+		//			}
+		//		}
+		//	}
+		//}
+		//baseVert += 2 * rlonNum1;
+		//baseIdx += 2 * rlonNum * 6;
+		//for (unsigned int i = 0; i <= hSliceNum; i++) {
+		//	for (unsigned int j = 0; j <= lonSliceNum; j++) {
+		//		h_tmp = -height / 2 + i * hStep;
+		//		lon_tmp = -PI + j * lonStep;
+		//		vertex[baseVert + i * (lonSliceNum + 1) + j] = { radius * cos(lon_tmp),radius * sin(lon_tmp) , h_tmp };
+		//		normal[baseVert + i * (lonSliceNum + 1) + j] = { cos(lon_tmp), sin(lon_tmp), 0.0f };
+		//		if (i < hSliceNum && j < lonSliceNum) {
+		//			unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
+		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
+		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
+		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j;
+		//		}
+		//	}
+		//}
+		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+	}
+	~Cylinder() {
+		delete [] mesh;
 	}
 };
 
@@ -374,135 +490,170 @@ public:
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
 
-		unsigned int rlonNum = rSliceNum * lonSliceNum;
-		unsigned int hlonNum = hSliceNum * lonSliceNum;
-		unsigned int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
-		unsigned int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
+		mesh = new Mesh[2]{ {rSliceNum + 1,lonSliceNum + 1},{hSliceNum + 1,lonSliceNum + 1} };
 
-		float lon_tmp, r_tmp, h_tmp;
+		for (unsigned int i = 0; i < 2; i++)
+			mesh[i].connect();
 
-		int baseVert = 0, baseIdx = 0;
+		// 顶点位置
+		mesh[0].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {	// 下圆面
+			float lon_tmp = -PI + i * lonStep;
+			float r_tmp = j * rStep;
+			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+			});
+		mesh[1].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {	// 侧斜面
+			float h_tmp = -height / 2 + i * hStep;
+			float lon_tmp = -PI + j * lonStep;
+			float r_tmp = radius * (1 - i * hStep / height);
+			return vec3{ r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+			});
 
-		std::vector<vec3> vertex(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		std::vector<vec3> normal(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
-		std::vector<GLuint> index((rlonNum + hlonNum) * 6, 0);
+		// 顶点法线
+		mesh[0].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ 0.0f,-1.0f,0.0f };
+			});
+		mesh[1].updateVertexNormalByFunc([=](unsigned int i, unsigned int j) {
+			float lon_tmp = -PI + j * lonStep;
+			float tmp = sqrt(radius * radius + height * height);
+			return vec3{ height * cos(lon_tmp) / tmp,height * sin(lon_tmp) / tmp, radius / tmp };
+			});
 
-		for (unsigned int i = 0; i <= lonSliceNum; i++) {
-			for (unsigned int j = 0; j <= rSliceNum; j++) {
-				lon_tmp = -PI + i * lonStep;
-				r_tmp = j * rStep;
-				vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
-				normal[baseVert + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
-				if (i < lonSliceNum && j < rSliceNum) {
-					unsigned int* ptr = &index[baseIdx + (i * rSliceNum + j) * 6];
-					*ptr++ = baseVert + i * (rSliceNum + 1) + j;
-					*ptr++ = baseVert + i * (rSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + i * (rSliceNum + 1) + j;
-					*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j;
-				}
-			}
-		}
-		baseVert += rlonNum1;
-		baseIdx += rlonNum * 6;
-		for (unsigned int i = 0; i <= hSliceNum; i++) {
-			for (unsigned int j = 0; j <= lonSliceNum; j++) {
-				h_tmp = -height / 2 + i * hStep;
-				lon_tmp = -PI + j * lonStep;
-				r_tmp = radius * (1 - i * hStep / height);
-				vertex[baseVert + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
-				float tmp = sqrt(radius * radius + height * height);
-				normal[baseVert + i * (lonSliceNum + 1) + j] = { height * cos(lon_tmp) / tmp,height * sin(lon_tmp) / tmp, radius / tmp };
-				if (i < hSliceNum && j < lonSliceNum) {
-					unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
-					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
-					*ptr++ = baseVert + i * (lonSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
-					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
-					*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j;
-				}
-			}
-		}
-		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+		//float rStep = radius / rSliceNum;
+		//float hStep = height / hSliceNum;
+		//float lonStep = 2 * PI / lonSliceNum;
+
+		//unsigned int rlonNum = rSliceNum * lonSliceNum;
+		//unsigned int hlonNum = hSliceNum * lonSliceNum;
+		//unsigned int rlonNum1 = (rSliceNum + 1) * (lonSliceNum + 1);
+		//unsigned int hlonNum1 = (hSliceNum + 1) * (lonSliceNum + 1);
+
+		//float lon_tmp, r_tmp, h_tmp;
+
+		//int baseVert = 0, baseIdx = 0;
+
+		//std::vector<vec3> vertex(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		//std::vector<vec3> normal(rlonNum1 + hlonNum1, { 0.0f,0.0f,0.0f });
+		//std::vector<GLuint> index((rlonNum + hlonNum) * 6, 0);
+
+		//for (unsigned int i = 0; i <= lonSliceNum; i++) {
+		//	for (unsigned int j = 0; j <= rSliceNum; j++) {
+		//		lon_tmp = -PI + i * lonStep;
+		//		r_tmp = j * rStep;
+		//		vertex[baseVert + i * (rSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp), -height / 2 };
+		//		normal[baseVert + i * (rSliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
+		//		if (i < lonSliceNum && j < rSliceNum) {
+		//			unsigned int* ptr = &index[baseIdx + (i * rSliceNum + j) * 6];
+		//			*ptr++ = baseVert + i * (rSliceNum + 1) + j;
+		//			*ptr++ = baseVert + i * (rSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + i * (rSliceNum + 1) + j;
+		//			*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + (i + 1) * (rSliceNum + 1) + j;
+		//		}
+		//	}
+		//}
+		//baseVert += rlonNum1;
+		//baseIdx += rlonNum * 6;
+		//for (unsigned int i = 0; i <= hSliceNum; i++) {
+		//	for (unsigned int j = 0; j <= lonSliceNum; j++) {
+		//		h_tmp = -height / 2 + i * hStep;
+		//		lon_tmp = -PI + j * lonStep;
+		//		r_tmp = radius * (1 - i * hStep / height);
+		//		vertex[baseVert + i * (lonSliceNum + 1) + j] = { r_tmp * cos(lon_tmp),r_tmp * sin(lon_tmp) , h_tmp };
+		//		float tmp = sqrt(radius * radius + height * height);
+		//		normal[baseVert + i * (lonSliceNum + 1) + j] = { height * cos(lon_tmp) / tmp,height * sin(lon_tmp) / tmp, radius / tmp };
+		//		if (i < hSliceNum && j < lonSliceNum) {
+		//			unsigned int* ptr = &index[baseIdx + (i * lonSliceNum + j) * 6];
+		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
+		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + i * (lonSliceNum + 1) + j;
+		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j + 1;
+		//			*ptr++ = baseVert + (i + 1) * (lonSliceNum + 1) + j;
+		//		}
+		//	}
+		//}
+		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+	}
+	~Cone() {
+		delete [] mesh;
 	}
 };
 
 
-typedef float (*zFunc)(float x, float y);
-typedef vec3(*zGrad)(float x, float y, float z);
+//typedef float (*zFunc)(float x, float y);
+//typedef vec3(*zGrad)(float x, float y, float z);
+//
+//class Surface : public Geometry {
+//private:
+//	int xSliceNum;
+//	int ySliceNum;
+//	float xStart, xEnd;
+//	float yStart, yEnd;
+//	zFunc func;
+//	zGrad grad;
+//public:
+//	Surface(float xStart, float xEnd, float yStart, float yEnd, zFunc func, zGrad grad, unsigned int xSliceNum, unsigned int ySliceNum) :
+//		Geometry(), xStart(xStart), xEnd(xEnd), yStart(yStart), yEnd(yEnd), func(func), grad(grad), xSliceNum(xSliceNum), ySliceNum(ySliceNum) {
+//		float dx = (xEnd - xStart) / xSliceNum;
+//		float dy = (yEnd - yStart) / ySliceNum;
+//		float x, y, z;
+//		vec3 _grad;
+//
+//		unsigned int lonlatNum = xSliceNum * ySliceNum;
+//		unsigned int lonlatNum1 = (xSliceNum + 1) * (ySliceNum + 1);
+//
+//		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
+//		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
+//		std::vector<GLuint> index(lonlatNum * 6, 0);
+//
+//		for (unsigned int i = 0; i <= xSliceNum; i++) {
+//			for (unsigned int j = 0; j <= ySliceNum; j++) {
+//				x = xStart + i * dx;
+//				y = yStart + j * dy;
+//				z = func(x, y);
+//				_grad = grad(x, y, z);
+//
+//				vertex[i * (ySliceNum + 1) + j] = { x,y,z };
+//				normal[i * (ySliceNum + 1) + j] = { _grad.x, _grad.y, _grad.z };
+//				if (i < xSliceNum && j < ySliceNum) {
+//					unsigned int* ptr = &index[(i * ySliceNum + j) * 6];
+//					*ptr++ = i * (ySliceNum + 1) + j;
+//					*ptr++ = i * (ySliceNum + 1) + j + 1;
+//					*ptr++ = (i + 1) * (ySliceNum + 1) + j + 1;
+//					*ptr++ = i * (ySliceNum + 1) + j;
+//					*ptr++ = (i + 1) * (ySliceNum + 1) + j + 1;
+//					*ptr++ = (i + 1) * (ySliceNum + 1) + j;
+//				}
+//			}
+//		}
+//		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+//	}
+//};
 
-class Surface : public Geometry {
-private:
-	int xSliceNum;
-	int ySliceNum;
-	float xStart, xEnd;
-	float yStart, yEnd;
-	zFunc func;
-	zGrad grad;
-public:
-	Surface(float xStart, float xEnd, float yStart, float yEnd, zFunc func, zGrad grad, unsigned int xSliceNum, unsigned int ySliceNum) :
-		Geometry(), xStart(xStart), xEnd(xEnd), yStart(yStart), yEnd(yEnd), func(func), grad(grad), xSliceNum(xSliceNum), ySliceNum(ySliceNum) {
-		float dx = (xEnd - xStart) / xSliceNum;
-		float dy = (yEnd - yStart) / ySliceNum;
-		float x, y, z;
-		vec3 _grad;
 
-		unsigned int lonlatNum = xSliceNum * ySliceNum;
-		unsigned int lonlatNum1 = (xSliceNum + 1) * (ySliceNum + 1);
-
-		std::vector<vec3> vertex(lonlatNum1, { 0.0f,0.0f,0.0f });
-		std::vector<vec3> normal(lonlatNum1, { 0.0f,0.0f,0.0f });
-		std::vector<GLuint> index(lonlatNum * 6, 0);
-
-		for (unsigned int i = 0; i <= xSliceNum; i++) {
-			for (unsigned int j = 0; j <= ySliceNum; j++) {
-				x = xStart + i * dx;
-				y = yStart + j * dy;
-				z = func(x, y);
-				_grad = grad(x, y, z);
-
-				vertex[i * (ySliceNum + 1) + j] = { x,y,z };
-				normal[i * (ySliceNum + 1) + j] = { _grad.x, _grad.y, _grad.z };
-				if (i < xSliceNum && j < ySliceNum) {
-					unsigned int* ptr = &index[(i * ySliceNum + j) * 6];
-					*ptr++ = i * (ySliceNum + 1) + j;
-					*ptr++ = i * (ySliceNum + 1) + j + 1;
-					*ptr++ = (i + 1) * (ySliceNum + 1) + j + 1;
-					*ptr++ = i * (ySliceNum + 1) + j;
-					*ptr++ = (i + 1) * (ySliceNum + 1) + j + 1;
-					*ptr++ = (i + 1) * (ySliceNum + 1) + j;
-				}
-			}
-		}
-		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
-	}
-};
-
-
-class Combination : public Geometry {
-	// Combination类用于组合多个Geometry对象，其继承自Geometry类，重载translate、rotate、scale、draw等方法
-private:
-	std::vector<Geometry*> children;
-	std::vector<glm::mat4> childModel;
-public:
-	// Combination应当禁用自己的shader，而是使用objs中各个obj自己的shader
-	// VAO和VAO_length也应当使用obj自身的
-	Combination() :Geometry() {}
-	void add(Geometry* obj) {
-		// Combination默认的中心在原点处
-		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
-		children.push_back(obj);
-		childModel.push_back(obj->transform.getMatrix());
-		obj->resetTransform();
-	}
-	std::vector<Geometry*>& getChildren() {
-		return children;
-	}
-	glm::mat4& getChildModel(int i) {
-		return childModel[i];
-	}
+//class Combination : public Geometry {
+//	// Combination类用于组合多个Geometry对象，其继承自Geometry类，重载translate、rotate、scale、draw等方法
+//private:
+//	std::vector<Geometry*> children;
+//	std::vector<glm::mat4> childModel;
+//public:
+//	// Combination应当禁用自己的shader，而是使用objs中各个obj自己的shader
+//	// VAO和VAO_length也应当使用obj自身的
+//	Combination() :Geometry() {}
+//	void add(Geometry* obj) {
+//		// Combination默认的中心在原点处
+//		// 传入的obj会将当前自身的模型变换model作为Combination的objModel，并重置自身model为单位阵
+//		children.push_back(obj);
+//		childModel.push_back(obj->transform.getMatrix());
+//		obj->resetTransform();
+//	}
+//	std::vector<Geometry*>& getChildren() {
+//		return children;
+//	}
+//	glm::mat4& getChildModel(int i) {
+//		return childModel[i];
+//	}
 
 	//virtual void draw() {
 	//	// 需要应用所有变换，这里考虑几类情况
@@ -626,8 +777,11 @@ public:
 		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio, 3, 4, 18);
 		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio), 2, (int)(length * 10), 18);
 
-		arrow->setColor(arrowColor);
-		body->setColor(bodyColor);
+		arrow->attribute.autoColor = false;
+		arrow->attribute.color = arrowColor;
+		body->attribute.autoColor = false;
+		body->attribute.color = bodyColor;
+
 		// 进行组合
 		arrow->scale(glm::vec3(1.0f, length, 1.0f));	// 由于局部坐标系中物体按照y轴方向绘制，所以只需要在这个方向上进行缩放，就能改变长度
 		body->scale(glm::vec3(1.0f, length, 1.0f));
@@ -770,7 +924,7 @@ public:
 			trans = glm::translate(trans, -offset);
 		}
 
-		updateVertexPosition(VAO, VBO[0], vertex);
+		//updateVertexPosition(VAO, VBO[0], vertex);
 		isChanged = false;
 	}
 
@@ -813,7 +967,7 @@ public:
 			x_accum += ds * costheta;
 			y_accum += ds * sintheta;
 		}
-		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
 	}
 
 	void setTheta(float theta) {
