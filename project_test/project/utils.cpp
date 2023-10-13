@@ -11,7 +11,8 @@ void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal
 	// 默认VBO[0]为顶点坐标，VBO[1]为法向量，VBO[2]为索引
 	glGenVertexArrays(1, VAO);
 	glBindVertexArray(*VAO);
-	*length = (GLsizei)index.size();
+	if(length)
+		*length = (GLsizei)index.size();
 
 	glGenBuffers(1, VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);

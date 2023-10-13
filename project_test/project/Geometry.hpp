@@ -46,48 +46,123 @@ public:
 	}
 };
 
+class Mesh {
+	// 通过内存映射直接操作VBO和EBO
+private:
+	unsigned int uSize{ 0 }, vSize{ 0 };		// u为第几行，v为第几列
+	GLuint VAO{ 0 }, VBO[3]{ 0,0,0 };
+
+public:
+	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+
+		glGenBuffers(3, VBO);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+		glBufferData(GL_ARRAY_BUFFER, uSize * vSize * sizeof(vec3), nullptr, GL_DYNAMIC_DRAW);		// 只分配空间，不填充数据
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
+		glBufferData(GL_ARRAY_BUFFER, uSize * vSize * sizeof(vec3), nullptr, GL_DYNAMIC_DRAW);		// 只分配空间，不填充数据
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+		glEnableVertexAttribArray(1);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, uSize * vSize * sizeof(vec3), nullptr, GL_STATIC_DRAW);		// 只分配空间，不填充数据
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+		glBindVertexArray(0);
+	}
+	~Mesh() {
+		glDeleteBuffers(3, VBO);
+		glDeleteVertexArrays(1, &VAO);
+	}
+	void connect() {
+		// 默认以行优先连接（指第1行连完后开始第2行）
+		GLuint* ptr;
+		glBindVertexArray(VAO);
+		GLuint* index_ptr = (GLuint*)glMapNamedBuffer(VBO[2], GL_WRITE_ONLY);
+		for (unsigned int i = 0; i < uSize; i++) {
+			for (unsigned int j = 0; j < vSize; j++) {
+				if (i == uSize - 1 || j == vSize - 1) continue;
+				ptr = &index_ptr[(i * (vSize - 1) + j) * 6];	// 采用逆时针绕行
+				*ptr++ = i * vSize + j;						// 左上
+				*ptr++ = (i + 1) * vSize + j;				// 左下
+				*ptr++ = (i + 1) * vSize + j + 1;		// 右下
+				*ptr++ = i * vSize + j;						// 左上
+				*ptr++ = (i + 1) * vSize + j + 1;		// 右下
+				*ptr++ = i * vSize + j + 1;				// 右上
+			}
+		}
+		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+		glBindVertexArray(0);
+	}
+	void updateVertexPositionByFunc(std::function<vec3(unsigned int, unsigned int)> func) {
+		glBindVertexArray(VAO);
+		vec3* vbo_ptr = (vec3*)glMapNamedBuffer(VBO[0], GL_WRITE_ONLY);
+		for (unsigned int i = 0; i < uSize; i++) {
+			for (unsigned int j = 0; j < vSize; j++) {
+				vbo_ptr[i * vSize + j] = func(i, j);
+			}
+		}
+		glUnmapNamedBuffer(VBO[0]);
+		glBindVertexArray(0);
+	}
+	void updateVertexNormalByFunc(std::function<vec3(float x, float y, float z)> func) {
+		glBindVertexArray(VAO);
+		vec3* vbo_ptr = (vec3*)glMapNamedBuffer(VBO[0], GL_READ_ONLY);
+		vec3* normal_ptr = (vec3*)glMapNamedBuffer(VBO[1], GL_WRITE_ONLY);
+		vec3 pos;
+		for (unsigned int i = 0; i < uSize; i++) {
+			for (unsigned int j = 0; j < vSize; j++) {
+				pos = vbo_ptr[i * vSize + j];
+				normal_ptr[i * vSize + j] = func(pos.x, pos.y, pos.z);
+			}
+		}
+		glUnmapNamedBuffer(VBO[0]);
+		glUnmapNamedBuffer(VBO[1]);
+		glBindVertexArray(0);
+	}
+	GLuint getVAO() {
+		return VAO;
+	}
+	unsigned int getVertexSize() {
+		return uSize * vSize;
+	}
+	unsigned int getIndexSize() {
+		return (uSize - 1) * (vSize - 1) * 6;
+	}
+};
+
 class Geometry {
 private:
-	glm::mat4 transMatrix;
-	glm::mat4 modelBuffer;
 protected:
-	GLuint VAO{ 0 }, VBO[3]{ 0,0,0 };
-	GLsizei index_size{ 0 };
-	uniformTable attribute;
+	glm::mat4 modelBuffer{ glm::mat4(1.0f) };		// 用于进行一个预变换
+	Mesh* mesh{ nullptr };
 public:
 	Transform transform;
+	uniformTable attribute;
 
-	Geometry(glm::vec3 position) : modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {}
-	Geometry() : modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {}
-	Geometry(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index) :
-		modelBuffer(glm::mat4(1.0f)), transMatrix(glm::mat4(1.0f)) {
-		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
-	}
+	Geometry() {}
+
 	~Geometry() {
-		glDeleteVertexArrays(1, &VAO);
-		glDeleteBuffers(3, VBO);
+		delete mesh;
+		*mesh = nullptr;
 	}
 
+	// 预变换相关
 	glm::mat4 getModelBufferMatrix() {
 		return modelBuffer;
-	}
-	void setColor(glm::vec4 color) {
-		attribute.autoColor = false;
-		attribute.color = color;
-	}
-	void setAutoColor() {
-		attribute.autoColor = true;
 	}
 	void applyTransform() {
 		modelBuffer = (transform.getMatrix()) * modelBuffer;
 		transform.reset();
 	}
-	void setTransform(const Transform& trans) {
-		transform = trans;
-	}
-	void setTransformMatrix(const glm::mat4& trans) {
-		transMatrix = trans;
-	}
+
 	// transform 适配
 	void translate(glm::vec3 dxyz) {
 		transform.translate(dxyz);
@@ -111,12 +186,6 @@ public:
 	uniformTable& getAttribute() {
 		return attribute;
 	}
-	GLuint getVAO() {
-		return VAO;
-	}
-	GLsizei getVAOLength() {
-		return index_size;
-	}
 };
 
 class Cube : public Geometry {
@@ -133,81 +202,52 @@ public:
 		dy = yLength / ySliceNum;
 		dz = zLength / zSliceNum;
 
-		int xyNum = xSliceNum * ySliceNum;
-		int zyNum = ySliceNum * zSliceNum;
-		int xzNum = xSliceNum * zSliceNum;
+		// 立方体存在6个面，因此有6个Mesh实例
+		mesh = new Mesh[6]{ {xLength,yLength}, {xLength,yLength}, {xLength,zLength}, {xLength,zLength}, {yLength,zLength}, {yLength,zLength} };
 
-		int xyNum1 = (xSliceNum + 1) * (ySliceNum + 1);
-		int zyNum1 = (ySliceNum + 1) * (zSliceNum + 1);
-		int xzNum1 = (xSliceNum + 1) * (zSliceNum + 1);
+		// 顶点索引
+		for (unsigned int i = 0; i < 6; i++) 
+			mesh[i].connect();
+		
+		// 顶点位置
+		mesh[0].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
+			return vec3{ -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength };
+			});
+		mesh[1].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
+			return vec3{ -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength };
+			});
+		mesh[2].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
+			return vec3{ -xLength / 2 + i * dx, -yLength / 2 , -zLength + j * dz };
+			});
+		mesh[3].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
+			return vec3{ -xLength / 2 + i * dx, yLength / 2 , -zLength + j * dz };
+			});
+		mesh[4].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
+			return vec3{ -xLength / 2 , yLength / 2 + i * dy , -zLength + j * dz };
+			});
+		mesh[5].updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
+			return vec3{ xLength / 2 , yLength / 2 + i * dy , -zLength + j * dz };
+			});
 
-		std::vector<vec3> vertex(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
-		std::vector<vec3> normal(2 * (xyNum1 + zyNum1 + xzNum1), { 0.0f,0.0f,0.0f });
-		std::vector<GLuint> index(2 * (xyNum + zyNum + xzNum) * 6, 0);
-
-		int baseVert = 0, baseIdx = 0;
-		for (int i = 0; i <= xSliceNum; i++) {
-			for (int j = 0; j <= ySliceNum; j++) {
-				vertex[baseVert + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, -zLength / 2 };
-				vertex[baseVert + xyNum1 + i * (ySliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2 + j * dy, zLength / 2 };
-				normal[baseVert + i * (ySliceNum + 1) + j] = { 0.0f,0.0f,-1.0f };
-				normal[baseVert + xyNum1 + i * (ySliceNum + 1) + j] = { 0.0f,0.0f,1.0f };
-				if (i < xSliceNum && j < ySliceNum) {
-					for (int k = 0; k < 2; k++) {
-						unsigned int* ptr = &index[baseIdx + (k * xyNum + i * ySliceNum + j) * 6];
-						*ptr++ = baseVert + k * xyNum1 + i * (ySliceNum + 1) + j;
-						*ptr++ = baseVert + k * xyNum1 + i * (ySliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * xyNum1 + i * (ySliceNum + 1) + j;
-						*ptr++ = baseVert + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * xyNum1 + (i + 1) * (ySliceNum + 1) + j;
-					}
-				}
-			}
-		}
-		baseVert += 2 * xyNum1;
-		baseIdx += 2 * xyNum * 6;
-		for (int i = 0; i <= zSliceNum; i++) {
-			for (int j = 0; j <= ySliceNum; j++) {
-				vertex[baseVert + i * (ySliceNum + 1) + j] = { -xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
-				vertex[baseVert + zyNum1 + i * (ySliceNum + 1) + j] = { xLength / 2, -yLength / 2 + j * dy, -zLength / 2 + i * dz };
-				normal[baseVert + i * (ySliceNum + 1) + j] = { -1.0f,0.0f,0.0f };
-				normal[baseVert + zyNum1 + i * (ySliceNum + 1) + j] = { 1.0f,0.0f,0.0f };
-				if (i < zSliceNum && j < ySliceNum) {
-					for (int k = 0; k < 2; k++) {
-						unsigned int* ptr = &index[baseIdx + (k * zyNum + i * ySliceNum + j) * 6];
-						*ptr++ = baseVert + k * zyNum1 + i * (ySliceNum + 1) + j;
-						*ptr++ = baseVert + k * zyNum1 + i * (ySliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * zyNum1 + i * (ySliceNum + 1) + j;
-						*ptr++ = baseVert + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * zyNum1 + (i + 1) * (ySliceNum + 1) + j;
-					}
-				}
-			}
-		}
-		baseVert += 2 * zyNum1;
-		baseIdx += 2 * zyNum * 6;
-		for (int i = 0; i <= xSliceNum; i++) {
-			for (int j = 0; j <= zSliceNum; j++) {
-				vertex[baseVert + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, -yLength / 2, -zLength / 2 + j * dz };
-				vertex[baseVert + xzNum1 + i * (zSliceNum + 1) + j] = { -xLength / 2 + i * dx, yLength / 2, -zLength / 2 + j * dz };
-				normal[baseVert + i * (zSliceNum + 1) + j] = { 0.0f,-1.0f,0.0f };
-				normal[baseVert + xzNum1 + i * (zSliceNum + 1) + j] = { 0.0f,1.0f,0.0f };
-				if (i < xSliceNum && j < zSliceNum) {
-					for (int k = 0; k < 2; k++) {
-						unsigned int* ptr = &index[baseIdx + (k * xzNum + i * zSliceNum + j) * 6];
-						*ptr++ = baseVert + k * xzNum1 + i * (zSliceNum + 1) + j;
-						*ptr++ = baseVert + k * xzNum1 + i * (zSliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * xzNum1 + i * (zSliceNum + 1) + j;
-						*ptr++ = baseVert + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j + 1;
-						*ptr++ = baseVert + k * xzNum1 + (i + 1) * (zSliceNum + 1) + j;
-					}
-				}
-			}
-		}
-		prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+		// 顶点法线
+		mesh[0].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ 0.0f, 0.0f, -1.0f };
+			});
+		mesh[1].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ 0.0f, 0.0f, 1.0f };
+			});
+		mesh[2].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ 0.0f, -1.0f, 0.0f };
+			});
+		mesh[3].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ 0.0f, 1.0f, 0.0f };
+			});
+		mesh[4].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ -1.0f, 0.0f, 0.0f };
+			});
+		mesh[5].updateVertexNormalByFunc([=](float x, float y, float z) {
+			return vec3{ 1.0f, 0.0f, 0.0f };
+			});
 	}
 };
 
@@ -457,10 +497,10 @@ public:
 		childModel.push_back(obj->transform.getMatrix());
 		obj->resetTransform();
 	}
-	std::vector<Geometry *> &getChildren() {
+	std::vector<Geometry*>& getChildren() {
 		return children;
 	}
-	glm::mat4 &getChildModel(int i) {
+	glm::mat4& getChildModel(int i) {
 		return childModel[i];
 	}
 
