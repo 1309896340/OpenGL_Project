@@ -27,7 +27,27 @@ int main(int argc, char** argv) {
 	camera = new Camera(glm::vec3(-0.4f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 	Scene scene(camera);
 
-	Axis* axis = new Axis();
+	//Axis* axis = new Axis();
+
+	Geometry* a1 = new Cylinder(0.1f, 1.0f);
+	Geometry* a2 = new Cylinder(0.1f, 1.0f);
+	Geometry* a3 = new Cylinder(0.1f, 1.0f);
+	a2->translate(glm::vec3(0.0f, 1.0f, 0.0f));
+	//a3->translate(glm::vec3(0.0f, 2.0f, 0.0f));
+	a2->rotate(glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//a3->rotate(glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	a1->addChild(a2);
+	//a2->addChild(a3);
+
+	//Geometry* cube = new Cube(1.2f, 0.6f, 0.3f);
+	//Geometry* sphere = new Sphere(0.6f);
+	//Geometry* cylinder = new Cylinder(0.1f, 1.0f);
+	//Geometry* cone = new Cone(0.4f, 0.8f);
+
+	//cube->translateTo(glm::vec3(-1.5f, 0.0f, 0.0f));
+	//sphere->translateTo(glm::vec3(0.0f, 0.0f, 0.0f));
+	//cylinder->translateTo(glm::vec3(1.0f, 0.0f, 0.0f));
+	//cone->translateTo(glm::vec3(2.0f, 0.0f, 0.0f));
 
 	//leaf = new Leaf(0.2f, 3.0f, 5, 30);
 	//leaf->translateTo(glm::vec3(0.1f, 0.95f, 0.0f));
@@ -50,9 +70,16 @@ int main(int argc, char** argv) {
 			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
 		}
 
-		scene.render(axis);
+		//scene.render(axis);
 		//scene.render(leaf);
 		//scene.render(com);
+		//scene.render(cube);
+		//scene.render(sphere);
+		//scene.render(cylinder);
+		//scene.render(cone);
+		scene.render(a1);
+		//scene.render(a2);
+		//scene.render(a3);
 
 		gui.render();
 

@@ -162,20 +162,33 @@ public:
 	}
 };
 
-
+/*
+struct Object {
+  mat4 transform;
+  const Object* parent;
+  std::vector<const Object*> children;
+  const Mesh* mesh;
+};
+*/
 class Geometry : public Drawable {
 	// Geometry没有生成网格，但已经实现了draw()，直接调用会报错
 	// 网格在子类构造函数中生成
 private:
 protected:
 	glm::mat4 modelBuffer{ glm::mat4(1.0f) };		// 用于进行一个预变换
+
+	Geometry* parent{ nullptr };
+	std::vector<Geometry*> children;
 	std::vector<Mesh*> meshes;
+
 	Shader* shader{ nullptr };
 public:
-	Transform transform;
+	Transform model;		// 模型矩阵
+	Transform offset;			// 偏移矩阵
 	uniformTable attribute;
 
-	Geometry() :shader(DefaultShader::getDefaultShader()) {}
+	Geometry() :shader(DefaultShader::getDefaultShader()) {
+	}
 
 	~Geometry() {
 		for (auto& mesh : meshes) {
@@ -184,9 +197,23 @@ public:
 		meshes.clear();
 	}
 
+	Shader* getShader() {
+		return shader;
+	}
+	void setShader(Shader* shader) {
+		assert(shader);
+		this->shader = shader;
+	}
+	std::vector<Geometry*>& getChildren() {
+		return children;
+	}
+	std::vector<Mesh*>& getMeshes() {
+		return meshes;
+	}
+
 	virtual void pose() {
-		// 设置一个默认的姿态，可以在子类中是实现不同的姿态
-		transform.rotate(glm::radians(-90.0f), _right);
+		// 设置一个默认的姿态，可以在子类中实现不同的姿态变换
+		model.rotate(glm::radians(-90.0f), _right);
 		applyTransform();
 	}
 
@@ -195,40 +222,70 @@ public:
 		return modelBuffer;
 	}
 	void applyTransform() {
-		modelBuffer = (transform.getMatrix()) * modelBuffer;
-		transform.reset();
+		modelBuffer = (model.getMatrix()) * modelBuffer;
+		model.reset();
 	}
 
-	// transform 适配
+	// 姿态变换
 	void translate(glm::vec3 dxyz) {
-		transform.translate(dxyz);
-	}
-	void rotate(float angle, glm::vec3 axis) {
-		transform.rotate(angle, axis);
-	}
-	void scale(glm::vec3 xyz) {
-		transform.scale(xyz);
-	}
-	void scaleTo(glm::vec3 xyz) {
-		transform.scaleTo(xyz);
+		model.translate(dxyz);
 	}
 	void translateTo(glm::vec3 dxyz) {
-		transform.translateTo(dxyz);
+		model.translateTo(dxyz);
 	}
-	void resetTransform() {
-		transform.reset();
+	void rotate(float angle, glm::vec3 axis) {
+		model.rotate(angle, axis);
+	}
+	void scale(glm::vec3 xyz) {
+		model.scale(xyz);
+	}
+	void scaleTo(glm::vec3 xyz) {
+		model.scaleTo(xyz);
+	}
+
+	void addChild(Geometry* obj) {
+		if (obj != nullptr) {
+			obj->setParent(this);
+			// 将子对象的offset设置为其model，并将其model重置为单位阵，将shader设置为父对象的shader
+			obj->offset = obj->model;
+			obj->model.reset();
+			obj->setShader(shader);;
+			children.push_back(obj);
+		}
+	}
+	void setParent(Geometry* obj) {
+		this->parent = obj;
+	}
+
+	glm::mat4 getFinalOffset() {	 // 根据所有父节点计算当前节点的偏移矩阵
+		glm::mat4 offsetMatrix(offset.getMatrix());
+		Geometry* cur = this;
+		while (cur->parent) {
+			cur = cur->parent;
+			offsetMatrix = cur->offset.getMatrix() * offsetMatrix;
+		}
+		return offsetMatrix;
 	}
 
 	virtual void draw() {
-		// 使用着色器，设置uniform变量
-		shader->use();
-		(*shader)["modelBuffer"] = modelBuffer;
-		(*shader)["model"] = transform.getMatrix();
-		shader->loadAttribute(attribute);
-		for (auto& mesh : meshes) {
-			glBindVertexArray(mesh->getVAO());
-			glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
-			glBindVertexArray(0);
+		std::deque<Geometry*> buf{ this };
+		Shader* sd = nullptr;
+		while (!buf.empty()) {
+			Geometry* cur = buf.front();
+			buf.pop_front();
+			for (auto& child : cur->getChildren())
+				buf.push_back(child);
+			// 渲染cur,cur的model矩阵应当通过计算所有父节点的offset得到
+			sd = cur->getShader();
+			sd->use();
+			(*sd)["modelBuffer"] = cur->getModelBufferMatrix();
+			(*sd)["model"] = getFinalOffset() * (cur->model.getMatrix());
+			sd->loadAttribute(cur->attribute);
+			for (auto& mesh : cur->getMeshes()) {
+				glBindVertexArray(mesh->getVAO());
+				glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
+				glBindVertexArray(0);
+			}
 		}
 	}
 };
@@ -249,7 +306,7 @@ public:
 		dy = yLength / ySliceNum;
 		dz = zLength / zSliceNum;
 
-		// 立方体存在6个面，因此有6个Mesh实例
+		// 立方体6个网格面
 		meshes.push_back(new Mesh(xSliceNum + 1, ySliceNum + 1));
 		meshes.push_back(new Mesh(xSliceNum + 1, ySliceNum + 1));
 		meshes.push_back(new Mesh(xSliceNum + 1, zSliceNum + 1));
@@ -378,6 +435,13 @@ public:
 			float norm = sqrtf(x * x + y * y);
 			return vec3{ x / norm,y / norm,0.0f };
 			});
+		pose();
+	}
+	virtual void pose() {
+		// 设置一个默认的姿态，可以在子类中实现不同的姿态变换
+		model.rotate(glm::radians(-90.0f), _right);
+		model.translateTo(glm::vec3(0.0f, height / 2.0f, 0.0f));
+		applyTransform();
 	}
 };
 
@@ -556,7 +620,92 @@ public:
 	}
 };
 
-class Arrow {		// 比较粗暴的组合体实现
+//class Arrow {		// 比较粗暴的组合体实现
+//private:
+//	glm::vec3 _begin{ 0.0f,0.0f,0.0f };
+//	glm::vec3 _end{ 0.0f,0.0f,0.0f };
+//	float width{ 1.0f };
+//
+//	const float arrowLengthRatio = 0.2f;
+//	const float arrowRadiusRatio = 2.5f;
+//
+//	Geometry* arrow, * body;
+//public:
+//	Arrow(glm::vec3 _begin, glm::vec3 _end, float width, glm::vec4 arrowColor, glm::vec4 bodyColor) :
+//		_begin(_begin), _end(_end), width(width) {
+//		glm::vec3 dir = _end - _begin;
+//		float length = glm::length(dir);
+//		arrow = new Cone(arrowRadiusRatio * width / 2.0f, arrowLengthRatio, 3, 4, 18);
+//		body = new Cylinder(width / 2.0f, (1 - arrowLengthRatio), 2, (int)(length * 10), 18);
+//
+//		arrow->attribute.autoColor = false;
+//		arrow->attribute.color = arrowColor;
+//		body->attribute.autoColor = false;
+//		body->attribute.color = bodyColor;
+//
+//		// 进行组合
+//		arrow->scale(glm::vec3(1.0f, length, 1.0f));	// 由于局部坐标系中物体按照y轴方向绘制，所以只需要在这个方向上进行缩放，就能改变长度
+//		body->scale(glm::vec3(1.0f, length, 1.0f));
+//		arrow->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+//		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) / 2.0f * length, 0));
+//		body->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+//		body->translate(glm::vec3(0, -arrowLengthRatio / 2.0f * length, 0));
+//		// 应用变换
+//		arrow->applyTransform();
+//		body->applyTransform();
+//		// 此时两者组合在一起，构成以原点为中点的箭头
+//
+//		update();
+//	}
+//	~Arrow() {
+//		delete arrow;
+//		delete body;
+//	}
+//	Geometry* getArrow() {
+//		return arrow;
+//	}
+//	Geometry* getBody() {
+//		return body;
+//	}
+//	void update() {
+//		arrow->model.reset();
+//		body->model.reset();
+//
+//		glm::vec3 dir = glm::normalize(_end - _begin);
+//		glm::vec3 rotate_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), dir);
+//		float rotate_angle = glm::acos(glm::dot(glm::vec3(0.0f, 1.0f, 0.0f), dir));
+//		if (abs(rotate_angle) < EPS) {		// 完全平行时rotate_axis接近全零会导致rotate方法调用出错
+//			rotate_axis = glm::vec3(0.0f, 0.0f, 1.0f);
+//			rotate_angle = 0.0f;
+//		}
+//		else if (abs(rotate_angle - PI) < EPS) {
+//			rotate_axis = glm::vec3(0.0f, 0.0f, 1.0f);
+//			rotate_angle = PI;
+//		}
+//		else {
+//			rotate_axis = glm::normalize(rotate_axis);
+//		}
+//
+//		float length = glm::length(_end - _begin);
+//		arrow->scale(glm::vec3(length, length, length));
+//		body->scale(glm::vec3(length, length, length));
+//
+//		arrow->rotate(rotate_angle, rotate_axis);
+//		arrow->translateTo((_end + _begin) / 2.0f);
+//		body->rotate(rotate_angle, rotate_axis);
+//		body->translateTo((_end + _begin) / 2.0f);
+//	}
+//	void setBegin(glm::vec3 _begin) {
+//		this->_begin = _begin;
+//		this->update();
+//	}
+//	void setEnd(glm::vec3 _end) {
+//		this->_end = _end;
+//		this->update();
+//	}
+//};
+
+class Arrow :public Geometry {		// 比较粗暴的组合体实现
 private:
 	glm::vec3 _begin{ 0.0f,0.0f,0.0f };
 	glm::vec3 _end{ 0.0f,0.0f,0.0f };
@@ -586,9 +735,9 @@ public:
 		arrow->translate(glm::vec3(0, (1 - arrowLengthRatio) / 2.0f * length, 0));
 		body->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		body->translate(glm::vec3(0, -arrowLengthRatio / 2.0f * length, 0));
-		// 应用变换
-		arrow->applyTransform();
-		body->applyTransform();
+
+		this->addChild(arrow);
+		this->addChild(body);
 		// 此时两者组合在一起，构成以原点为中点的箭头
 
 		update();
@@ -603,9 +752,9 @@ public:
 	Geometry* getBody() {
 		return body;
 	}
-	void update() {
-		arrow->resetTransform();
-		body->resetTransform();
+	void update() {					// 当调用函数及时修改begin和end的值时，需要调用该函数修改model矩阵
+		arrow->model.reset();
+		body->model.reset();
 
 		glm::vec3 dir = glm::normalize(_end - _begin);
 		glm::vec3 rotate_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), dir);
@@ -640,6 +789,31 @@ public:
 		this->update();
 	}
 };
+
+//class Axis {
+//private:
+//	Arrow* axis_x, * axis_y, * axis_z;
+//public:
+//	Axis(float length = 1.0f) {
+//		axis_x = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(length, 0.0f, 0.0f), 0.06f * length, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+//		axis_y = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, length, 0.0f), 0.06f * length, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+//		axis_z = new Arrow(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, length), 0.06f * length, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+//	}
+//	~Axis() {
+//		delete axis_x;
+//		delete axis_y;
+//		delete axis_z;
+//	}
+//	Arrow* getAxis_x() {
+//		return axis_x;
+//	}
+//	Arrow* getAxis_y() {
+//		return axis_y;
+//	}
+//	Arrow* getAxis_z() {
+//		return axis_z;
+//	}
+//};
 
 class Axis {
 private:
