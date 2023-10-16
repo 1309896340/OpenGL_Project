@@ -43,7 +43,8 @@ public:
 		// 绑定默认的着色器
 		bindShader(DefaultShader::getDefaultShader());
 	}
-	float step() { // 渲染循环中每一轮调用一次，更新视图变换矩阵，更新计时，并返回时间步长
+	float step(float *t=nullptr) { // 渲染循环中每一轮调用一次，更新视图变换矩阵，更新计时，并返回时间步长
+		static float t_accum = 0.0f;
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camera->getViewMatrix()));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -51,6 +52,20 @@ public:
 		lastTime = currentTime;
 		currentTime = (float)glfwGetTime();
 		deltaTime = currentTime - lastTime;
+
+		// ======= t_sec 仅仅用于每秒更新一次FPS显示，属于调试信息，可以删除 =======
+		static float t_sec = 0.0f;
+		t_sec += deltaTime;
+		if (t_sec > 1.0f) {		
+			t_sec = 0.0f;
+			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
+		}
+		// =====================================================
+
+		t_accum += deltaTime;
+		if (t != nullptr) {
+			*t = t_accum;	// 返回累计时间
+		}
 		return deltaTime;
 	}
 	void bindShader(Shader* shader) {			// 仅仅只是绑定shader
@@ -74,10 +89,6 @@ public:
 		obj->draw();
 	}
 
-	void render(Arrow* obj) {
-		render(obj->getArrow());
-		render(obj->getBody());
-	}
 
 	//void render(Axis* obj) {
 	//	render(obj->getAxis_x());

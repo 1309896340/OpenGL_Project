@@ -28,6 +28,7 @@
 extern glm::vec3 _up;
 extern glm::vec3 _right;
 extern glm::vec3 _front;
+extern glm::vec3 _origin;
 
 typedef struct _vec3 {
 	float x, y, z;
