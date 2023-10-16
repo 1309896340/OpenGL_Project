@@ -179,7 +179,7 @@ public:
 };
 
 class Geometry : public Drawable {
-	// Geometry没有生成网格，但已经实现了draw()，直接调用会报错。网格在子类构造函数中生成
+	// Geometry本身没有生成网格
 private:
 protected:
 	glm::mat4 modelBuffer{ glm::mat4(1.0f) };

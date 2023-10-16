@@ -18,30 +18,26 @@ glm::vec3 _origin = glm::vec3(0.0f, 0.0f, 0.0f);
 StatusInfo status;
 Camera* camera = nullptr;
 Leaf* leaf = nullptr;
+float deltaTime;
 
 int main(int argc, char** argv) {
 	GLFWwindow* window = GLFWinit();
 	GUI gui(window);
 
-	float deltaTime;
-
-	//camera = new Camera(glm::vec3(-0.4f, 1.8f, 7.0f), glm::vec3(0.4f, 0.5f, 0.0f));
 	camera = new Camera(glm::vec3(-0.4f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 	Scene scene(camera);
 
-	leaf = new Leaf(1.0f, 0.2f);
-	Leaf b(3.0f, 0.1f);
-	Cylinder stalk(0.1f, 1.0f);
-	stalk.addChild(leaf, Transform(glm::vec3(0.0f, 1.0f, 0.0f)));
-	stalk.addChild(&b, Transform(glm::vec3(0.0f, 0.5f, 0.0f), 135.0f, _up));
-
 	Axis axis;
-	//Arrow axis_x(glm::vec3(0.0f, 0.0f, 0.0f), _right, _right);
-	//Arrow axis_y(glm::vec3(0.0f, 0.0f, 0.0f), _up, _up);
-	//Arrow axis_z(glm::vec3(0.0f, 0.0f, 0.0f), -_front, -_front);
+	Leaf leaf_a(1.0f, 0.2f);
+	Leaf leaf_b(2.0f, 0.2f);
+	Cylinder stalk(0.1f, 1.0f);
+
+	leaf = &leaf_a;		// 交互控制的对象
+
+	stalk.addChild(&leaf_a, Transform(glm::vec3(0.0f, 1.0f, 0.0f)));
+	stalk.addChild(&leaf_b, Transform(glm::vec3(0.0f, 0.5f, 0.0f), 180.0f, _up));
 
 	float t;
-
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
