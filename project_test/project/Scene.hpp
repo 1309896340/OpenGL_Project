@@ -85,72 +85,14 @@ public:
 	}
 
 	void render(Drawable* obj) {
-		// 暂时先不考虑obj可能具有子节点
+		// Drawable不考虑子节点
 		obj->draw();
 	}
+	void render(Geometry* obj) {
+		// Geometry需要考虑子节点
+		obj->drawAll();
+	}
 
-
-	//void render(Axis* obj) {
-	//	render(obj->getAxis_x());
-	//	render(obj->getAxis_y());
-	//	render(obj->getAxis_z());
-	//}
-
-	//void render(Bone* obj) {
-	//	// 两种方案，仅渲染一个骨骼节点，或渲染该骨骼上所有子骨骼节点。这里暂时先选择第一种方案
-	//	// Bone的渲染不能直接调用render(Geometry*)，因为Bone需要考虑所有父骨骼的变换
-	//	// 另外，Bone并不继承自Geometry，Bone和Geometry仅仅是组合关系
-
-	//	if (this->shader == nullptr) {
-	//		bindShader(DefaultShader::getDefaultShader());	// 如果没有预先bindShader，则绑定默认的shader
-	//	}
-	//	shader->use();
-	//	// 传入model矩阵、modelBuffer矩阵 （顶点着色器）
-	//	(*shader)["model"] = obj->getTransMatrix() * obj->getObj()->transform.getMatrix();		// model使用的是Bone的transMatrix(所有父骨骼变换)和Geometry的model(自身只有旋转没有位移的变换)矩阵的乘积
-	//	(*shader)["modelBuffer"] = obj->getObj()->getModelBufferMatrix();									// modelBuffer使用的是Bone的Geometry成员自身的
-	//	// 传入材质信息 （片段着色器）
-	//	shader->loadAttribute(obj->getObj()->getAttribute());
-
-	//	// 绘图
-	//	glBindVertexArray(obj->getObj()->getVAO());
-	//	glDrawElements(GL_TRIANGLES, obj->getObj()->getVAOLength(), GL_UNSIGNED_INT, 0);
-	//	glBindVertexArray(0);
-	//}
-	//void render(Skeleton* obj) {
-	//	// 遍历，渲染所有骨骼节点
-	//	std::deque<Bone*> buf{ obj->getRoot() };
-	//	Bone* tmp = nullptr;
-	//	while (!buf.empty()) {
-	//		tmp = buf.front();
-	//		buf.pop_front();
-	//		render(tmp);
-	//		for (auto& child : tmp->getChildren()) {
-	//			buf.push_back(child);
-	//		}
-	//	}
-	//}
-
-	//void render(Leaf* obj) {
-	//	if (obj->isChangedMesh())
-	//		obj->updateMesh();
-	//	render(dynamic_cast<Geometry*>(obj));
-	//}
-
-	//void render(Combination* obj) {
-	//	std::vector<Geometry*> children = obj->getChildren();
-	//	for (int i = 0; i < children.size(); i++) {
-	//		// 此时，child是一个Geometry*  （暂时不考虑child可能是Combination*的情况）
-	//		// child的modelBuffer需要被考虑，其model在加入Combination时被复位
-	//		// Combination自身的model和modelBuffer需要被考虑，其childModel在加入Combination时被置为对应child的model
-	//		shader->use();
-	//		(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
-	//		(*shader)["model"] = (obj->transform.getMatrix()) * obj->getChildModel(i) * (children[i]->transform.getMatrix()) * (children[i]->getModelBufferMatrix());
-	//		shader->loadAttribute(children[i]->getAttribute());
-	//		glBindVertexArray(children[i]->getVAO());
-	//		glDrawElements(GL_TRIANGLES, children[i]->getVAOLength(), GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//	}
-	//}
 };
 
 #endif

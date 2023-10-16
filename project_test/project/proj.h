@@ -5,11 +5,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-//#include <ctime>
-//#include <chrono>
 #include <functional>
 #include <vector>
 #include <deque>
+#include <cmath>
 
 #include "GLAD/glad.h"
 #include "GLFW/glfw3.h"
@@ -39,6 +38,7 @@ typedef struct _vec4 {
 }vec4;
 
 typedef struct _LeafInfo {
+	float length = 1.0f;				// Ò¶³¤
 	float theta = 0.2f;				// Ò¶¿íÒò×Ó
 	float k = 5.0f;						// Ò¶Æ¬ÍäÇúÏµÊý
 	float SLAngle = 30.0f;			// ¾¥Ò¶¼Ð½Ç

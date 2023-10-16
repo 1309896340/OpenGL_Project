@@ -29,7 +29,13 @@ int main(int argc, char** argv) {
 	camera = new Camera(glm::vec3(-0.4f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 	Scene scene(camera);
 
-	Axis* axis = new Axis();
+	leaf = new Leaf(1.0f, 0.2f);
+	Leaf b(3.0f, 0.1f);
+	Cylinder stalk(0.1f, 1.0f);
+	stalk.addChild(leaf, Transform(glm::vec3(0.0f, 1.0f, 0.0f)));
+	stalk.addChild(&b, Transform(glm::vec3(0.0f, 0.5f, 0.0f), 135.0f, _up));
+
+	Axis axis;
 	//Arrow axis_x(glm::vec3(0.0f, 0.0f, 0.0f), _right, _right);
 	//Arrow axis_y(glm::vec3(0.0f, 0.0f, 0.0f), _up, _up);
 	//Arrow axis_z(glm::vec3(0.0f, 0.0f, 0.0f), -_front, -_front);
@@ -42,8 +48,8 @@ int main(int argc, char** argv) {
 		gui.update();
 		deltaTime = scene.step(&t);
 
-		scene.render(axis);
-
+		scene.render(&axis);
+		scene.render(&stalk);
 
 		gui.render();
 		glfwSwapBuffers(window);

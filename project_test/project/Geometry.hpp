@@ -16,7 +16,6 @@ public:
 	Transform(glm::vec3 position, float angle, glm::vec3 axis) :position(position), _scale(glm::vec3(1.0f)), rotation(glm::identity<glm::quat>()) {
 		rotate(angle, axis);
 	}
-
 	void scale(glm::vec3 xyz) {
 		_scale *= xyz;
 	}
@@ -54,7 +53,6 @@ public:
 		return Tmat;
 	}
 };
-
 class Drawable {
 public:
 	virtual void draw() = 0;
@@ -65,7 +63,6 @@ class Mesh : public Drawable {
 private:
 	unsigned int uSize{ 0 }, vSize{ 0 };		// u为第几行，v为第几列
 	GLuint VAO{ 0 }, VBO[3]{ 0,0,0 };
-
 	Shader* shader{ nullptr };
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
@@ -124,6 +121,18 @@ public:
 		}
 		glUnmapNamedBuffer(VBO[0]);
 	}
+	vec3* getVertexPositionPtr() {
+		return (vec3*)glMapNamedBuffer(VBO[0], GL_WRITE_ONLY);
+	}
+	void closeVertexPositionPtr() {
+		glUnmapNamedBuffer(VBO[0]);
+	}
+	vec3* getVertexNormalPtr() {
+		return (vec3*)glMapNamedBuffer(VBO[1], GL_WRITE_ONLY);
+	}
+	void closeVertexNormalPtr() {
+		glUnmapNamedBuffer(VBO[1]);
+	}
 	void updateVertexNormalByFunc(std::function<vec3(unsigned int, unsigned int)> func) {
 		vec3* normal_ptr = (vec3*)glMapNamedBuffer(VBO[1], GL_WRITE_ONLY);
 		assert(normal_ptr);
@@ -134,7 +143,6 @@ public:
 		}
 		glUnmapNamedBuffer(VBO[1]);
 	}
-
 	void updateVertexNormalByFunc(std::function<vec3(float, float, float)> func) {
 		vec3* vbo_ptr = (vec3*)glMapNamedBuffer(VBO[0], GL_READ_ONLY);
 		vec3* normal_ptr = (vec3*)glMapNamedBuffer(VBO[1], GL_WRITE_ONLY);
@@ -159,7 +167,6 @@ public:
 	unsigned int getIndexSize() {
 		return (uSize - 1) * (vSize - 1) * 6;
 	}
-
 	virtual void draw() {		// Mesh对象可以单独绘制，但其没有model和modelBuffer，采用位置相关的自动颜色
 		shader->use();
 		(*shader)["modelBuffer"] = glm::mat4(1.0f);
@@ -171,33 +178,20 @@ public:
 	}
 };
 
-/*
-struct Object {
-  mat4 transform;
-  const Object* parent;
-  std::vector<const Object*> children;
-  const Mesh* mesh;
-};
-*/
 class Geometry : public Drawable {
-	// Geometry没有生成网格，但已经实现了draw()，直接调用会报错
-	// 网格在子类构造函数中生成
+	// Geometry没有生成网格，但已经实现了draw()，直接调用会报错。网格在子类构造函数中生成
 private:
 protected:
 	glm::mat4 modelBuffer{ glm::mat4(1.0f) };
-
 	Geometry* parent{ nullptr };
 	std::vector<Geometry*> children;
 	std::vector<Mesh*> meshes;
-
 	Shader* shader{ nullptr };
 public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
 	uniformTable attribute;
-
 	Geometry() :shader(DefaultShader::getDefaultShader()) {}
-
 	~Geometry() {		// 仅删除当前对象，还是删除所有子对象？选择后者
 		for (auto& child : getChildren())
 			delete child;		// 这里会递归删除所有子对象
@@ -206,7 +200,6 @@ public:
 		}
 		meshes.clear();
 	}
-
 	Shader* getShader() {
 		return shader;
 	}
@@ -222,8 +215,7 @@ public:
 	}
 
 	virtual void pose() = 0;
-
-	// 预变换相关
+	// 预变换
 	glm::mat4 getModelBufferMatrix() {
 		return modelBuffer;
 	}
@@ -231,7 +223,6 @@ public:
 		modelBuffer = (model.getMatrix()) * modelBuffer;
 		model.reset();
 	}
-
 	// 姿态变换
 	void translate(glm::vec3 dxyz) {
 		model.translate(dxyz);
@@ -264,7 +255,7 @@ public:
 	void scaleTo(float axis_x, float axis_y, float axis_z) {
 		model.scaleTo(glm::vec3(axis_x, axis_y, axis_z));
 	}
-
+	// 树结构操作
 	void addChild(Geometry* obj, const Transform& offset = Transform()) {		// 添加的时候需要指明子节点(pose后的)起点位置相对于父节点在其pose坐标系的位置偏移
 		if (obj != nullptr) {
 			obj->setParent(this);
@@ -276,7 +267,6 @@ public:
 	void setParent(Geometry* obj) {
 		this->parent = obj;
 	}
-
 	glm::mat4 getFinalOffset() {	 // 根据所有父节点计算当前节点的偏移矩阵
 		glm::mat4 offsetMatrix(offset.getMatrix());
 		Geometry* cur = this;
@@ -286,8 +276,7 @@ public:
 		}
 		return offsetMatrix;
 	}
-
-	virtual void draw() {
+	void drawAll() {
 		std::deque<Geometry*> buf{ this };
 		Shader* sd = nullptr;
 		while (!buf.empty()) {
@@ -295,23 +284,21 @@ public:
 			buf.pop_front();
 			for (auto& child : cur->getChildren())
 				buf.push_back(child);
-			// 渲染cur,cur的model矩阵应当通过计算所有父节点的offset得到
-			sd = cur->getShader();
-			sd->use();
-			(*sd)["modelBuffer"] = cur->getModelBufferMatrix();
-			(*sd)["model"] = (cur->getFinalOffset()) * (cur->model.getMatrix());
-
-			sd->loadAttribute(cur->attribute);
-			for (auto& mesh : cur->getMeshes()) {
-				glBindVertexArray(mesh->getVAO());
-				glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
-				glBindVertexArray(0);
-			}
+			cur->draw();
 		}
 	}
-
+	virtual void draw() {
+		shader->use();
+		(*shader)["modelBuffer"] = getModelBufferMatrix();
+		(*shader)["model"] = getFinalOffset() * model.getMatrix();
+		shader->loadAttribute(attribute);
+		for (auto& mesh : meshes) {
+			glBindVertexArray(mesh->getVAO());
+			glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
+		}
+	}
 };
-
 class Cube : public Geometry {
 private:
 	int xSliceNum, ySliceNum, zSliceNum;
@@ -571,14 +558,13 @@ public:
 			rotate_axis = glm::vec3(0.0f, 0.0f, 1.0f);
 			rotate_radian = PI;
 		}
-		body->rotate(rotate_radian * 180.0 / PI, rotate_axis);
+		body->rotate(rotate_radian * 180.0f / PI, rotate_axis);
 	}
 	virtual void pose() {}
-	virtual void draw() {
-		this->Geometry::draw();
-	}
+	//virtual void draw() {
+	//	this->Geometry::draw();
+	//}
 };
-
 class Axis : public Geometry {
 	// 用于描述一个局部坐标系，采用三个箭头表示
 private:
@@ -600,52 +586,67 @@ public:
 		// 无需重复删除
 	}
 	virtual void pose() {}
-	virtual void draw() {
-		this->Geometry::draw();
-	}
+	//virtual void draw() {
+	//	this->Geometry::draw();
+	//}
 };
-
-
-class Leaf :public Geometry {
+class Leaf : public Geometry {
 private:
-	float width, height;
+	float width, height{1.0f};
 	unsigned int wSliceNum, hSliceNum;
 
-	float k = 4.4f, SLAngle = 30.0f, MVAngle = 0.0f, theta = 0.2f;				// k为叶片弯曲程度，SLAngle为叶片弯曲角度，theta为叶宽因子
-	bool isChanged = false;												// 标记叶片网格是否被改变
-
-	const unsigned int u_degree = 3, v_degree = 2;		// u为长度分割，v为宽度分割
+	float k = 4.4f, SLAngle = 30.0f, MVAngle = 0.0f, theta = 0.4f;
+	bool isChanged = false;
 
 	float wFunc(float h) {
-		// 生成叶片宽度关于长度的函数
-		return (-1.0f / powf(height, 2) * powf(h, 2) + 2 * theta / height * h + (1 - 2 * theta)) * width / powf(1 - theta, 2);
+		return (-1.0f / powf(height, 2.0f) * h * h + 2.0f * theta / height * h + (1.0f - 2.0f * theta)) * width / powf(1.0f - theta, 2.0f);
+	}
+public:
+	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) :height(height), width(width), hSliceNum(hSliceNum), wSliceNum(wSliceNum) {
+		if (!shader)
+			shader = DefaultShader::getDefaultShader();
+		meshes.push_back(new Mesh(hSliceNum + 1, wSliceNum + 1));
+		meshes[0]->connect();
+
+		updateVertex();		// 同时更新坐标位置和法向量
+
+		// 默认绿色
+		attribute = { false, glm::vec4(0.0f,1.0f,0.0f,1.0f) };
+
+		model.reset();
+		pose();
 	}
 
-public:
-
-	void updateMesh() {		// 在scene的render(Leaf)中判断isChanged为true后调用此函数更新网格，后将isChanged置为false
-		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
-		std::vector<vec3> vertex(hwNum1, { 0 });
-		float x, z, x_rt;
-
+	void updateVertex() {
 		float x_accum = 0.0f, y_accum = 0.0f;
 		float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);
 		float ds = height / hSliceNum;
 		float tmp, frac, costheta, sintheta;
-		vec4 tp;
-		glm::vec3 offset, axis;
+		float x_rt, x, z, z_rt;
+		glm::vec3 _offset, _axis;
 		glm::mat4 trans(1.0f);
+		vec4 tp;
 
+		vec3* ptr = meshes[0]->getVertexPositionPtr();
+		vec3* norm_ptr = meshes[0]->getVertexNormalPtr();
+
+		tmp = b;
+		frac = sqrtf(1.0f + tmp * tmp);
+		costheta = 1.0f / frac;
+		sintheta = tmp / frac;
 		for (unsigned int i = 0; i <= hSliceNum; i++) {
 			x_rt = (float)i / hSliceNum;
 			x = x_rt * height;
+			z_rt = wFunc(x);
 			for (unsigned int j = 0; j <= wSliceNum; j++) {
-				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
+				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * z_rt;
 				// 进行主脉旋转
-				tp = toVec(trans * glm::vec4(x_accum, y_accum, z, 1.0f));
-				vertex[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
+				tp = toVec(trans * glm::vec4(x_accum, y_accum, z, 1.0f));			// 坐标旋转
+				ptr[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
+				// 法线旋转
+				tp = toVec(glm::transpose(glm::inverse(trans)) * glm::vec4(x_accum, y_accum, z, 1.0f));
+				norm_ptr[i * (wSliceNum + 1) + j] = { tp.x,tp.y,tp.z };
 			}
-			// 计算x和y的新坐标
 			tmp = 2.0f * a * x + b;
 			frac = sqrtf(1.0f + tmp * tmp);
 			costheta = 1.0f / frac;
@@ -653,59 +654,29 @@ public:
 			x_accum += ds * costheta;
 			y_accum += ds * sintheta;
 			// 相同长度分位点、不同宽度分位点的节点，使用相同的旋转矩阵进行变换，不知道这里是否应该用compute shader实现更好
-			offset = glm::vec3(x_accum, y_accum, 0.0f);
-			axis = glm::vec3(costheta, sintheta, 0.0f);
-			trans = glm::translate(glm::mat4(1.0f), offset);
-			trans = glm::rotate(trans, glm::radians(MVAngle * x_rt), axis);
-			trans = glm::translate(trans, -offset);
+			_offset = glm::vec3(x_accum, y_accum, 0.0f);
+			_axis = glm::vec3(costheta, sintheta, 0.0f);
+			trans = glm::translate(glm::mat4(1.0f), _offset);
+			trans = glm::rotate(trans, glm::radians(MVAngle * x_rt), _axis);
+			trans = glm::translate(trans, -_offset);
 		}
+		meshes[0]->closeVertexPositionPtr();
+		meshes[0]->closeVertexNormalPtr();
 
-		//updateVertexPosition(VAO, VBO[0], vertex);
-		isChanged = false;
+	}
+	virtual void pose() {}
+	virtual void draw() {
+		if (isChanged) {
+			updateVertex();
+			isChanged = false;
+		}
+		Geometry::draw();
 	}
 
-	Leaf(float width, float height, unsigned int wSliceNum, unsigned int hSliceNum) :
-		Geometry(), width(width), height(height), hSliceNum(hSliceNum), wSliceNum(wSliceNum), theta(0.35f) {
-
-		// 不使用NURBS曲面，直接连线
-		int hwNum = hSliceNum * wSliceNum, hwNum1 = (hSliceNum + 1) * (wSliceNum + 1);
-
-		std::vector<vec3> vertex(hwNum1, { 0 });
-		std::vector<vec3> normal(hwNum1, { 0 });	// 没有生成法向量
-		std::vector<GLuint> index(hwNum1 * 6, 0);
-
-		float x, z;
-		float x_accum = 0.0f, y_accum = 0.0f;
-		float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);
-		float ds = height / hSliceNum;
-		float tmp, frac, costheta, sintheta;
-
-		for (unsigned int i = 0; i <= hSliceNum; i++) {
-			x = (float)i / hSliceNum * height;
-			for (unsigned int j = 0; j <= wSliceNum; j++) {
-				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * wFunc(x);
-				vertex[i * (wSliceNum + 1) + j] = { x_accum, y_accum, z };
-				if (i < hSliceNum && j < wSliceNum) {
-					unsigned int* ptr = &index[(i * wSliceNum + j) * 6];
-					*ptr++ = i * (wSliceNum + 1) + j;
-					*ptr++ = i * (wSliceNum + 1) + j + 1;
-					*ptr++ = (i + 1) * (wSliceNum + 1) + j + 1;
-					*ptr++ = i * (wSliceNum + 1) + j;
-					*ptr++ = (i + 1) * (wSliceNum + 1) + j + 1;
-					*ptr++ = (i + 1) * (wSliceNum + 1) + j;
-				}
-			}
-			// 计算x和y的新坐标  figure out new x and y 
-			tmp = 2.0f * a * x + b;
-			frac = sqrtf(1.0f + tmp * tmp);
-			costheta = 1.0f / frac;
-			sintheta = tmp / frac;
-			x_accum += ds * costheta;
-			y_accum += ds * sintheta;
-		}
-		//prepareVAO(vertex, normal, index, &VAO, VBO, &index_size);
+	void setLength(float length) {
+		this->height = length;
+		isChanged = true;
 	}
-
 	void setTheta(float theta) {
 		this->theta = theta;
 		isChanged = true;
