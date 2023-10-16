@@ -9,6 +9,7 @@ GLuint loadProgram(std::string vertexSource, std::string fragmentSource);
 GLuint loadProgramFromFile(std::string vertexSourcePath, std::string fragmentSourcePath);
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v);
+std::ostream& operator<<(std::ostream& os, const glm::mat4& m);
 
 void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal, const std::vector<GLuint>& index, GLuint* VAO, GLuint* VBO, GLsizei* length);
 void updateVertexPosition(GLuint VAO, GLuint VBO, std::vector<vec3> vertex);

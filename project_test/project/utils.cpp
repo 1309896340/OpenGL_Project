@@ -11,7 +11,7 @@ void prepareVAO(const std::vector<vec3>& vertex, const std::vector<vec3>& normal
 	// 默认VBO[0]为顶点坐标，VBO[1]为法向量，VBO[2]为索引
 	glGenVertexArrays(1, VAO);
 	glBindVertexArray(*VAO);
-	if(length)
+	if (length)
 		*length = (GLsizei)index.size();
 
 	glGenBuffers(1, VBO);
@@ -82,6 +82,19 @@ GLuint loadProgram(std::string vertexSource, std::string fragmentSource) {
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
 	os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+	return os;
+}
+std::ostream& operator<<(std::ostream& os, const glm::mat4& m) {
+	for (unsigned int i = 0; i < 4; i++) {
+		os << "(";
+		for (unsigned int j = 0; j < 4; j++) {
+			os << m[j][i];		// 由于是列主序，因此i表示列，j表示行
+			if(j!=3)
+				os << ",\t";
+		}
+		os << ")\n";
+	}
+	os << std::endl;
 	return os;
 }
 

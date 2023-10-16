@@ -13,6 +13,9 @@ private:
 public:
 	Transform() :position(glm::vec3(0.0f)), _scale(glm::vec3(1.0f)), rotation(glm::identity<glm::quat>()) {}
 	Transform(glm::vec3 position) :position(position), _scale(glm::vec3(1.0f)), rotation(glm::identity<glm::quat>()) {}
+	Transform(glm::vec3 position, float angle, glm::vec3 axis) :position(position), _scale(glm::vec3(1.0f)), rotation(glm::identity<glm::quat>()) {
+		rotate(angle, axis);
+	}
 
 	void scale(glm::vec3 xyz) {
 		_scale *= xyz;
@@ -21,7 +24,7 @@ public:
 		_scale = xyz;
 	}
 	void rotate(float angle, glm::vec3 axis) {
-		rotation = glm::angleAxis(angle, glm::normalize(axis)) * rotation;
+		rotation = glm::angleAxis(glm::radians(angle), glm::normalize(axis)) * rotation;
 	}
 	void translate(glm::vec3 dxyz) {
 		position = position + dxyz;
@@ -36,6 +39,12 @@ public:
 	}
 	glm::quat getRotation() {
 		return rotation;
+	}
+	void setRotation(glm::quat q) {
+		rotation = q;
+	}
+	glm::vec3 getPosition() {
+		return position;
 	}
 	glm::mat4 getMatrix() {
 		glm::mat4 Tmat(1.0f);
@@ -213,7 +222,7 @@ public:
 
 	virtual void pose() {
 		// 设置一个默认的姿态，可以在子类中实现不同的姿态变换
-		model.rotate(glm::radians(-90.0f), _right);
+		model.rotate(-90.0f, _right);
 		applyTransform();
 	}
 
@@ -242,13 +251,28 @@ public:
 	void scaleTo(glm::vec3 xyz) {
 		model.scaleTo(xyz);
 	}
+	// 适配其他参数
+	void translate(float dx, float dy, float dz) {
+		model.translate(glm::vec3(dx, dy, dz));
+	}
+	void translateTo(float x, float y, float z) {
+		model.translateTo(glm::vec3(x, y, z));
+	}
+	void rotate(float angle, float axis_x, float axis_y, float axis_z) {
+		model.rotate(angle, glm::vec3(axis_x, axis_y, axis_z));
+	}
+	void scale(float axis_x, float axis_y, float axis_z) {
+		model.scale(glm::vec3(axis_x, axis_y, axis_z));
+	}
+	void scaleTo(float axis_x, float axis_y, float axis_z) {
+		model.scaleTo(glm::vec3(axis_x, axis_y, axis_z));
+	}
 
-	void addChild(Geometry* obj) {
+
+	void addChild(Geometry* obj, const Transform& offset) {		// 添加的时候需要指明子节点(pose后的)起点位置相对于父节点在其pose坐标系的位置偏移
 		if (obj != nullptr) {
 			obj->setParent(this);
-			// 将子对象的offset设置为其model，并将其model重置为单位阵，将shader设置为父对象的shader
-			obj->offset = obj->model;
-			obj->model.reset();
+			obj->offset = offset;
 			obj->setShader(shader);;
 			children.push_back(obj);
 		}
@@ -262,7 +286,7 @@ public:
 		Geometry* cur = this;
 		while (cur->parent) {
 			cur = cur->parent;
-			offsetMatrix = cur->offset.getMatrix() * offsetMatrix;
+			offsetMatrix =  (cur->offset.getMatrix()) * (cur->model.getMatrix()) * offsetMatrix;
 		}
 		return offsetMatrix;
 	}
@@ -279,7 +303,12 @@ public:
 			sd = cur->getShader();
 			sd->use();
 			(*sd)["modelBuffer"] = cur->getModelBufferMatrix();
-			(*sd)["model"] = getFinalOffset() * (cur->model.getMatrix());
+			(*sd)["model"] = (cur->getFinalOffset()) * (cur->model.getMatrix());
+
+			//std::cout << "当前obj：\n" << cur << std::endl;
+			//std::cout << "当前offset：\n" << getFinalOffset() << std::endl;
+			//std::cout << "cur的model：\n" << cur->model.getMatrix() << std::endl;
+
 			sd->loadAttribute(cur->attribute);
 			for (auto& mesh : cur->getMeshes()) {
 				glBindVertexArray(mesh->getVAO());
@@ -288,6 +317,7 @@ public:
 			}
 		}
 	}
+
 };
 
 class Cube : public Geometry {
@@ -439,7 +469,7 @@ public:
 	}
 	virtual void pose() {
 		// 设置一个默认的姿态，可以在子类中实现不同的姿态变换
-		model.rotate(glm::radians(-90.0f), _right);
+		model.rotate(-90.0f, _right);
 		model.translateTo(glm::vec3(0.0f, height / 2.0f, 0.0f));
 		applyTransform();
 	}
@@ -736,8 +766,8 @@ public:
 		body->rotate(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		body->translate(glm::vec3(0, -arrowLengthRatio / 2.0f * length, 0));
 
-		this->addChild(arrow);
-		this->addChild(body);
+		this->addChild(arrow, Transform());
+		this->addChild(body, Transform());
 		// 此时两者组合在一起，构成以原点为中点的箭头
 
 		update();

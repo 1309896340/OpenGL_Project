@@ -29,32 +29,18 @@ int main(int argc, char** argv) {
 
 	//Axis* axis = new Axis();
 
-	Geometry* a1 = new Cylinder(0.1f, 1.0f);
-	Geometry* a2 = new Cylinder(0.1f, 1.0f);
-	Geometry* a3 = new Cylinder(0.1f, 1.0f);
-	a2->translate(glm::vec3(0.0f, 1.0f, 0.0f));
-	//a3->translate(glm::vec3(0.0f, 2.0f, 0.0f));
-	a2->rotate(glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//a3->rotate(glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	a1->addChild(a2);
-	//a2->addChild(a3);
+	Geometry* a1 = new Cylinder(0.05f, 1.0f);
+	Geometry* a2 = new Cylinder(0.05f, 1.0f);
+	Geometry* a3 = new Cylinder(0.05f, 1.0f);
 
-	//Geometry* cube = new Cube(1.2f, 0.6f, 0.3f);
-	//Geometry* sphere = new Sphere(0.6f);
-	//Geometry* cylinder = new Cylinder(0.1f, 1.0f);
-	//Geometry* cone = new Cone(0.4f, 0.8f);
+	Geometry* tmp = new Cylinder(0.05f, 1.0f);
 
-	//cube->translateTo(glm::vec3(-1.5f, 0.0f, 0.0f));
-	//sphere->translateTo(glm::vec3(0.0f, 0.0f, 0.0f));
-	//cylinder->translateTo(glm::vec3(1.0f, 0.0f, 0.0f));
-	//cone->translateTo(glm::vec3(2.0f, 0.0f, 0.0f));
+	a3->rotate(15.0f, _front);
+	a2->rotate(-45.0f, _front);
+	a2->addChild(a3, Transform(glm::vec3(0.0f, 1.0f, 0.0f), 45.0f, _front));
+	a1->addChild(a2, Transform(glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, _front));
 
-	//leaf = new Leaf(0.2f, 3.0f, 5, 30);
-	//leaf->translateTo(glm::vec3(0.1f, 0.95f, 0.0f));
-
-	//Combination* com = new Combination();
-	//com->add(leaf);
-	//com->add(stalk);
+	a2->addChild(tmp, Transform(glm::vec3(0.0f, 1.0f, 0.0f), 45.0f, _front));
 
 	float t = 0.0f;
 	while (!glfwWindowShouldClose(window)) {
@@ -70,6 +56,11 @@ int main(int argc, char** argv) {
 			std::cout << "FPS: " << 1.0f / deltaTime << std::endl;
 		}
 
+		a2->rotate(-80.0f * deltaTime, _up);
+		a3->rotate(200.0f * deltaTime, _up);
+		//
+		//std::cout << "a3 getFinalOffset\n" << a3->getFinalOffset() << std::endl;
+
 		//scene.render(axis);
 		//scene.render(leaf);
 		//scene.render(com);
@@ -77,8 +68,8 @@ int main(int argc, char** argv) {
 		//scene.render(sphere);
 		//scene.render(cylinder);
 		//scene.render(cone);
+		//scene.render(a1);
 		scene.render(a1);
-		//scene.render(a2);
 		//scene.render(a3);
 
 		gui.render();
