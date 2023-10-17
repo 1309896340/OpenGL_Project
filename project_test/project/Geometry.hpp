@@ -686,7 +686,7 @@ public:
 			isChanged = false;
 		}
 		Geometry::draw(sd);
-		Geometry::draw(NormalShader::getShader());		// 绘制法向量
+		//Geometry::draw(NormalShader::getShader());		// 绘制法向量，所有Leaf对象都绘制
 	}
 
 	void setLength(float length) {

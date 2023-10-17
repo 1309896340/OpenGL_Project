@@ -46,15 +46,12 @@ int main(int argc, char** argv) {
 		gui.update();
 		deltaTime = scene.step(&t);
 
-		stalk.rotate(deltaTime*20.0f,_up);
+		stalk.rotate(deltaTime * 20.0f, _up);
 
 		scene.render(&axis);
 		scene.render(&stalk);
 
-		//leaf_a.setShader(NormalShader::getShader());
-		//scene.render(leaf);
-		//leaf_a.setShader(DefaultShader::getShader());
-
+		scene.render(leaf, NormalShader::getShader());			// 绘制法向量，只绘制leaf的法向量
 
 		gui.render();
 		glfwSwapBuffers(window);

@@ -95,6 +95,9 @@ public:
 		// Geometry需要考虑子节点
 		obj->drawAll();
 	}
+	void render(Leaf* obj, Shader *shader) {
+		obj->draw(shader);
+	}
 };
 
 #endif
