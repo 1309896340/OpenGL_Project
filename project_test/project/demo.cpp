@@ -51,9 +51,9 @@ int main(int argc, char** argv) {
 		scene.render(&axis);
 		scene.render(&stalk);
 
-		leaf_a.setShader(NormalShader::getShader());
-		scene.render(leaf);
-		leaf_a.setShader(DefaultShader::getShader());
+		//leaf_a.setShader(NormalShader::getShader());
+		//scene.render(leaf);
+		//leaf_a.setShader(DefaultShader::getShader());
 
 
 		gui.render();

@@ -680,12 +680,13 @@ public:
 
 	}
 	virtual void pose() {}
-	virtual void draw() {
-		if (isChanged) {
+	virtual void draw(Shader *sd) {
+		if (isChanged) {		// 如果参数发生变化，重新计算顶点位置和法向量
 			updateVertex();
 			isChanged = false;
 		}
-		Geometry::doDraw();
+		Geometry::draw(sd);
+		Geometry::draw(NormalShader::getShader());		// 绘制法向量
 	}
 
 	void setLength(float length) {
