@@ -4,7 +4,7 @@ LineStructure lineManager;
 
 void initLineDrawing(Shader* shader) {
 	if(shader == nullptr)
-		lineManager.shader = DefaultShader::getDefaultShader();
+		lineManager.shader = DefaultShader::getShader();
 	else
 		lineManager.shader = shader;
 	glGenBuffers(1, &lineManager.vbo_line);

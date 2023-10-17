@@ -67,7 +67,7 @@ private:
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
 		if (!shader)
-			shader = DefaultShader::getDefaultShader();
+			shader = DefaultShader::getShader();
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
@@ -191,7 +191,7 @@ public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
 	uniformTable attribute;
-	Geometry() :shader(DefaultShader::getDefaultShader()) {}
+	Geometry() :shader(DefaultShader::getShader()) {}
 	~Geometry() {		// 仅删除当前对象，还是删除所有子对象？选择后者
 		for (auto& child : getChildren())
 			delete child;		// 这里会递归删除所有子对象
@@ -308,7 +308,7 @@ public:
 		Geometry(), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
 		xLength(xLength), yLength(yLength), zLength(zLength) {
 		if (!shader)
-			shader = DefaultShader::getDefaultShader();
+			shader = DefaultShader::getShader();
 
 		float dx, dy, dz;
 		dx = xLength / xSliceNum;
@@ -604,7 +604,7 @@ private:
 public:
 	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) :height(height), width(width), hSliceNum(hSliceNum), wSliceNum(wSliceNum) {
 		if (!shader)
-			shader = DefaultShader::getDefaultShader();
+			shader = DefaultShader::getShader();
 		meshes.push_back(new Mesh(hSliceNum + 1, wSliceNum + 1));
 		meshes[0]->connect();
 

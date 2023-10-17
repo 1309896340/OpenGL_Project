@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
 	GLFWwindow* window = GLFWinit();
 	GUI gui(window);
 
-	camera = new Camera(glm::vec3(-0.4f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+	camera = new Camera(glm::vec3(-0.4f, 0.5f, 5.0f), glm::vec3(0.0f, 0.5f, 0.0f));
 	Scene scene(camera);
 
 	Axis axis;
@@ -37,6 +37,9 @@ int main(int argc, char** argv) {
 	stalk.addChild(&leaf_a, Transform(glm::vec3(0.0f, 1.0f, 0.0f)));
 	stalk.addChild(&leaf_b, Transform(glm::vec3(0.0f, 0.5f, 0.0f), 180.0f, _up));
 
+
+	Shader* nshader = NormalShader::getShader();
+
 	float t;
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -46,6 +49,11 @@ int main(int argc, char** argv) {
 
 		scene.render(&axis);
 		scene.render(&stalk);
+
+		leaf_a.setShader(NormalShader::getShader());
+		scene.render(leaf);
+		leaf_a.setShader(DefaultShader::getShader());
+
 
 		gui.render();
 		glfwSwapBuffers(window);

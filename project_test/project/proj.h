@@ -18,8 +18,8 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 
-#define WIDTH 1200
-#define HEIGHT 900
+#define WIDTH 1600
+#define HEIGHT 1200
 #define PI 3.1415926535f
 #define DEFAULT_LINE_WIDTH 0.02f
 #define EPS 1e-7

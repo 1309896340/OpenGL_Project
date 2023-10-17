@@ -55,12 +55,11 @@ public:
 		loadShader(shader, readSource(shaderSourcePath));
 
 		GLint success;
-		GLchar infoLog[512];
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 		if (!success) {
-			GLint length;
-			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-			glGetShaderInfoLog(shader, length * sizeof(GLchar), NULL, infoLog);
+			GLchar infoLog[512];
+			GLsizei length;
+			glGetShaderInfoLog(shader, 512, &length, infoLog);
 			std::cout << "着色器 " << shaderType << " 编译失败！\n" << infoLog << std::endl;			// 调试输出
 		}
 
@@ -108,7 +107,7 @@ public:
 };
 
 
-class DefaultShader :public Shader {
+class DefaultShader :public Shader {		// 饿汉式单例模式
 private:
 	DefaultShader() :Shader("shader/shader.gvs", "shader/shader.gfs") {}
 public:
@@ -116,16 +115,33 @@ public:
 	DefaultShader& operator=(DefaultShader&) = delete;
 	~DefaultShader() = default;
 
-	static DefaultShader* getDefaultShader() {
-		static DefaultShader* shader = nullptr;
-		if (shader == nullptr) {
-			shader = new DefaultShader();
-		}
-		return shader;
+	static DefaultShader* getShader() {
+		static DefaultShader shader;
+		return &shader;
 	}
 
 	virtual void loadAttribute(const uniformTable& attribute) {
 		// 默认着色器定制uniform为颜色配置
+		(*this)["ncolor"] = attribute.color;
+		(*this)["isAuto"] = attribute.autoColor;
+	}
+};
+
+
+class NormalShader :public Shader {
+private:
+	NormalShader() :Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs") {}
+public:
+	NormalShader(NormalShader&) = delete;
+	NormalShader& operator=(NormalShader&) = delete;
+	~NormalShader() = default;
+
+	static NormalShader* getShader() {
+		static NormalShader shader;
+		return &shader;
+	}
+
+	virtual void loadAttribute(const uniformTable& attribute) {
 		(*this)["ncolor"] = attribute.color;
 		(*this)["isAuto"] = attribute.autoColor;
 	}

@@ -21,7 +21,7 @@ private:
 public:
 	GUI(GLFWwindow* window, Shader* shader = nullptr) :window(window), shader(shader) {
 		if (shader == nullptr)
-			shader = DefaultShader::getDefaultShader();
+			shader = DefaultShader::getShader();
 
 		IMGUI_CHECKVERSION();
 

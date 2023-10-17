@@ -29,7 +29,7 @@ public:
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		// 绑定默认的着色器
-		bindShader(DefaultShader::getDefaultShader());
+		bindAllDefaultShader();
 	}
 	Scene(Camera* camera) : currentTime((float)glfwGetTime()) {
 		// 初始化uniform缓冲区
@@ -40,8 +40,13 @@ public:
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 		// 根据Camera初始化Projection和View矩阵
 		setCamera(camera);
+
 		// 绑定默认的着色器
-		bindShader(DefaultShader::getDefaultShader());
+		bindAllDefaultShader();
+	}
+	void bindAllDefaultShader() {
+		bindShader(DefaultShader::getShader());
+		bindShader(NormalShader::getShader());
 	}
 	float step(float *t=nullptr) { // 渲染循环中每一轮调用一次，更新视图变换矩阵，更新计时，并返回时间步长
 		static float t_accum = 0.0f;

@@ -103,22 +103,19 @@
     <None Include="shader\lightShader.gvs">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="shader\nshader.gfs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\nshader.ggs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\nshader.gvs">
-      <Filter>资源文件</Filter>
-    </None>
     <None Include="shader\shader.gfs">
       <Filter>资源文件</Filter>
     </None>
     <None Include="shader\shader.gvs">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="shader.fcs">
+    <None Include="shader\normVisualize.gfs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\normVisualize.ggs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\normVisualize.gvs">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>
