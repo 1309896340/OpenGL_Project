@@ -55,15 +55,14 @@ public:
 };
 class Drawable {
 public:
-	virtual void draw() = 0;
+	virtual void draw(Shader* shader) = 0;
 };
-
 class Mesh : public Drawable {
 	// 通过内存映射直接操作VBO和EBO
 private:
 	unsigned int uSize{ 0 }, vSize{ 0 };		// u为第几行，v为第几列
 	GLuint VAO{ 0 }, VBO[3]{ 0,0,0 };
-	Shader* shader{ nullptr };
+	Shader* shader{ DefaultShader::getShader() };
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
 		if (!shader)
@@ -167,7 +166,9 @@ public:
 	unsigned int getIndexSize() {
 		return (uSize - 1) * (vSize - 1) * 6;
 	}
-	virtual void draw() {		// Mesh对象可以单独绘制，但其没有model和modelBuffer，采用位置相关的自动颜色
+	virtual void draw(Shader* shader = nullptr) {		// Mesh对象可以单独绘制，但其没有model和modelBuffer，采用位置相关的自动颜色
+		if (shader == nullptr)
+			shader = this->shader;
 		shader->use();
 		(*shader)["modelBuffer"] = glm::mat4(1.0f);
 		(*shader)["model"] = glm::mat4(1.0f);
@@ -177,7 +178,6 @@ public:
 		glBindVertexArray(0);
 	}
 };
-
 class Geometry : public Drawable {
 	// Geometry本身没有生成网格
 private:
@@ -186,12 +186,12 @@ protected:
 	Geometry* parent{ nullptr };
 	std::vector<Geometry*> children;
 	std::vector<Mesh*> meshes;
-	Shader* shader{ nullptr };
+	Shader* shader{ DefaultShader::getShader() };
 public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
 	uniformTable attribute;
-	Geometry() :shader(DefaultShader::getShader()) {}
+	Geometry() {}
 	~Geometry() {		// 仅删除当前对象，还是删除所有子对象？选择后者
 		for (auto& child : getChildren())
 			delete child;		// 这里会递归删除所有子对象
@@ -278,26 +278,41 @@ public:
 	}
 	void drawAll() {
 		std::deque<Geometry*> buf{ this };
-		Shader* sd = nullptr;
 		while (!buf.empty()) {
 			Geometry* cur = buf.front();
 			buf.pop_front();
 			for (auto& child : cur->getChildren())
 				buf.push_back(child);
-			cur->draw();
+			cur->doDraw();
 		}
 	}
-	virtual void draw() {
-		shader->use();
-		(*shader)["modelBuffer"] = getModelBufferMatrix();
-		(*shader)["model"] = getFinalOffset() * model.getMatrix();
-		shader->loadAttribute(attribute);
+	void doDraw(Shader* sd = nullptr) {		// 为了避免使用带默认值的纯虚函数，当sd为nullptr时使用默认shader，否则使用传入的shader
+		if (sd == nullptr)
+			sd = this->shader;
+		this->draw(sd);
+	}
+	virtual void draw(Shader* sd) {
+		sd->use();
+		(*sd)["modelBuffer"] = getModelBufferMatrix();
+		(*sd)["model"] = getFinalOffset() * model.getMatrix();
+		sd->loadAttribute(attribute);
 		for (auto& mesh : meshes) {
 			glBindVertexArray(mesh->getVAO());
 			glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
 		}
 	}
+	//virtual void draw() {
+	//	shader->use();
+	//	(*shader)["modelBuffer"] = getModelBufferMatrix();
+	//	(*shader)["model"] = getFinalOffset() * model.getMatrix();
+	//	shader->loadAttribute(attribute);
+	//	for (auto& mesh : meshes) {
+	//		glBindVertexArray(mesh->getVAO());
+	//		glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
+	//		glBindVertexArray(0);
+	//	}
+	//}
 };
 class Cube : public Geometry {
 private:
@@ -592,7 +607,7 @@ public:
 };
 class Leaf : public Geometry {
 private:
-	float width, height{1.0f};
+	float width, height{ 1.0f };
 	unsigned int wSliceNum, hSliceNum;
 
 	float k = 4.4f, SLAngle = 30.0f, MVAngle = 0.0f, theta = 0.4f;
@@ -670,7 +685,7 @@ public:
 			updateVertex();
 			isChanged = false;
 		}
-		Geometry::draw();
+		Geometry::doDraw();
 	}
 
 	void setLength(float length) {

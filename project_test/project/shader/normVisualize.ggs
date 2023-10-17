@@ -11,17 +11,15 @@ layout(std140, binding=0) uniform Matrices{
 out vec4 gcolor;
 
 void main(){
-	mat4 normalMatrix = transpose(inverse(view));
-
 	vec4 a = gl_in[0].gl_Position, b = gl_in[1].gl_Position, c = gl_in[2].gl_Position;
 
-	vec4 center = view * (a + b + c) / 3.0;
-	vec4 norm = normalMatrix * vec4(normalize(cross(vec3(c - a), vec3(b - a))), 0.0);
+	vec4 center = (a + b + c) / 3.0;
+	vec4 norm = vec4(normalize(cross(vec3(c - a), vec3(b - a))), 0.0);
 
 	gcolor = vec4(1.0, 0.0, 1.0, 1.0);
-	gl_Position = projection * center;
+	gl_Position = projection * view * center;
 	EmitVertex();
-	gl_Position = projection * (center + norm*0.06);
+	gl_Position = projection * view * (center + norm*0.06);
 	EmitVertex();
 	EndPrimitive();
 }

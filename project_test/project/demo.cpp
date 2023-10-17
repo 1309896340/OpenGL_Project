@@ -37,7 +37,6 @@ int main(int argc, char** argv) {
 	stalk.addChild(&leaf_a, Transform(glm::vec3(0.0f, 1.0f, 0.0f)));
 	stalk.addChild(&leaf_b, Transform(glm::vec3(0.0f, 0.5f, 0.0f), 180.0f, _up));
 
-
 	Shader* nshader = NormalShader::getShader();
 
 	float t;
@@ -46,6 +45,8 @@ int main(int argc, char** argv) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		gui.update();
 		deltaTime = scene.step(&t);
+
+		stalk.rotate(deltaTime*20.0f,_up);
 
 		scene.render(&axis);
 		scene.render(&stalk);

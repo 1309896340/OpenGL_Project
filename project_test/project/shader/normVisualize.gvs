@@ -3,7 +3,6 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 
-// out vec3 fragPos;
 out vec3 localPos;
 
 layout(std140, binding=0) uniform Matrices{
@@ -14,7 +13,6 @@ uniform mat4 model;
 uniform mat4 modelBuffer;
 
 void main(){
-	gl_Position =  model * modelBuffer * vec4(aPos, 1.0f);
+	gl_Position = model * modelBuffer * vec4(aPos, 1.0f);
 	localPos = aPos;
-	// fragPos = vec3(model * modelBuffer * vec4(aPos, 1.0f));
 }

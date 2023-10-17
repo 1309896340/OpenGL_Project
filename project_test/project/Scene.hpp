@@ -9,7 +9,6 @@ class Scene {
 private:
 	std::vector<Geometry*> objs;
 	Camera* camera{ 0 }; // 当前主相机
-	Shader* shader{ 0 }; // 当前使用的shader
 	GLuint uboBlock{ 0 };
 
 	float lastTime{ 0 }, currentTime{ 0 }, deltaTime{ 0 };
@@ -78,7 +77,6 @@ public:
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
 		glUniformBlockBinding(shader->getID(), glGetUniformBlockIndex(shader->getID(), "Matrices"), matrixBindPoint);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		this->shader = shader;
 	}
 
 	void setCamera(Camera* camera) {	// 即时更新
@@ -91,13 +89,12 @@ public:
 
 	void render(Drawable* obj) {
 		// Drawable不考虑子节点
-		obj->draw();
+		obj->draw(DefaultShader::getShader());
 	}
 	void render(Geometry* obj) {
 		// Geometry需要考虑子节点
 		obj->drawAll();
 	}
-
 };
 
 #endif
