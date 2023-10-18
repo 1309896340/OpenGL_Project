@@ -146,16 +146,16 @@ public:
 //};
 //
 //
-//class ComputeShader : public Shader {
-//public:
-//	ComputeShader(std::string computePath) :Shader() {
-//		compileAndAttachShader(computePath, GL_COMPUTE_SHADER);
-//		link();
-//	}
-//	~ComputeShader() {
-//		glDeleteProgram(ID);
-//	}
-//
-//};
+class ComputeShader : public Shader {
+public:
+	ComputeShader(std::string computePath) :Shader() {
+		compileAndAttachShader(computePath, GL_COMPUTE_SHADER);
+		link();
+	}
+	~ComputeShader() {
+		glDeleteProgram(ID);
+	}
+
+};
 
 #endif

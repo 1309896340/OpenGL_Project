@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 		gui.update();
 		float deltaTime = scene.step(&t);
 
-		//stalk.rotate(deltaTime * 20.0f, _up);
+		stalk.rotate(deltaTime * 20.0f, _up);
 
 		scene.render(&axis);
 		scene.render(&stalk);

@@ -640,8 +640,8 @@ public:
 				tp = toVec(trans * glm::vec4(x_accum, y_accum, z, 1.0f));			// 坐标旋转
 				ptr[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
 				// 法线旋转
-				//tp = toVec(glm::transpose(glm::inverse(trans)) * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));		// 也没问题？
-				tp = toVec(trans * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));
+				tp = toVec(glm::transpose(glm::inverse(trans)) * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));
+				//tp = toVec(trans * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));		// 也没问题？
 				norm_ptr[i * (wSliceNum + 1) + j] = { tp.x,tp.y,tp.z };
 			}
 			tmp = 2.0f * a * x + b;
