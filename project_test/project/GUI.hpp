@@ -3,7 +3,7 @@
 
 #include "proj.h"
 #include "Geometry.hpp"
-#include "Shader.hpp"
+//#include "Shader.hpp"
 
 #include  "imgui.h"
 #include  "backends/imgui_impl_glfw.h"
@@ -16,12 +16,9 @@ extern Leaf *leaf;
 
 class GUI {
 private:
-	GLFWwindow* window = nullptr;
-	Shader* shader = nullptr;
+	GLFWwindow* window{ nullptr };
 public:
-	GUI(GLFWwindow* window, Shader* shader = nullptr) :window(window), shader(shader) {
-		if (shader == nullptr)
-			shader = DefaultShader::getShader();
+	GUI(GLFWwindow* window) :window(window) {
 
 		IMGUI_CHECKVERSION();
 

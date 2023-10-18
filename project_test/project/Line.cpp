@@ -1,10 +1,12 @@
 #include "line.h"
 
+extern Shader *defaultShader;
+
 LineStructure lineManager;
 
 void initLineDrawing(Shader* shader) {
 	if(shader == nullptr)
-		lineManager.shader = DefaultShader::getShader();
+		lineManager.shader = defaultShader;
 	else
 		lineManager.shader = shader;
 	glGenBuffers(1, &lineManager.vbo_line);

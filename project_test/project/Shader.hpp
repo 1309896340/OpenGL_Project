@@ -102,25 +102,7 @@ public:
 		(*this)["modelBuffer"] = modelBuffer;
 	}
 	// 定制化配置uniform
-	virtual void loadAttribute(const uniformTable& attribute) = 0;
-	// 使用loadUniform来实现多态行为，在子类中实现根据不同的着色器加载不同的uniform变量
-};
-
-
-class DefaultShader :public Shader {		// 饿汉式单例模式
-private:
-	DefaultShader() :Shader("shader/shader.gvs", "shader/shader.gfs") {}
-public:
-	DefaultShader(DefaultShader&) = delete;
-	DefaultShader& operator=(DefaultShader&) = delete;
-	~DefaultShader() = default;
-
-	static DefaultShader* getShader() {
-		static DefaultShader shader;
-		return &shader;
-	}
-
-	virtual void loadAttribute(const uniformTable& attribute) {
+	void loadAttribute(const uniformTable& attribute) {
 		// 默认着色器定制uniform为颜色配置
 		(*this)["ncolor"] = attribute.color;
 		(*this)["isAuto"] = attribute.autoColor;
@@ -128,36 +110,52 @@ public:
 };
 
 
-class NormalShader :public Shader {
-private:
-	NormalShader() :Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs") {}
-public:
-	NormalShader(NormalShader&) = delete;
-	NormalShader& operator=(NormalShader&) = delete;
-	~NormalShader() = default;
-
-	static NormalShader* getShader() {
-		static NormalShader shader;
-		return &shader;
-	}
-
-	virtual void loadAttribute(const uniformTable& attribute) {
-		(*this)["ncolor"] = attribute.color;
-		(*this)["isAuto"] = attribute.autoColor;
-	}
-};
-
-
-class ComputeShader : public Shader {
-public:
-	ComputeShader(std::string computePath) :Shader() {
-		compileAndAttachShader(computePath, GL_COMPUTE_SHADER);
-		link();
-	}
-	~ComputeShader() {
-		glDeleteProgram(ID);
-	}
-
-};
+//class DefaultShader :public Shader {		// 饿汉式单例模式
+//private:
+//	DefaultShader() :Shader("shader/shader.gvs", "shader/shader.gfs") {}
+//public:
+//	DefaultShader(DefaultShader&) = delete;
+//	DefaultShader& operator=(DefaultShader&) = delete;
+//	~DefaultShader() = default;
+//
+//	static DefaultShader* getShader() {
+//		static DefaultShader shader;
+//		return &shader;
+//	}
+//
+//};
+//
+//
+//class NormalShader :public Shader {
+//private:
+//	NormalShader() :Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs") {}
+//public:
+//	NormalShader(NormalShader&) = delete;
+//	NormalShader& operator=(NormalShader&) = delete;
+//	~NormalShader() = default;
+//
+//	static NormalShader* getShader() {
+//		static NormalShader shader;
+//		return &shader;
+//	}
+//
+//	virtual void loadAttribute(const uniformTable& attribute) {
+//		(*this)["ncolor"] = attribute.color;
+//		(*this)["isAuto"] = attribute.autoColor;
+//	}
+//};
+//
+//
+//class ComputeShader : public Shader {
+//public:
+//	ComputeShader(std::string computePath) :Shader() {
+//		compileAndAttachShader(computePath, GL_COMPUTE_SHADER);
+//		link();
+//	}
+//	~ComputeShader() {
+//		glDeleteProgram(ID);
+//	}
+//
+//};
 
 #endif

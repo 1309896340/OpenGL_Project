@@ -5,6 +5,8 @@
 #include "proj.h"
 #include "Shader.hpp"
 
+extern Shader *defaultShader;			// 默认着色器，定义在demo.cpp中
+
 class Transform {
 private:
 	glm::vec3 position;
@@ -54,6 +56,10 @@ public:
 	}
 };
 class Drawable {
+protected:
+	Shader* shader{ defaultShader };
+public:
+	Transform model;		// 模型矩阵
 public:
 	virtual void draw(Shader* shader) = 0;
 };
@@ -62,11 +68,8 @@ class Mesh : public Drawable {
 private:
 	unsigned int uSize{ 0 }, vSize{ 0 };		// u为第几行，v为第几列
 	GLuint VAO{ 0 }, VBO[3]{ 0,0,0 };
-	Shader* shader{ DefaultShader::getShader() };
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
-		if (!shader)
-			shader = DefaultShader::getShader();
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
@@ -186,7 +189,6 @@ protected:
 	Geometry* parent{ nullptr };
 	std::vector<Geometry*> children;
 	std::vector<Mesh*> meshes;
-	Shader* shader{ DefaultShader::getShader() };
 public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
@@ -302,17 +304,6 @@ public:
 			glBindVertexArray(0);
 		}
 	}
-	//virtual void draw() {
-	//	shader->use();
-	//	(*shader)["modelBuffer"] = getModelBufferMatrix();
-	//	(*shader)["model"] = getFinalOffset() * model.getMatrix();
-	//	shader->loadAttribute(attribute);
-	//	for (auto& mesh : meshes) {
-	//		glBindVertexArray(mesh->getVAO());
-	//		glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
-	//		glBindVertexArray(0);
-	//	}
-	//}
 };
 class Cube : public Geometry {
 private:
@@ -322,8 +313,6 @@ public:
 	Cube(float xLength, float yLength, float zLength, unsigned  int xSliceNum = 10, unsigned int ySliceNum = 10, unsigned int zSliceNum = 10) :
 		Geometry(), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
 		xLength(xLength), yLength(yLength), zLength(zLength) {
-		if (!shader)
-			shader = DefaultShader::getShader();
 
 		float dx, dy, dz;
 		dx = xLength / xSliceNum;
@@ -576,9 +565,6 @@ public:
 		body->rotate(rotate_radian * 180.0f / PI, rotate_axis);
 	}
 	virtual void pose() {}
-	//virtual void draw() {
-	//	this->Geometry::draw();
-	//}
 };
 class Axis : public Geometry {
 	// 用于描述一个局部坐标系，采用三个箭头表示
@@ -601,9 +587,6 @@ public:
 		// 无需重复删除
 	}
 	virtual void pose() {}
-	//virtual void draw() {
-	//	this->Geometry::draw();
-	//}
 };
 class Leaf : public Geometry {
 private:
@@ -618,8 +601,6 @@ private:
 	}
 public:
 	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) :height(height), width(width), hSliceNum(hSliceNum), wSliceNum(wSliceNum) {
-		if (!shader)
-			shader = DefaultShader::getShader();
 		meshes.push_back(new Mesh(hSliceNum + 1, wSliceNum + 1));
 		meshes[0]->connect();
 
