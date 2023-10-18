@@ -118,5 +118,14 @@
     <None Include="shader\normVisualize.gvs">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="shader\nshader.gfs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\nshader.ggs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\nshader.gvs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

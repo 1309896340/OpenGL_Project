@@ -167,6 +167,9 @@
     <None Include="shader\normVisualize.gfs" />
     <None Include="shader\normVisualize.ggs" />
     <None Include="shader\normVisualize.gvs" />
+    <None Include="shader\nshader.gfs" />
+    <None Include="shader\nshader.ggs" />
+    <None Include="shader\nshader.gvs" />
     <None Include="shader\shader.gfs" />
     <None Include="shader\shader.gvs" />
   </ItemGroup>

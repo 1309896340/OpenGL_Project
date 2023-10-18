@@ -5,7 +5,7 @@
 #include "proj.h"
 #include "Shader.hpp"
 
-extern Shader *defaultShader;			// 默认着色器，定义在demo.cpp中
+extern Shader* defaultShader;			// 默认着色器，定义在demo.cpp中
 
 class Transform {
 private:
@@ -640,7 +640,8 @@ public:
 				tp = toVec(trans * glm::vec4(x_accum, y_accum, z, 1.0f));			// 坐标旋转
 				ptr[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
 				// 法线旋转
-				tp = toVec(glm::transpose(glm::inverse(trans)) * glm::vec4(x_accum, y_accum, z, 1.0f));
+				//tp = toVec(glm::transpose(glm::inverse(trans)) * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));		// 也没问题？
+				tp = toVec(trans * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));
 				norm_ptr[i * (wSliceNum + 1) + j] = { tp.x,tp.y,tp.z };
 			}
 			tmp = 2.0f * a * x + b;
@@ -661,7 +662,7 @@ public:
 
 	}
 	virtual void pose() {}
-	virtual void draw(Shader *sd) {
+	virtual void draw(Shader* sd) {
 		if (isChanged) {		// 如果参数发生变化，重新计算顶点位置和法向量
 			updateVertex();
 			isChanged = false;

@@ -53,6 +53,7 @@ int main(int argc, char** argv) {
 		scene.render(&axis);
 		scene.render(&stalk);
 
+		scene.render(leaf, scene.shaders["normal_v"]);
 
 		gui.render();
 		glfwSwapBuffers(window);
