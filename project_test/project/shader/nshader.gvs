@@ -18,6 +18,6 @@ void main(){
 	gl_Position = view * model * modelBuffer * vec4(aPos, 1.0);
 	localPos = aPos;
 	// normal = normalize(vec3( view * model * modelBuffer * vec4(aNormal, 0.0) ));		// 不知为何这样也可以
-	// normal = normalize(vec3( transpose(inverse(view * model * modelBuffer)) * vec4(aNormal, 0.0) ));
+	normal = normalize(vec3( transpose(inverse(view * model * modelBuffer)) * vec4(aNormal, 0.0) ));
 }
 

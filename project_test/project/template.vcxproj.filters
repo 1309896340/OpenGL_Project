@@ -36,9 +36,6 @@
     <ClCompile Include="interaction.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="line.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="imgui\imgui.cpp">
       <Filter>源文件\ImGui</Filter>
     </ClCompile>
@@ -78,9 +75,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="interaction.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="line.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Camera.hpp">
@@ -125,6 +119,12 @@
       <Filter>资源文件</Filter>
     </None>
     <None Include="shader\nshader.gvs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\line.gfs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\line.gvs">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>

@@ -36,6 +36,7 @@ public:
 	void initShaders() {
 		shaders["normal"] = new Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs");	// 三角面元法线可视化
 		shaders["normal_v"] = new Shader("shader/nshader.gvs", "shader/nshader.ggs", "shader/nshader.gfs");				// 顶点法线可视化	
+		shaders["line"] = new Shader("shader/line.gvs","shader/line.gfs");		// 线段绘制
 	}
 
 	void initUniformBuffer() {
@@ -98,7 +99,7 @@ public:
 
 	void render(Drawable* obj) {
 		// Drawable不考虑子节点
-		obj->draw(shaders["default"]);
+		obj->draw(nullptr);
 	}
 	void render(Geometry* obj) {
 		// Geometry需要考虑子节点

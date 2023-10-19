@@ -5,7 +5,7 @@
 #include "GUI.hpp"
 
 #include "interaction.h"
-#include "line.h"
+//#include "line.h"
 #include "utils.h"
 #include "proj.h"
 
@@ -18,7 +18,7 @@ glm::vec3 _origin = glm::vec3(0.0f, 0.0f, 0.0f);
 StatusInfo status;
 
 Camera* camera = new Camera(glm::vec3(-0.4f, 0.5f, 5.0f), glm::vec3(0.0f, 0.5f, 0.0f));		// 摄像机需要被交互逻辑访问，所以定义为全局变量
-Shader *defaultShader = nullptr;
+Shader* defaultShader = nullptr;
 
 Leaf* leaf = nullptr;		// 交互控制的对象
 
@@ -36,6 +36,8 @@ int main(int argc, char** argv) {
 	Leaf leaf_b(2.0f, 0.2f);
 	Cylinder stalk(0.1f, 1.0f);
 
+	Line line(scene.shaders["line"], { 0.0f,0.0f,0.0f }, { 1.0f,2.0f,1.0f });
+
 	leaf = &leaf_a;		// 交互控制的对象
 
 	stalk.addChild(&leaf_a, Transform(glm::vec3(0.0f, 1.0f, 0.0f)));
@@ -49,9 +51,11 @@ int main(int argc, char** argv) {
 		float deltaTime = scene.step(&t);
 
 		stalk.rotate(deltaTime * 20.0f, _up);
+		line.setStartPoint({ 2 * sinf(t * 4.0f),0.0f,0.0f });
 
 		scene.render(&axis);
 		scene.render(&stalk);
+		scene.render(&line);
 
 		scene.render(leaf, scene.shaders["normal_v"]);
 

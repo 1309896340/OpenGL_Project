@@ -668,7 +668,6 @@ public:
 			isChanged = false;
 		}
 		Geometry::draw(sd);
-		//Geometry::draw(NormalShader::getShader());		// 绘制法向量，所有Leaf对象都绘制
 	}
 
 	void setLength(float length) {
@@ -723,6 +722,49 @@ public:
 	}
 	bool isChangedMesh() {
 		return isChanged;
+	}
+};
+
+class Line :public Drawable {
+	// 线条不需要用网格描述，所以没考虑继承自Geometry
+private:
+	GLuint VAO, VBO;		// 线条只需要两个顶点，不需要索引缓冲区也不需要法向量
+	glm::vec4 color{ 1.0f,0.0f,0.0f,1.0f };
+public:
+	Line(Shader* lineShader, vec3 start = { 0.0f,0.0f,0.0f }, vec3 end = { 0.0f,0.0f,0.0f }) {
+		shader = lineShader;	// 设置线条专用的着色器
+
+		// 初始化线条端点VBO
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * 2, NULL, GL_DYNAMIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
+		glEnableVertexAttribArray(0);
+		glBindVertexArray(0);
+		// 载入线条端点VBO
+		setStartPoint(start);
+		setEndPoint(end);
+	}
+	void setColor(vec4 color) {
+		this->color = toGlm(color);
+	}
+	void setStartPoint(vec3 start) {
+		glNamedBufferSubData(VBO, 0, sizeof(vec3), &start);
+	}
+	void setEndPoint(vec3 end) {
+		glNamedBufferSubData(VBO, sizeof(vec3), sizeof(vec3), &end);
+	}
+
+	virtual void draw(Shader* shader) {
+		if (shader == nullptr)
+			shader = this->shader;
+		shader->use();
+		(*shader)["color"] = color;
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_LINES, 0, 2);
+		glBindVertexArray(0);
 	}
 };
 

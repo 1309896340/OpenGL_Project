@@ -147,7 +147,6 @@
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="imgui\misc\cpp\imgui_stdlib.cpp" />
     <ClCompile Include="interaction.cpp" />
-    <ClCompile Include="line.cpp" />
     <ClCompile Include="Shader.hpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
@@ -156,7 +155,6 @@
     <ClInclude Include="Geometry.hpp" />
     <ClInclude Include="GUI.hpp" />
     <ClInclude Include="interaction.h" />
-    <ClInclude Include="line.h" />
     <ClInclude Include="proj.h" />
     <ClInclude Include="Scene.hpp" />
     <ClInclude Include="utils.h" />
@@ -164,6 +162,8 @@
   <ItemGroup>
     <None Include="shader\lightShader.gfs" />
     <None Include="shader\lightShader.gvs" />
+    <None Include="shader\line.gfs" />
+    <None Include="shader\line.gvs" />
     <None Include="shader\normVisualize.gfs" />
     <None Include="shader\normVisualize.ggs" />
     <None Include="shader\normVisualize.gvs" />
