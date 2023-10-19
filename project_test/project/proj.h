@@ -30,6 +30,10 @@ extern glm::vec3 _right;
 extern glm::vec3 _front;
 extern glm::vec3 _origin;
 
+typedef struct _vec2 {
+	float x, y;
+}vec2;
+
 typedef struct _vec3 {
 	float x, y, z;
 }vec3;

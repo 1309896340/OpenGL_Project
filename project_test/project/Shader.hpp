@@ -102,50 +102,14 @@ public:
 		(*this)["modelBuffer"] = modelBuffer;
 	}
 	// 定制化配置uniform
-	void loadAttribute(const uniformTable& attribute) {
-		// 默认着色器定制uniform为颜色配置
-		(*this)["ncolor"] = attribute.color;
-		(*this)["isAuto"] = attribute.autoColor;
-	}
+	//void loadAttribute(const uniformTable& attribute) {
+	//	// 默认着色器定制uniform为颜色配置
+	//	(*this)["ncolor"] = attribute.color;
+	//	(*this)["isAuto"] = attribute.autoColor;
+	//}
 };
 
 
-//class DefaultShader :public Shader {		// 饿汉式单例模式
-//private:
-//	DefaultShader() :Shader("shader/shader.gvs", "shader/shader.gfs") {}
-//public:
-//	DefaultShader(DefaultShader&) = delete;
-//	DefaultShader& operator=(DefaultShader&) = delete;
-//	~DefaultShader() = default;
-//
-//	static DefaultShader* getShader() {
-//		static DefaultShader shader;
-//		return &shader;
-//	}
-//
-//};
-//
-//
-//class NormalShader :public Shader {
-//private:
-//	NormalShader() :Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs") {}
-//public:
-//	NormalShader(NormalShader&) = delete;
-//	NormalShader& operator=(NormalShader&) = delete;
-//	~NormalShader() = default;
-//
-//	static NormalShader* getShader() {
-//		static NormalShader shader;
-//		return &shader;
-//	}
-//
-//	virtual void loadAttribute(const uniformTable& attribute) {
-//		(*this)["ncolor"] = attribute.color;
-//		(*this)["isAuto"] = attribute.autoColor;
-//	}
-//};
-//
-//
 class ComputeShader : public Shader {
 public:
 	ComputeShader(std::string computePath) :Shader() {

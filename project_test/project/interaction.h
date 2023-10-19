@@ -4,6 +4,7 @@
 #include "proj.h"
 #include "Camera.hpp"
 #include "Geometry.hpp"
+#include "Wheat.hpp"
 
 void framebuff_size_callback(GLFWwindow* window, int width, int height);
 void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods);

@@ -5,6 +5,9 @@
 #include "proj.h"
 #include "Shader.hpp"
 
+
+#include "stb_image.h"
+
 extern Shader* defaultShader;			// 默认着色器，定义在demo.cpp中
 
 class Transform {
@@ -65,9 +68,10 @@ public:
 };
 class Mesh : public Drawable {
 	// 通过内存映射直接操作VBO和EBO
+	// 将材质信息放在Mesh中，同顶点的其他属性一同生成VBO
 private:
 	unsigned int uSize{ 0 }, vSize{ 0 };		// u为第几行，v为第几列
-	GLuint VAO{ 0 }, VBO[3]{ 0,0,0 };
+	GLuint VAO{ 0 }, VBO[4]{ 0,0,0,0 }, texture{ 0 };			// VBO分别为position、normal、index、texture
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
 
@@ -112,6 +116,52 @@ public:
 			}
 		}
 		glUnmapNamedBuffer(VBO[2]);
+	}
+	bool isTexture() {
+		return glIsTexture(texture) == GL_TRUE;
+	}
+	void setTexture(std::string path) {		// 只有在调用到这个函数时，VBO[3]才会被创建
+		int img_width, img_height, img_channels;
+		unsigned char* img_ptr = stbi_load(path.c_str(), &img_width, &img_height, &img_channels, 0);
+
+		if (!img_ptr)
+			throw std::runtime_error("载入纹理图片失败：" + path);
+
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);		// 设置字节对齐格式（默认为4字节对齐
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img_width, img_height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_ptr);	// 填充纹理缓冲区
+		glGenerateMipmap(GL_TEXTURE_2D);		// 为当前绑定的纹理自动生成所有需要的多级渐远纹理
+
+		stbi_image_free(img_ptr);
+
+		// 重新绑定VAO并为顶点添加纹理坐标
+		glBindVertexArray(VAO);
+		glGenBuffers(1, &VBO[3]);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO[3]);
+		glBufferData(GL_ARRAY_BUFFER, getVertexSize() * sizeof(vec2), nullptr, GL_STATIC_DRAW);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(vec2), (void*)0);
+		glEnableVertexAttribArray(2);
+		glBindVertexArray(0);
+		// 目前是将纹理进行均匀采样映射到网格上
+		vec2* texcoord_ptr = (vec2*)glMapNamedBuffer(VBO[3], GL_WRITE_ONLY);
+		for (unsigned int u = 0; u < uSize; u++) {
+			for (unsigned int v = 0; v < vSize; v++) {
+				texcoord_ptr[u * vSize + v] = { (float)v / (vSize - 1), (float)u / (uSize - 1) };
+				//texcoord_ptr[u * vSize + v] = { (float)u / (uSize - 1), (float)v / (vSize - 1) };
+			}
+		}
+		glUnmapNamedBuffer(VBO[3]);
+	}
+	GLuint getTexture() {
+		if (glIsTexture(texture) != GL_TRUE)
+			throw "不能返回非法的texture";
+		return texture;
 	}
 	void updateVertexPositionByFunc(std::function<vec3(unsigned int, unsigned int)> func) {
 		vec3* vbo_ptr = (vec3*)glMapNamedBuffer(VBO[0], GL_WRITE_ONLY);
@@ -169,15 +219,14 @@ public:
 	unsigned int getIndexSize() {
 		return (uSize - 1) * (vSize - 1) * 6;
 	}
-	virtual void draw(Shader* shader = nullptr) {		// Mesh对象可以单独绘制，但其没有model和modelBuffer，采用位置相关的自动颜色
-		if (shader == nullptr)
-			shader = this->shader;
-		shader->use();
-		(*shader)["modelBuffer"] = glm::mat4(1.0f);
-		(*shader)["model"] = glm::mat4(1.0f);
-		shader->loadAttribute({ true, glm::vec4(0.0f,0.0f,0.0f,0.0f) });
+	virtual void draw(Shader* sd) {		// Mesh对象可以单独绘制，但其没有model和modelBuffer，采用位置相关的自动颜色
+		sd->use();
+		(*sd)["modelBuffer"] = glm::mat4(1.0f);
+		(*sd)["model"] = glm::mat4(1.0f);
+		(*sd)["isAuto"] = true;
+		(*sd)["ncolor"] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, getIndexSize(), GL_UNSIGNED_INT, 0);		//
+		glDrawElements(GL_TRIANGLES, getIndexSize(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
 };
@@ -215,7 +264,6 @@ public:
 	std::vector<Mesh*>& getMeshes() {
 		return meshes;
 	}
-
 	virtual void pose() = 0;
 	// 预变换
 	glm::mat4 getModelBufferMatrix() {
@@ -262,7 +310,7 @@ public:
 		if (obj != nullptr) {
 			obj->setParent(this);
 			obj->offset = offset;
-			obj->setShader(shader);;
+			//obj->setShader(shader);		// 不应当将加入的子节点的shader设置为当前节点的shader，而应当保持子节点的shader不变
 			children.push_back(obj);
 		}
 	}
@@ -293,12 +341,15 @@ public:
 			sd = this->shader;
 		this->draw(sd);
 	}
-	virtual void draw(Shader* sd) {
+	virtual void draw(Shader* sd) {			// 如果子类没有重写draw函数，就使用默认的draw函数。但这也意味着必须在fragment shader中定义isAuto和ncolor
 		sd->use();
 		(*sd)["modelBuffer"] = getModelBufferMatrix();
 		(*sd)["model"] = getFinalOffset() * model.getMatrix();
-		sd->loadAttribute(attribute);
+		(*sd)["isAuto"] = attribute.autoColor;
+		(*sd)["ncolor"] = attribute.color;
 		for (auto& mesh : meshes) {
+			if (mesh->isTexture())
+				glBindTexture(GL_TEXTURE_2D, mesh->getTexture());		// 如果网格有材质就绑定，但实际有没有显示，还得看使用了哪个shader
 			glBindVertexArray(mesh->getVAO());
 			glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
@@ -587,142 +638,6 @@ public:
 		// 无需重复删除
 	}
 	virtual void pose() {}
-};
-class Leaf : public Geometry {
-private:
-	float width, height{ 1.0f };
-	unsigned int wSliceNum, hSliceNum;
-
-	float k = 4.4f, SLAngle = 30.0f, MVAngle = 0.0f, theta = 0.4f;
-	bool isChanged = false;
-
-	float wFunc(float h) {
-		return (-1.0f / powf(height, 2.0f) * h * h + 2.0f * theta / height * h + (1.0f - 2.0f * theta)) * width / powf(1.0f - theta, 2.0f);
-	}
-public:
-	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) :height(height), width(width), hSliceNum(hSliceNum), wSliceNum(wSliceNum) {
-		meshes.push_back(new Mesh(hSliceNum + 1, wSliceNum + 1));
-		meshes[0]->connect();
-
-		updateVertex();		// 同时更新坐标位置和法向量
-
-		// 默认绿色
-		attribute = { false, glm::vec4(0.0f,1.0f,0.0f,1.0f) };
-
-		model.reset();
-		pose();
-	}
-
-	void updateVertex() {
-		float x_accum = 0.0f, y_accum = 0.0f;
-		float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);
-		float ds = height / hSliceNum;
-		float tmp, frac, costheta, sintheta;
-		float x_rt, x, z, z_rt;
-		glm::vec3 _offset, _axis;
-		glm::mat4 trans(1.0f);
-		vec4 tp;
-
-		vec3* ptr = meshes[0]->getVertexPositionPtr();
-		vec3* norm_ptr = meshes[0]->getVertexNormalPtr();
-
-		tmp = b;
-		frac = sqrtf(1.0f + tmp * tmp);
-		costheta = 1.0f / frac;
-		sintheta = tmp / frac;
-		for (unsigned int i = 0; i <= hSliceNum; i++) {
-			x_rt = (float)i / hSliceNum;
-			x = x_rt * height;
-			z_rt = wFunc(x);
-			for (unsigned int j = 0; j <= wSliceNum; j++) {
-				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * z_rt;
-				// 进行主脉旋转
-				tp = toVec(trans * glm::vec4(x_accum, y_accum, z, 1.0f));			// 坐标旋转
-				ptr[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
-				// 法线旋转
-				tp = toVec(glm::transpose(glm::inverse(trans)) * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));
-				//tp = toVec(trans * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));		// 也没问题？
-				norm_ptr[i * (wSliceNum + 1) + j] = { tp.x,tp.y,tp.z };
-			}
-			tmp = 2.0f * a * x + b;
-			frac = sqrtf(1.0f + tmp * tmp);
-			costheta = 1.0f / frac;
-			sintheta = tmp / frac;
-			x_accum += ds * costheta;
-			y_accum += ds * sintheta;
-			// 相同长度分位点、不同宽度分位点的节点，使用相同的旋转矩阵进行变换，不知道这里是否应该用compute shader实现更好
-			_offset = glm::vec3(x_accum, y_accum, 0.0f);
-			_axis = glm::vec3(costheta, sintheta, 0.0f);
-			trans = glm::translate(glm::mat4(1.0f), _offset);
-			trans = glm::rotate(trans, glm::radians(MVAngle * x_rt), _axis);
-			trans = glm::translate(trans, -_offset);
-		}
-		meshes[0]->closeVertexPositionPtr();
-		meshes[0]->closeVertexNormalPtr();
-
-	}
-	virtual void pose() {}
-	virtual void draw(Shader* sd) {
-		if (isChanged) {		// 如果参数发生变化，重新计算顶点位置和法向量
-			updateVertex();
-			isChanged = false;
-		}
-		Geometry::draw(sd);
-	}
-
-	void setLength(float length) {
-		this->height = length;
-		isChanged = true;
-	}
-	void setTheta(float theta) {
-		this->theta = theta;
-		isChanged = true;
-	}
-	void addTheta(float delta) {
-		theta += delta;
-		if (theta > 0.5f - 0.01f) {
-			theta = 0.5f - 0.01f;
-		}
-		else if (theta < 0.0f) {
-			theta = 0.0f;
-		}
-		isChanged = true;
-	}
-	void setK(float k) {
-		this->k = k;
-		isChanged = true;
-	}
-	void addK(float delta) {
-		k += delta;
-		if (k > 20.0f) {
-			k = 20.0f;
-		}
-		else if (k < 0.0f) {
-			k = 0.0f;
-		}
-		isChanged = true;
-	}
-	void setSLAngle(float angle) {
-		this->SLAngle = angle;
-		isChanged = true;
-	}
-	void addSLAngle(float delta) {
-		SLAngle += delta;
-		if (SLAngle > 90.0f) {
-			SLAngle = 90.0f;
-		}
-		else if (SLAngle < 0.1f) {
-			SLAngle = 0.1f;
-		}
-		isChanged = true;
-	}
-	void setMVAngle(float angle) {
-		this->MVAngle = angle;
-		isChanged = true;
-	}
-	bool isChangedMesh() {
-		return isChanged;
-	}
 };
 
 class Line :public Drawable {

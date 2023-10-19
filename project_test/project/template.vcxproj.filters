@@ -25,6 +25,12 @@
     <Filter Include="类">
       <UniqueIdentifier>{4a3c3105-9415-474d-98c9-761a135a8888}</UniqueIdentifier>
     </Filter>
+    <Filter Include="资源文件\shader">
+      <UniqueIdentifier>{552fa590-3039-4b20-80c1-8b233111289a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\texture">
+      <UniqueIdentifier>{7602c97a-d873-4220-a802-d0cd9b6efb5c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="demo.cpp">
@@ -89,43 +95,60 @@
     <ClInclude Include="Scene.hpp">
       <Filter>类</Filter>
     </ClInclude>
+    <ClInclude Include="Wheat.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\lightShader.gfs">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\shader</Filter>
     </None>
     <None Include="shader\lightShader.gvs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\shader.gfs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\shader.gvs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\normVisualize.gfs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\normVisualize.ggs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\normVisualize.gvs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\nshader.gfs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\nshader.ggs">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="shader\nshader.gvs">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\shader</Filter>
     </None>
     <None Include="shader\line.gfs">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\shader</Filter>
     </None>
     <None Include="shader\line.gvs">
-      <Filter>资源文件</Filter>
+      <Filter>资源文件\shader</Filter>
     </None>
+    <None Include="shader\normVisualize.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\normVisualize.ggs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\normVisualize.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\nshader.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\nshader.ggs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\nshader.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\shader.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\shader.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\leaf.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\leaf.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="texture\leaf.jpg">
+      <Filter>资源文件\texture</Filter>
+    </Image>
   </ItemGroup>
 </Project>

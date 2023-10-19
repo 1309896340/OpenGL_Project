@@ -4,6 +4,7 @@
 #include "proj.h"
 #include "Camera.hpp"
 #include "Geometry.hpp"
+#include "Wheat.hpp"
 
 class Scene {
 	// 目前来看 Scene类是一个管理器，管理所有的Shader、Geometry、Camera
@@ -37,6 +38,8 @@ public:
 		shaders["normal"] = new Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs");	// 三角面元法线可视化
 		shaders["normal_v"] = new Shader("shader/nshader.gvs", "shader/nshader.ggs", "shader/nshader.gfs");				// 顶点法线可视化	
 		shaders["line"] = new Shader("shader/line.gvs","shader/line.gfs");		// 线段绘制
+
+		shaders["leaf"] = new Shader("shader/leaf.gvs","shader/leaf.gfs");		// 渲染小麦叶片的着色器，其中包含材质
 	}
 
 	void initUniformBuffer() {

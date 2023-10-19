@@ -137,7 +137,7 @@ GLFWwindow* GLFWinit() {
 
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_LINE_SMOOTH);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	//glPolygonMode(GL_FRONT, GL_LINE);
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);

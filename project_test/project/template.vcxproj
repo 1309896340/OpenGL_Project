@@ -157,9 +157,13 @@
     <ClInclude Include="interaction.h" />
     <ClInclude Include="proj.h" />
     <ClInclude Include="Scene.hpp" />
+    <ClInclude Include="stb_image.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="Wheat.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shader\leaf.gfs" />
+    <None Include="shader\leaf.gvs" />
     <None Include="shader\lightShader.gfs" />
     <None Include="shader\lightShader.gvs" />
     <None Include="shader\line.gfs" />
@@ -172,6 +176,9 @@
     <None Include="shader\nshader.gvs" />
     <None Include="shader\shader.gfs" />
     <None Include="shader\shader.gvs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="texture\leaf.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
