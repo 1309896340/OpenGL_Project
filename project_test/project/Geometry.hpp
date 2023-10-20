@@ -640,9 +640,41 @@ public:
 	virtual void pose() {}
 };
 
+class Plane : public Drawable {
+	// 简单平面，不继承自Geometry，仅由两个三角形组成
+protected:
+	GLuint VAO{ 0 }, VBO[2]{ 0,0 };		// 只需要4个顶点，使用长度为6的索引缓冲，不需要法向量
+	glm::vec4 color{ 0.5f,0.5f,0.5f,0.2f };
+public:
+	Plane(Shader* shader, vec3 p[4]) {
+		this->shader = shader;
+
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+		glGenBuffers(2, VBO);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+		glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(vec3), p, GL_DYNAMIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+		glEnableVertexAttribArray(0);
+
+		unsigned int indices[6] = { 0,1,2,0,2,3 };
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_DYNAMIC_DRAW);
+
+		glBindVertexArray(0);
+	}
+	virtual void draw(Shader* sd) {		// 不使用参数的shader，而是使用类内部的shader
+		shader->use();
+		(*shader)["color"] = color;
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+	}
+};
 class Line :public Drawable {
 	// 线条不需要用网格描述，所以没考虑继承自Geometry
-private:
+protected:
 	GLuint VAO, VBO;		// 线条只需要两个顶点，不需要索引缓冲区也不需要法向量
 	glm::vec4 color{ 1.0f,0.0f,0.0f,1.0f };
 public:
@@ -672,9 +704,7 @@ public:
 		glNamedBufferSubData(VBO, sizeof(vec3), sizeof(vec3), &end);
 	}
 
-	virtual void draw(Shader* shader) {
-		if (shader == nullptr)
-			shader = this->shader;
+	virtual void draw(Shader* sd) {	// 不使用参数的shader，而是使用类内部的shader
 		shader->use();
 		(*shader)["color"] = color;
 		glBindVertexArray(VAO);

@@ -37,9 +37,12 @@ int main(int argc, char** argv) {
 	Leaf leaf_b(2.0f, 0.1f);
 	Cylinder stalk(0.04f, 1.0f);
 
+	vec3 border[4]{ -2.0f,-0.1f,-2.0f ,  -2.0f,-0.1f,2.0f,  2.0f,-0.1f,2.0f,  2.0f,-0.1f,-2.0f };
+	Plane ground(scene.shaders["plane"], border);
+
 	stalk.translateTo(0.5, 0.0f, 0.5f);
 
-	leaf_b.setShader(scene.shaders["leaf"]);		// 不知道为什么这句像是没有生效，暂时没有找到原因
+	leaf_b.setShader(scene.shaders["leaf"]);
 	leaf_a.setShader(scene.shaders["leaf"]);
 
 	leaf = &leaf_a;		// 交互控制的对象
@@ -59,6 +62,7 @@ int main(int argc, char** argv) {
 		scene.render(&axis);
 		scene.render(&stalk);
 
+		scene.render(&ground);
 
 		//scene.render(leaf, scene.shaders["normal_v"]);		// 将法向量渲染出来
 
