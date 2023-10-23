@@ -1,0 +1,28 @@
+#version 430 core
+
+layout (triangles) in;
+layout (line_strip, max_vertices=6) out;
+
+layout (std140, binding=0) uniform Matrices{
+	mat4 projection;
+	mat4 view;
+};
+
+in vec3 normal[];
+
+void drawNormal(int index){
+	vec4 p_start = gl_in[index].gl_Position;
+	vec4 p_normal = vec4(normal[index], 0.0);
+
+	gl_Position = projection * p_start;
+	EmitVertex();
+	gl_Position = projection * (p_start + p_normal*0.1);
+	EmitVertex();
+	EndPrimitive();
+}
+
+void main(){
+	drawNormal(0);
+	drawNormal(1);
+	drawNormal(2);
+}
