@@ -1,34 +1,24 @@
 #version 330 core
 
-in vec3 color;
-out vec4 FragColor;
-
 in vec3 FragPos;
 in vec3 Normal;
 
-uniform bool isAuto;
-uniform vec4 ncolor;
+in vec3 lightPos;
+in vec3 lightDir;
 
-uniform vec3 lightColor;
-uniform vec3 lightPos;
-uniform vec3 viewPos;
 
-float ambientStrength = 0.2f;
-float specularStrength = 0.5f;
+layout(std140,binding=0) uniform Matrices{
+	uniform mat4 projection;
+	uniform mat4 view;
+}
+uniform mat4 modelBuffer;
+uniform mat4 model;
+
+// 在CPU中计算好后传给GPU，以避免在片段着色器上进行大量重复的复杂计算。约定为transpose(inverse(model*modelBuffer))
+uniform mat4 normalMatrix;
 
 void main(){
-	// FragColor = isAuto ? vec4(color + 0.5f, 1.0f) : ncolor ;
+	L = normalize(lightPos - FragPos);		// 光线入射方向（世界坐标系）
+	N = normalMatrix * Normal;				// 法向量（世界坐标系）
 
-	vec3 normal = normalize(Normal);
-
-	vec3 lightDir = normalize(lightPos - FragPos);
-	vec3 viewDir = normalize(viewPos - FragPos);
-	vec3 reflectDir = reflect(-lightDir, normal);
-
-	vec3 ambient = ambientStrength * lightColor;
-	vec3 diffuse = max(dot(normal,lightDir),0.0f) * lightColor;
-	vec3 specular = pow(max(dot(reflectDir,viewDir),0.0f),32) * specularStrength  * lightColor;
-	vec3 result = (ambient + diffuse + specular) * (isAuto ? color : ncolor.xyz);
-	//vec3 result = (ambient + specular) * (isAuto ? color : ncolor.xyz);
-	FragColor =	vec4(result, isAuto ? 1.0f : ncolor.w );
 }
