@@ -44,8 +44,8 @@ void generateMesh(float width, float height, unsigned int uSize, unsigned int vS
 	vertex.resize(uSize * vSize, { glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,0.0f,0.0f) });
 	index.resize((uSize - 1) * (vSize - 1) * 6, 0);
 
-	float du = width / (uSize - 1);
-	float dv = height / (vSize - 1);
+	//float du = width / (uSize - 1);
+	//float dv = height / (vSize - 1);
 	for (unsigned int u = 0; u < uSize; u++) {
 		for (unsigned int v = 0; v < vSize; v++) {
 			vertex[u * vSize + v].position = zFunc(u, v);
@@ -57,18 +57,27 @@ void generateMesh(float width, float height, unsigned int uSize, unsigned int vS
 				ptr[2] = (u + 1) * vSize + v + 1;			// 右下角
 				ptr[3] = u * vSize + v;							// 左上角
 				ptr[4] = (u + 1) * vSize + v + 1;			// 右下角
-				ptr[5] = (u + 1) * vSize;						// 右上角
+				ptr[5] = (u + 1) * vSize + v;					// 右上角
 			}
 		}
 	}
 }
 
-#define SAMPLE_NUM 10000
+ostream& operator<<(ostream& os, const glm::vec3& v) {
+	os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+	return os;
+}
+
+#define SAMPLE_NUM 1000
 
 // 用于处理三角形面元的函数，传入三个顶点，以及光源位置，计算这个三角面元的接收辐射量
 // 假设不考虑遮挡，且光源为点光源
 float calculateRadiationByTriangle(const Vertex& a, const Vertex& b, const Vertex& c, const Light& light) {
 	glm::vec3 aa(a.position), bb(b.position), cc(c.position);
+	//cout << "aa: " << aa << endl;
+	//cout << "bb: " << bb << endl;
+	//cout << "cc: " << cc << endl;
+
 	// 暂时不考虑顶点自身的法向量，而是用三角形面元的法向量代替
 	// a b c为逆时针顺序，计算朝上的法向量
 	glm::vec3 tmp = glm::cross(bb - aa, cc - aa);
@@ -80,7 +89,7 @@ float calculateRadiationByTriangle(const Vertex& a, const Vertex& b, const Verte
 	float radiance = light.intensity / (4 * PI * powf(light.radius, 2.0f));
 	// 对球面光源进行积分，计算在目标点上的辐射通量
 	// 对球面进行均匀采样
-	float dS = 4.0f * PI * powf(light.radius, 2.0f) / SAMPLE_NUM;
+	float dS = powf(light.radius, 2.0f) / SAMPLE_NUM; // float dS = 4.0f * PI * powf(light.radius, 2.0f) / SAMPLE_NUM;		只取半球面
 	for (unsigned int i = 0; i < SAMPLE_NUM; i++) {
 		float theta = acosf(1.0f - (float)rand() / RAND_MAX);		// acosf(1 - 2 * (float)rand() / RAND_MAX);	由于取上半球，所以theta的范围为[0, pi/2]
 		float phi = 2.0f * PI * (float)rand() / RAND_MAX;
@@ -96,7 +105,7 @@ float calculateRadiationByTriangle(const Vertex& a, const Vertex& b, const Verte
 		float x = light.radius * sinf(theta) * cosf(phi);
 		float y = light.radius * sinf(theta) * sinf(phi);
 		float z = light.radius * cosf(theta);
-		glm::vec3 samplePos = glm::rotate(glm::vec3(x, y, z), angle, axis) + light.position;
+		glm::vec3 samplePos = glm::rotate(glm::vec3(x, y, z), angle, -axis) + light.position;
 		glm::vec3 L = glm::normalize(samplePos - pos);
 		float test = glm::dot(N, L);
 		sumbuf += radiance * glm::dot(N, L) * dS;
@@ -110,19 +119,19 @@ int main(int argc, char** argv) {
 	vector<Vertex> meshVertex;
 	vector<unsigned int> meshIdx;
 
-	unsigned int uSize = 40, vSize = 40;
+	unsigned int uSize = 11, vSize = 11;
 
 	Light light{
-		glm::vec3(3000.0f,1000.0f * sqrtf(3.0f),0.0f),		// 由于6000远大于10，因此可以近似为点光源，最后辐射通量计算结果应该约等于50
+		glm::vec3(3000.0f,1000.0f * sqrtf(3.0f),0.0f),		// 由于光源相距目标6000远大于10，因此可以近似为点光源，最后辐射通量计算结果应该约等于50
 		glm::vec3(0.0f,0.0f,0.0f),
 		1.0f,
 		4.0f * PI
 	};			// 光源位置，光源方向，光源半径，光照强度。 这里先不考虑光源方向，并令半径为1，辐射强度为4pi，这样辐射率radiance就为1
 
 
-	generateMesh(10.0f, 10.0f, 40, 40, meshVertex, meshIdx,
+	generateMesh(10.0f, 10.0f, uSize, vSize, meshVertex, meshIdx,
 		[uSize, vSize](unsigned int u, unsigned int v) {
-			return glm::vec3((float)u / (uSize - 1), 0.0f, (float)v / (vSize - 1));		// 一个y=0上的平面，这里沿用OpenGL的坐标系规范
+			return glm::vec3((float)u / (uSize - 1) - 0.5f, 0.0f, (float)v / (vSize - 1) - 0.5f);		// 一个y=0, x=-1/2..1/2, z=-1/2..1/2的平面，这里沿用OpenGL的坐标系规范
 		},
 		[uSize, vSize](unsigned int u, unsigned int v) {										// 统一朝上的法向量
 			return glm::vec3(0.0f, 1.0f, 0.0f);
@@ -132,16 +141,17 @@ int main(int argc, char** argv) {
 	float sumRadiation = 0.0f;
 
 	// 遍历其中所有的矩形面元
-	for (unsigned int i = 0; i < (uSize - 1) * (vSize - 1); i++) {
-		unsigned int* ptr = &meshIdx[i * 6];
-		// 遍历矩形面元中的两个三角形面元
-		for (unsigned int k = 0; k < 2; k++) {
-			float rd = calculateRadiationByTriangle(meshVertex[ptr[k * 3 + 0]], meshVertex[ptr[k * 3 + 1]], meshVertex[ptr[k * 3 + 2]], light);		// 将三角形面元三个顶点传入处理函数
-			sumRadiation += rd;
+	for (unsigned int u = 0; u < (uSize - 1); u++) {
+		for (unsigned int v = 0; v < (vSize - 1); v++) {
+			unsigned int* ptr = &meshIdx[(u*(vSize-1)+v)*6];
+			// 遍历矩形面元中的两个三角形面元
+			for (unsigned int k = 0; k < 2; k++) {
+				float rd = calculateRadiationByTriangle(meshVertex[ptr[k * 3 + 0]], meshVertex[ptr[k * 3 + 1]], meshVertex[ptr[k * 3 + 2]], light);		// 将三角形面元三个顶点传入处理函数
+				sumRadiation += rd;
+				cout << "三角面元rd : " << rd << endl;
+			}
 		}
-		cout << "radiation : " << sumRadiation << endl;
 	}
-
 
 	cout << "radiation : " << sumRadiation << endl;
 	return 0;
