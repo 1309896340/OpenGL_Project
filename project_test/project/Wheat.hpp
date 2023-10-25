@@ -16,16 +16,16 @@ private:
 	}
 public:
 	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) :height(height), width(width), hSliceNum(hSliceNum), wSliceNum(wSliceNum) {
-		meshes.push_back(new Mesh(hSliceNum + 1, wSliceNum + 1));
+		meshes.push_back(new Mesh(wSliceNum, hSliceNum));
 		meshes[0]->connect();
 
 		updateVertex();		// 同时更新坐标位置和法向量
 
 		// 默认绿色
-		//attribute = { false, glm::vec4(0.0f,1.0f,0.0f,1.0f) };
-		attribute = { false, glm::vec4(0.0f,1.0f,1.0f,1.0f) };
+		//attribute = { false, vec4(0.0f,1.0f,0.0f,1.0f) };
+		//attribute = { false, vec4(0.0f,1.0f,1.0f,1.0f) };
 		// 设置纹理
-		meshes[0]->setTexture("texture/leaf.jpg");
+		//meshes[0]->setTexture("texture/leaf.jpg");
 
 		model.reset();
 		pose();
@@ -37,30 +37,31 @@ public:
 		float ds = height / hSliceNum;
 		float tmp, frac, costheta, sintheta;
 		float x_rt, x, z, z_rt;
-		glm::vec3 _offset, _axis;
-		glm::mat4 trans(1.0f);
+		vec3 _offset, _axis;
+		mat4 trans(1.0f);
 		vec4 tp;
 
-		vec3* ptr = meshes[0]->getVertexPositionPtr();
-		vec3* norm_ptr = meshes[0]->getVertexNormalPtr();
+		Vertex** ptr = meshes[0]->getVertexPtr();
 
 		tmp = b;
 		frac = sqrtf(1.0f + tmp * tmp);
 		costheta = 1.0f / frac;
 		sintheta = tmp / frac;
-		for (unsigned int i = 0; i <= hSliceNum; i++) {
-			x_rt = (float)i / hSliceNum;
+		for (unsigned int v= 0; v<= hSliceNum; v++) {
+			x_rt = (float)v / hSliceNum;
 			x = x_rt * height;
 			z_rt = wFunc(x);
-			for (unsigned int j = 0; j <= wSliceNum; j++) {
-				z = (j - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * z_rt;
+			for (unsigned int u = 0; u <= wSliceNum; u++) {
+				z = (u - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * z_rt;
 				// 进行主脉旋转
-				tp = toVec(trans * glm::vec4(x_accum, y_accum, z, 1.0f));			// 坐标旋转
-				ptr[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
+				tp = toVec(trans * vec4(x_accum, y_accum, z, 1.0f));			// 坐标旋转
+				//ptr[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
+				ptr[v][u].position = { tp.x, tp.y, tp.z };
 				// 法线旋转
-				tp = toVec(glm::transpose(glm::inverse(trans)) * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));
-				//tp = toVec(trans * glm::vec4(-sintheta, costheta, 0.0f, 0.0f));		// 也没问题？
-				norm_ptr[i * (wSliceNum + 1) + j] = { tp.x,tp.y,tp.z };
+				tp = toVec(transpose(inverse(trans)) * vec4(-sintheta, costheta, 0.0f, 0.0f));
+				//tp = toVec(trans * vec4(-sintheta, costheta, 0.0f, 0.0f));		// 也没问题？
+				//norm_ptr[i * (wSliceNum + 1) + j] = { tp.x,tp.y,tp.z };
+				ptr[v][u].normal = { tp.x, tp.y, tp.z };
 			}
 			tmp = 2.0f * a * x + b;
 			frac = sqrtf(1.0f + tmp * tmp);
@@ -69,35 +70,15 @@ public:
 			x_accum += ds * costheta;
 			y_accum += ds * sintheta;
 			// 相同长度分位点、不同宽度分位点的节点，使用相同的旋转矩阵进行变换，不知道这里是否应该用compute shader实现更好
-			_offset = glm::vec3(x_accum, y_accum, 0.0f);
-			_axis = glm::vec3(costheta, sintheta, 0.0f);
-			trans = glm::translate(glm::mat4(1.0f), _offset);
-			trans = glm::rotate(trans, glm::radians(MVAngle * x_rt), _axis);
+			_offset = vec3(x_accum, y_accum, 0.0f);
+			_axis = vec3(costheta, sintheta, 0.0f);
+			trans = glm::translate(mat4(1.0f), _offset);
+			trans = glm::rotate(trans, radians(MVAngle * x_rt), _axis);
 			trans = glm::translate(trans, -_offset);
 		}
-		meshes[0]->closeVertexPositionPtr();
-		meshes[0]->closeVertexNormalPtr();
-
 	}
 	virtual void pose() {}
-	virtual void draw(Shader* sd) {
-		if (isChanged) {		// 如果参数发生变化，重新计算顶点位置和法向量
-			updateVertex();
-			isChanged = false;
-		}
-		Geometry::draw(sd);
-		//sd->use();
-		//(*sd)["modelBuffer"] = getModelBufferMatrix();
-		//(*sd)["model"] = getFinalOffset() * model.getMatrix();
-		//for (auto& mesh : meshes) {
-		//	if (mesh->isTexture())
-		//		glBindTexture(GL_TEXTURE_2D, mesh->getTexture());		// 如果网格有材质就绑定，但实际有没有显示，还得看使用了哪个shader
-		//	glBindVertexArray(mesh->getVAO());
-		//	glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
-		//	glBindVertexArray(0);
-		//}
-	}
-
+	
 	void setLength(float length) {
 		this->height = length;
 		isChanged = true;

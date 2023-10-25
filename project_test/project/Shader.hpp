@@ -9,14 +9,14 @@ private:
 	GLint location;
 public:
 	ShaderUniform(GLint location) :location(location) {}
-	void operator=(glm::vec4 value) {
-		glUniform4fv(location, 1, glm::value_ptr(value));
+	void operator=(vec4 value) {
+		glUniform4fv(location, 1, value_ptr(value));
 	}
-	void operator=(glm::vec3 value) {
-		glUniform3fv(location, 1, glm::value_ptr(value));
+	void operator=(vec3 value) {
+		glUniform3fv(location, 1, value_ptr(value));
 	}
-	void operator=(glm::mat4 value) {
-		glUniformMatrix4fv(location, 1, GLFW_FALSE, glm::value_ptr(value));
+	void operator=(mat4 value) {
+		glUniformMatrix4fv(location, 1, GLFW_FALSE, value_ptr(value));
 	}
 	void operator=(bool value) {
 		glUniform1i(location, (int)value);
@@ -95,10 +95,10 @@ public:
 		return su;
 	}
 	// 标准化配置uniform：model、modelBuffer
-	void setModel(const glm::mat4& model) {
+	void setModel(const mat4& model) {
 		(*this)["model"] = model;
 	}
-	void setModelBuffer(const glm::mat4& modelBuffer) {
+	void setModelBuffer(const mat4& modelBuffer) {
 		(*this)["modelBuffer"] = modelBuffer;
 	}
 	// 定制化配置uniform

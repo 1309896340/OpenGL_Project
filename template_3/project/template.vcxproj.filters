@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="OpenGL">
+      <UniqueIdentifier>{717b386f-badf-484c-98a4-5e16eee8a405}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\ImGui">
+      <UniqueIdentifier>{1b7b7f1c-e079-40d8-b4f6-43b41b13d71d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\ImGui">
+      <UniqueIdentifier>{b552b274-61d6-4b5c-ae7d-2b1f14f78624}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="类">
+      <UniqueIdentifier>{4a3c3105-9415-474d-98c9-761a135a8888}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\shader">
+      <UniqueIdentifier>{552fa590-3039-4b20-80c1-8b233111289a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\texture">
+      <UniqueIdentifier>{7602c97a-d873-4220-a802-d0cd9b6efb5c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="demo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="interaction.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui.cpp">
+      <Filter>源文件\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_demo.cpp">
+      <Filter>源文件\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_draw.cpp">
+      <Filter>源文件\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>源文件\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\misc\cpp\imgui_stdlib.cpp">
+      <Filter>源文件\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_tables.cpp">
+      <Filter>源文件\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_widgets.cpp">
+      <Filter>源文件\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="glad\src\glad.c">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\backends\imgui_impl_opengl3.cpp">
+      <Filter>头文件\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="proj.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="interaction.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.hpp">
+      <Filter>类</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometry.hpp">
+      <Filter>类</Filter>
+    </ClInclude>
+    <ClInclude Include="GUI.hpp">
+      <Filter>类</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.hpp">
+      <Filter>类</Filter>
+    </ClInclude>
+    <ClInclude Include="Wheat.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\lightShader.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\lightShader.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\line.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\line.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\normVisualize.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\normVisualize.ggs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\normVisualize.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\nshader.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\nshader.ggs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\nshader.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\shader.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\shader.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\leaf.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\leaf.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\plane.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\plane.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="texture\leaf.jpg">
+      <Filter>资源文件\texture</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

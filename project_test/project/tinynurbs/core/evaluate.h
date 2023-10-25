@@ -35,11 +35,11 @@ namespace internal
  * @return point Resulting point on the curve at parameter u.
  */
 template <int dim, typename T>
-glm::vec<dim, T> curvePoint(unsigned int degree, const std::vector<T> &knots,
-                            const std::vector<glm::vec<dim, T>> &control_points, T u)
+vec<dim, T> curvePoint(unsigned int degree, const std::vector<T> &knots,
+                            const std::vector<vec<dim, T>> &control_points, T u)
 {
     // Initialize result to 0s
-    glm::vec<dim, T> point(T(0));
+    vec<dim, T> point(T(0));
 
     // Find span and corresponding non-zero basis functions
     int span = findSpan(degree, knots, u);
@@ -64,15 +64,15 @@ glm::vec<dim, T> curvePoint(unsigned int degree, const std::vector<T> &knots,
  * E.g. curve_ders[n] is the nth derivative at u, where 0 <= n <= num_ders.
  */
 template <int dim, typename T>
-std::vector<glm::vec<dim, T>> curveDerivatives(unsigned int degree, const std::vector<T> &knots,
-                                               const std::vector<glm::vec<dim, T>> &control_points,
+std::vector<vec<dim, T>> curveDerivatives(unsigned int degree, const std::vector<T> &knots,
+                                               const std::vector<vec<dim, T>> &control_points,
                                                int num_ders, T u)
 {
 
-    typedef glm::vec<dim, T> tvecn;
+    typedef vec<dim, T> tvecn;
     using std::vector;
 
-    std::vector<glm::vec<dim, T>> curve_ders;
+    std::vector<vec<dim, T>> curve_ders;
     curve_ders.resize(num_ders + 1);
 
     // Assign higher order derivatives to zero
@@ -110,13 +110,13 @@ std::vector<glm::vec<dim, T>> curveDerivatives(unsigned int degree, const std::v
  * @return point Resulting point on the surface at (u, v).
  */
 template <int dim, typename T>
-glm::vec<dim, T> surfacePoint(unsigned int degree_u, unsigned int degree_v,
+vec<dim, T> surfacePoint(unsigned int degree_u, unsigned int degree_v,
                               const std::vector<T> &knots_u, const std::vector<T> &knots_v,
-                              const array2<glm::vec<dim, T>> &control_points, T u, T v)
+                              const array2<vec<dim, T>> &control_points, T u, T v)
 {
 
     // Initialize result to 0s
-    glm::vec<dim, T> point(T(0.0));
+    vec<dim, T> point(T(0.0));
 
     // Find span and non-zero basis functions
     int span_u = findSpan(degree_u, knots_u, u);
@@ -126,7 +126,7 @@ glm::vec<dim, T> surfacePoint(unsigned int degree_u, unsigned int degree_v,
 
     for (int l = 0; l <= degree_v; l++)
     {
-        glm::vec<dim, T> temp(0.0);
+        vec<dim, T> temp(0.0);
         for (int k = 0; k <= degree_u; k++)
         {
             temp += static_cast<T>(Nu[k]) *
@@ -151,20 +151,20 @@ glm::vec<dim, T> surfacePoint(unsigned int degree_u, unsigned int degree_v,
  * @param[out] surf_ders Derivatives of the surface at (u, v).
  */
 template <int dim, typename T>
-array2<glm::vec<dim, T>>
+array2<vec<dim, T>>
 surfaceDerivatives(unsigned int degree_u, unsigned int degree_v, const std::vector<T> &knots_u,
-                   const std::vector<T> &knots_v, const array2<glm::vec<dim, T>> &control_points,
+                   const std::vector<T> &knots_v, const array2<vec<dim, T>> &control_points,
                    unsigned int num_ders, T u, T v)
 {
 
-    array2<glm::vec<dim, T>> surf_ders(num_ders + 1, num_ders + 1, glm::vec<dim, T>(0.0));
+    array2<vec<dim, T>> surf_ders(num_ders + 1, num_ders + 1, vec<dim, T>(0.0));
 
     // Set higher order derivatives to 0
     for (int k = degree_u + 1; k <= num_ders; k++)
     {
         for (int l = degree_v + 1; l <= num_ders; l++)
         {
-            surf_ders(k, l) = glm::vec<dim, T>(0.0);
+            surf_ders(k, l) = vec<dim, T>(0.0);
         }
     }
 
@@ -178,14 +178,14 @@ surfaceDerivatives(unsigned int degree_u, unsigned int degree_v, const std::vect
     unsigned int du = (std::min)(num_ders, degree_u);
     unsigned int dv = (std::min)(num_ders, degree_v);
 
-    std::vector<glm::vec<dim, T>> temp;
+    std::vector<vec<dim, T>> temp;
     temp.resize(degree_v + 1);
     // Compute derivatives
     for (int k = 0; k <= du; k++)
     {
         for (int s = 0; s <= degree_v; s++)
         {
-            temp[s] = glm::vec<dim, T>(0.0);
+            temp[s] = vec<dim, T>(0.0);
             for (int r = 0; r <= degree_u; r++)
             {
                 temp[s] += static_cast<T>(ders_u(k, r)) *
@@ -216,7 +216,7 @@ Evaluate point on a nonrational NURBS curve
 @param[in] u Parameter to evaluate the curve at.
 @return point Resulting point on the curve at parameter u.
 */
-template <typename T> glm::vec<3, T> curvePoint(const Curve<T> &crv, T u)
+template <typename T> vec<3, T> curvePoint(const Curve<T> &crv, T u)
 {
     return internal::curvePoint(crv.degree, crv.knots, crv.control_points, u);
 }
@@ -227,10 +227,10 @@ template <typename T> glm::vec<3, T> curvePoint(const Curve<T> &crv, T u)
  * @param[in] u Parameter to evaluate the curve at.
  * @return point Resulting point on the curve.
  */
-template <typename T> glm::vec<3, T> curvePoint(const RationalCurve<T> &crv, T u)
+template <typename T> vec<3, T> curvePoint(const RationalCurve<T> &crv, T u)
 {
 
-    typedef glm::vec<4, T> tvecnp1;
+    typedef vec<4, T> tvecnp1;
 
     // Compute homogenous coordinates of control points
     std::vector<tvecnp1> Cw;
@@ -256,7 +256,7 @@ template <typename T> glm::vec<3, T> curvePoint(const RationalCurve<T> &crv, T u
  * E.g. curve_ders[n] is the nth derivative at u, where 0 <= n <= num_ders.
  */
 template <typename T>
-std::vector<glm::vec<3, T>> curveDerivatives(const Curve<T> &crv, int num_ders, T u)
+std::vector<vec<3, T>> curveDerivatives(const Curve<T> &crv, int num_ders, T u)
 {
     return internal::curveDerivatives(crv.degree, crv.knots, crv.control_points, num_ders, u);
 }
@@ -273,11 +273,11 @@ std::vector<glm::vec<3, T>> curveDerivatives(const Curve<T> &crv, int num_ders, 
  * num_ders-1.
  */
 template <typename T>
-std::vector<glm::vec<3, T>> curveDerivatives(const RationalCurve<T> &crv, int num_ders, T u)
+std::vector<vec<3, T>> curveDerivatives(const RationalCurve<T> &crv, int num_ders, T u)
 {
 
-    typedef glm::vec<3, T> tvecn;
-    typedef glm::vec<4, T> tvecnp1;
+    typedef vec<3, T> tvecn;
+    typedef vec<4, T> tvecnp1;
 
     std::vector<tvecn> curve_ders;
     curve_ders.reserve(num_ders + 1);
@@ -321,11 +321,11 @@ std::vector<glm::vec<3, T>> curveDerivatives(const RationalCurve<T> &crv, int nu
  * @param[in] crv Curve object
  * @return Unit tangent of the curve at u.
  */
-template <typename T> glm::vec<3, T> curveTangent(const Curve<T> &crv, T u)
+template <typename T> vec<3, T> curveTangent(const Curve<T> &crv, T u)
 {
-    std::vector<glm::vec<3, T>> ders = curveDerivatives(crv, 1, u);
-    glm::vec<3, T> du = ders[1];
-    T du_len = glm::length(du);
+    std::vector<vec<3, T>> ders = curveDerivatives(crv, 1, u);
+    vec<3, T> du = ders[1];
+    T du_len = length(du);
     if (!util::close(du_len, T(0)))
     {
         du /= du_len;
@@ -338,11 +338,11 @@ template <typename T> glm::vec<3, T> curveTangent(const Curve<T> &crv, T u)
  * @param[in] crv RationalCurve object
  * @return Unit tangent of the curve at u.
  */
-template <typename T> glm::vec<3, T> curveTangent(const RationalCurve<T> &crv, T u)
+template <typename T> vec<3, T> curveTangent(const RationalCurve<T> &crv, T u)
 {
-    std::vector<glm::vec<3, T>> ders = curveDerivatives(crv, 1, u);
-    glm::vec<3, T> du = ders[1];
-    T du_len = glm::length(du);
+    std::vector<vec<3, T>> ders = curveDerivatives(crv, 1, u);
+    vec<3, T> du = ders[1];
+    T du_len = length(du);
     if (!util::close(du_len, T(0)))
     {
         du /= du_len;
@@ -357,7 +357,7 @@ template <typename T> glm::vec<3, T> curveTangent(const RationalCurve<T> &crv, T
  * @param[in] v Parameter to evaluate the surface at.
  * @return Resulting point on the surface at (u, v).
  */
-template <typename T> glm::vec<3, T> surfacePoint(const Surface<T> &srf, T u, T v)
+template <typename T> vec<3, T> surfacePoint(const Surface<T> &srf, T u, T v)
 {
     return internal::surfacePoint(srf.degree_u, srf.degree_v, srf.knots_u, srf.knots_v,
                                   srf.control_points, u, v);
@@ -370,10 +370,10 @@ template <typename T> glm::vec<3, T> surfacePoint(const Surface<T> &srf, T u, T 
  * @param[in] v Parameter to evaluate the surface at.
  * @return Resulting point on the surface at (u, v).
  */
-template <typename T> glm::vec<3, T> surfacePoint(const RationalSurface<T> &srf, T u, T v)
+template <typename T> vec<3, T> surfacePoint(const RationalSurface<T> &srf, T u, T v)
 {
 
-    typedef glm::vec<4, T> tvecnp1;
+    typedef vec<4, T> tvecnp1;
 
     // Compute homogenous coordinates of control points
     array2<tvecnp1> Cw;
@@ -408,7 +408,7 @@ template <typename T> glm::vec<3, T> surfacePoint(const RationalSurface<T> &srf,
  * @return surf_ders Derivatives of the surface at (u, v).
  */
 template <typename T>
-array2<glm::vec<3, T>> surfaceDerivatives(const Surface<T> &srf, int num_ders, T u, T v)
+array2<vec<3, T>> surfaceDerivatives(const Surface<T> &srf, int num_ders, T u, T v)
 {
     return internal::surfaceDerivatives(srf.degree_u, srf.degree_v, srf.knots_u, srf.knots_v,
                                         srf.control_points, num_ders, u, v);
@@ -423,7 +423,7 @@ array2<glm::vec<3, T>> surfaceDerivatives(const Surface<T> &srf, int num_ders, T
  * @return Derivatives on the surface at parameter (u, v).
  */
 template <typename T>
-array2<glm::vec<3, T>> surfaceDerivatives(const RationalSurface<T> &srf, int num_ders, T u, T v)
+array2<vec<3, T>> surfaceDerivatives(const RationalSurface<T> &srf, int num_ders, T u, T v)
 {
 
     using namespace std;
@@ -497,13 +497,13 @@ array2<glm::vec<3, T>> surfaceDerivatives(const RationalSurface<T> &srf, int num
  * @return Tuple with unit tangents along u- and v-directions
  */
 template <typename T>
-std::tuple<glm::vec<3, T>, glm::vec<3, T>> surfaceTangent(const Surface<T> &srf, T u, T v)
+std::tuple<vec<3, T>, vec<3, T>> surfaceTangent(const Surface<T> &srf, T u, T v)
 {
-    array2<glm::vec<3, T>> ptder = surfaceDerivatives(srf, 1, u, v);
-    glm::vec<3, T> du = ptder(1, 0);
-    glm::vec<3, T> dv = ptder(0, 1);
-    T du_len = glm::length(ptder(1, 0));
-    T dv_len = glm::length(ptder(0, 1));
+    array2<vec<3, T>> ptder = surfaceDerivatives(srf, 1, u, v);
+    vec<3, T> du = ptder(1, 0);
+    vec<3, T> dv = ptder(0, 1);
+    T du_len = length(ptder(1, 0));
+    T dv_len = length(ptder(0, 1));
     if (!util::close(du_len, T(0)))
     {
         du /= du_len;
@@ -524,13 +524,13 @@ std::tuple<glm::vec<3, T>, glm::vec<3, T>> surfaceTangent(const Surface<T> &srf,
  * @return Tuple with unit tangents along u- and v-directions
  */
 template <typename T>
-std::tuple<glm::vec<3, T>, glm::vec<3, T>> surfaceTangent(const RationalSurface<T> &srf, T u, T v)
+std::tuple<vec<3, T>, vec<3, T>> surfaceTangent(const RationalSurface<T> &srf, T u, T v)
 {
-    array2<glm::vec<3, T>> ptder = surfaceDerivatives(srf, 1, u, v);
-    glm::vec<3, T> du = ptder(1, 0);
-    glm::vec<3, T> dv = ptder(0, 1);
-    T du_len = glm::length(ptder(1, 0));
-    T dv_len = glm::length(ptder(0, 1));
+    array2<vec<3, T>> ptder = surfaceDerivatives(srf, 1, u, v);
+    vec<3, T> du = ptder(1, 0);
+    vec<3, T> dv = ptder(0, 1);
+    T du_len = length(ptder(1, 0));
+    T dv_len = length(ptder(0, 1));
     if (!util::close(du_len, T(0)))
     {
         du /= du_len;
@@ -549,11 +549,11 @@ std::tuple<glm::vec<3, T>, glm::vec<3, T>> surfaceTangent(const RationalSurface<
  * @param v Parameter in the v-direction
  * @param[inout] normal Unit normal at of the surface at (u, v)
  */
-template <typename T> glm::vec<3, T> surfaceNormal(const Surface<T> &srf, T u, T v)
+template <typename T> vec<3, T> surfaceNormal(const Surface<T> &srf, T u, T v)
 {
-    array2<glm::vec<3, T>> ptder = surfaceDerivatives(srf, 1, u, v);
-    glm::vec<3, T> n = glm::cross(ptder(0, 1), ptder(1, 0));
-    T n_len = glm::length(n);
+    array2<vec<3, T>> ptder = surfaceDerivatives(srf, 1, u, v);
+    vec<3, T> n = cross(ptder(0, 1), ptder(1, 0));
+    T n_len = length(n);
     if (!util::close(n_len, T(0)))
     {
         n /= n_len;
@@ -568,11 +568,11 @@ template <typename T> glm::vec<3, T> surfaceNormal(const Surface<T> &srf, T u, T
  * @param v Parameter in the v-direction
  * @return Unit normal at of the surface at (u, v)
  */
-template <typename T> glm::vec<3, T> surfaceNormal(const RationalSurface<T> &srf, T u, T v)
+template <typename T> vec<3, T> surfaceNormal(const RationalSurface<T> &srf, T u, T v)
 {
-    array2<glm::vec<3, T>> ptder = surfaceDerivatives(srf, 1, u, v);
-    glm::vec<3, T> n = glm::cross(ptder(0, 1), ptder(1, 0));
-    T n_len = glm::length(n);
+    array2<vec<3, T>> ptder = surfaceDerivatives(srf, 1, u, v);
+    vec<3, T> n = cross(ptder(0, 1), ptder(1, 0));
+    T n_len = length(n);
     if (!util::close(n_len, T(0)))
     {
         n /= n_len;

@@ -1,0 +1,24 @@
+#version 330 core
+
+in vec3 FragPos;
+in vec3 Normal;
+
+in vec3 lightPos;
+in vec3 lightDir;
+
+
+layout(std140,binding=0) uniform Matrices{
+	uniform mat4 projection;
+	uniform mat4 view;
+}
+uniform mat4 modelBuffer;
+uniform mat4 model;
+
+// 在CPU中计算好后传给GPU，以避免在片段着色器上进行大量重复的复杂计算。约定为transpose(inverse(model*modelBuffer))
+uniform mat4 normalMatrix;
+
+void main(){
+	L = normalize(lightPos - FragPos);		// 光线入射方向（世界坐标系）
+	N = normalMatrix * Normal;				// 法向量（世界坐标系）
+
+}

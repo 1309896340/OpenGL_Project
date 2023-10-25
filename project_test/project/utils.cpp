@@ -84,11 +84,11 @@ GLuint loadProgram(std::string vertexSource, std::string fragmentSource) {
 }
 
 
-std::ostream& operator<<(std::ostream& os, const glm::vec3& v) {
+std::ostream& operator<<(std::ostream& os, const vec3& v) {
 	os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
 	return os;
 }
-std::ostream& operator<<(std::ostream& os, const glm::mat4& m) {
+std::ostream& operator<<(std::ostream& os, const mat4& m) {
 	for (unsigned int i = 0; i < 4; i++) {
 		os << "(";
 		for (unsigned int j = 0; j < 4; j++) {
@@ -145,17 +145,17 @@ GLFWwindow* GLFWinit() {
 }
 
 
-glm::vec3 toGlm(const vec3& v) {
-	return glm::vec3(v.x, v.y, v.z);
+vec3 toGlm(const vec3& v) {
+	return vec3(v.x, v.y, v.z);
 }
 
-glm::vec4 toGlm(const vec4& v) {
-	return glm::vec4(v.x, v.y, v.z, v.w);
+vec4 toGlm(const vec4& v) {
+	return vec4(v.x, v.y, v.z, v.w);
 }
 
-vec3 toVec(const glm::vec3& v) {
+vec3 toVec(const vec3& v) {
 	return { v.x, v.y, v.z };
 }
-vec4 toVec(const glm::vec4& v) {
+vec4 toVec(const vec4& v) {
 	return { v.x, v.y, v.z ,v.w };
 }

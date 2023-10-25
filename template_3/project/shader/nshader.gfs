@@ -1,0 +1,13 @@
+#version 430 core
+
+in vec3 localPos;
+out vec4 FragColor;
+
+uniform bool isAuto;
+uniform vec4 ncolor;
+
+void main()
+{
+	// FragColor = isAuto ? vec4(localPos+vec3(0.3, 0.1, 0.5), 1.0) : ncolor;
+	FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+}

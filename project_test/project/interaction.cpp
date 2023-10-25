@@ -46,7 +46,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		else {
 			//// 以原点为中心旋转
 			//camera->move(-(float)dx, (float)dy, 0.0f);
-			//camera->lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+			//camera->lookAt(vec3(0.0f, 0.0f, 0.0f));
 			// 以(0.0,1.0,0.0)为轴，旋转相机，包括相机的front向量一同旋转
 			camera->rotateByAxis((float)dx, (float)dy);
 		}

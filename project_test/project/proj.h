@@ -25,22 +25,41 @@
 #define DEFAULT_LINE_WIDTH 0.02f
 #define EPS 1e-7
 
-extern glm::vec3 _up;
-extern glm::vec3 _right;
-extern glm::vec3 _front;
-extern glm::vec3 _origin;
+using glm::vec3;
+using glm::vec4;
+using glm::mat4;
+using glm::mat3;
+using glm::quat;
+using glm::normalize;
+using glm::length;
+using glm::cross;
+using glm::dot;
+using glm::radians;
+using glm::identity;
 
-typedef struct _vec2 {
-	float x, y;
-}vec2;
+extern vec3 _up;
+extern vec3 _right;
+extern vec3 _front;
+extern vec3 _origin;
 
-typedef struct _vec3 {
-	float x, y, z;
-}vec3;
+//typedef struct _vec2 {
+//	float x, y;
+//}vec2;
+//
+//typedef struct _vec3 {
+//	float x, y, z;
+//}vec3;
+//
+//typedef struct _vec4 {
+//	float x, y, z, w;
+//}vec4;
 
-typedef struct _vec4 {
-	float x, y, z, w;
-}vec4;
+typedef struct _Vertex{
+	vec3 position;
+	vec3 normal;
+	vec4 color;
+	// 后续可以增加其他属性
+}Vertex;
 
 typedef struct _LeafInfo {
 	float length = 1.0f;				// 叶长
@@ -56,7 +75,7 @@ typedef struct _StatusInfo {
 	double mousePos[2];
 	bool shiftPressed = false;
 	unsigned int lastKey = 0;
-	glm::vec3 lightPos = glm::vec3(0.1f, 0.1f, 0.1f);
+	vec3 lightPos = vec3(0.1f, 0.1f, 0.1f);
 	//bool startShoot = false;
 	//double shootPos[2];
 	LeafInfo leafstatus;
@@ -65,7 +84,7 @@ typedef struct _StatusInfo {
 
 typedef struct _uniformTable {	// 除了MVP矩阵以外的其他定制化uniform变量
 	bool autoColor{ true };
-	glm::vec4 color{ 0.0f,0.0f,0.0f,0.0f };
+	vec4 color{ 0.0f,0.0f,0.0f,0.0f };
 }uniformTable;
 
 #endif

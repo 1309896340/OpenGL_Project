@@ -48,11 +48,11 @@ public:
 		// 初始化uniform缓冲区
 		glGenBuffers(1, &uboBlock);
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
-		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(mat4), NULL, GL_DYNAMIC_DRAW);
 		// 数据载入uniform缓冲区
 		glBindBufferBase(GL_UNIFORM_BUFFER, matrixBindPoint, uboBlock);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(glm::mat4(1.0)));							// 清空缓冲区
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(glm::mat4(1.0)));	// 清空缓冲区
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), value_ptr(mat4(1.0)));							// 清空缓冲区
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(mat4(1.0)));	// 清空缓冲区
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
@@ -71,7 +71,7 @@ public:
 	float step(float* t = nullptr) { // 渲染循环中每一轮调用一次，更新视图变换矩阵，更新计时，并返回时间步长
 		static float t_accum = 0.0f;
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camera->getViewMatrix()));
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		lastTime = currentTime;
@@ -97,8 +97,8 @@ public:
 	void setCamera(Camera* camera) {	// 将camera设置为当前主相机，并第一次更新投影、视图变换矩阵
 		this->camera = camera;
 		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(camera->getProjectionMatrix()));
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(camera->getViewMatrix()));
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), value_ptr(camera->getProjectionMatrix()));
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
@@ -106,13 +106,13 @@ public:
 		// Drawable不考虑子节点
 		obj->draw(nullptr);
 	}
-	void render(Geometry* obj) {
-		// Geometry需要考虑子节点
-		obj->drawAll();
-	}
-	void render(Leaf* obj, Shader* shader) {
-		obj->draw(shader);
-	}
+	//void render(Geometry* obj) {
+	//	// Geometry需要考虑子节点
+	//	obj->drawAll();
+	//}
+	//void render(Leaf* obj, Shader* shader) {
+	//	obj->draw(shader);
+	//}
 };
 
 #endif

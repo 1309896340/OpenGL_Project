@@ -1,3 +1,5 @@
+// 考虑将“几何形体描述”与“OpenGL可视化”两部分分离开来
+
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "Scene.hpp"
@@ -11,66 +13,20 @@
 #include "utils.h"
 #include "proj.h"
 
-glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
-glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
-glm::vec3 _front = glm::vec3(0.0f, 0.0f, -1.0f);			// 将z负方向作为front方向，所以涉及它的运算要采用左手坐标系，在做cross运算时需要特别注意
-glm::vec3 _origin = glm::vec3(0.0f, 0.0f, 0.0f);
+using std::vector;
+using std::deque;
+using std::map;
 
-StatusInfo status;
+vec3 _up = vec3(0.0f, 1.0f, 0.0f);
+vec3 _right = vec3(1.0f, 0.0f, 0.0f);
+vec3 _front = vec3(0.0f, 0.0f, 1.0f);
+vec3 _origin = vec3(0.0f, 0.0f, 0.0f);
 
-Camera* camera = new Camera(glm::vec3(-0.4f, 0.5f, 5.0f), glm::vec3(0.0f, 0.5f, 0.0f));		// 摄像机需要被交互逻辑访问，所以定义为全局变量
-Shader* defaultShader = nullptr;
 
-Leaf* leaf = nullptr;		// 交互控制的对象
 
 int main(int argc, char** argv) {
-	GLFWwindow* window = GLFWinit();
-	GUI gui(window);
+	
 
-	Scene scene;
-	scene.setCamera(camera);
-
-	defaultShader = new Shader("shader/shader.gvs", "shader/shader.gfs");
-
-	Axis axis;
-	Leaf leaf_a(1.0f, 0.1f);
-	Leaf leaf_b(2.0f, 0.1f);
-	Cylinder stalk(0.04f, 1.0f);
-
-	vec3 border[4]{ -2.0f,-0.1f,-2.0f ,  -2.0f,-0.1f,2.0f,  2.0f,-0.1f,2.0f,  2.0f,-0.1f,-2.0f };
-	Plane ground(scene.shaders["plane"], border);
-
-	stalk.translateTo(0.5, 0.0f, 0.5f);
-
-	leaf_b.setShader(scene.shaders["leaf"]);
-	leaf_a.setShader(scene.shaders["leaf"]);
-
-	leaf = &leaf_a;		// 交互控制的对象
-
-	stalk.addChild(&leaf_a, Transform(glm::vec3(0.0f, 1.0f, 0.0f)));
-	stalk.addChild(&leaf_b, Transform(glm::vec3(0.0f, 0.5f, 0.0f), 180.0f, _up));
-
-	float t;
-	while (!glfwWindowShouldClose(window)) {
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		gui.update();
-		float deltaTime = scene.step(&t);
-
-		//stalk.rotate(deltaTime * 20.0f, _up);
-
-		scene.render(&axis);
-		scene.render(&stalk);
-
-		scene.render(&ground);
-
-		//scene.render(leaf, scene.shaders["normal_v"]);		// 将法向量渲染出来
-
-		gui.render();
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-	glfwTerminate();
 	return 0;
 }
 
