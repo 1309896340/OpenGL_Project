@@ -68,7 +68,7 @@ ostream& operator<<(ostream& os, const glm::vec3& v) {
 	return os;
 }
 
-#define SAMPLE_NUM 1000
+#define SAMPLE_NUM 300
 
 // 用于处理三角形面元的函数，传入三个顶点，以及光源位置，计算这个三角面元的接收辐射量
 // 假设不考虑遮挡，且光源为点光源
@@ -89,7 +89,7 @@ float calculateRadiationByTriangle(const Vertex& a, const Vertex& b, const Verte
 	float radiance = light.intensity / (4 * PI * powf(light.radius, 2.0f));
 	// 对球面光源进行积分，计算在目标点上的辐射通量
 	// 对球面进行均匀采样
-	float dS = powf(light.radius, 2.0f) / SAMPLE_NUM; // float dS = 4.0f * PI * powf(light.radius, 2.0f) / SAMPLE_NUM;		只取半球面
+	float dS = 2.0f * PI * powf(light.radius, 2.0f) / SAMPLE_NUM; // float dS = 4.0f * PI * powf(light.radius, 2.0f) / SAMPLE_NUM;		只取半球面
 	for (unsigned int i = 0; i < SAMPLE_NUM; i++) {
 		float theta = acosf(1.0f - (float)rand() / RAND_MAX);		// acosf(1 - 2 * (float)rand() / RAND_MAX);	由于取上半球，所以theta的范围为[0, pi/2]
 		float phi = 2.0f * PI * (float)rand() / RAND_MAX;
@@ -106,11 +106,17 @@ float calculateRadiationByTriangle(const Vertex& a, const Vertex& b, const Verte
 		float y = light.radius * sinf(theta) * sinf(phi);
 		float z = light.radius * cosf(theta);
 		glm::vec3 samplePos = glm::rotate(glm::vec3(x, y, z), angle, -axis) + light.position;
+		glm::vec3 lightNormal = glm::normalize(samplePos - light.position);
+		glm::vec3 lightDir = glm::normalize(pos - samplePos);
 		glm::vec3 L = glm::normalize(samplePos - pos);
-		float test = glm::dot(N, L);
-		sumbuf += radiance * glm::dot(N, L) * dS;
+		float exposeSurfaceDecay = max(glm::dot(N, L), 0.0f);
+		float lightAngleDecay = max(glm::dot(lightNormal, lightDir), 0.0f);
+		// exposeSurfaceDecay 为受光照表面处计算的角度衰减，负数置为0
+		// lightAngleDecay 为光源表面处计算的角度衰减，负数置为0
+		// dS为球光源面积微元，这里不将其通过除以glm::length(samplePos-pos)的平方换算为立体角微元，而是直接乘以dS，相当于不考虑距离衰减
+		sumbuf += radiance * lightAngleDecay * exposeSurfaceDecay * dS;
 	}
-	// 假设三角面元足够小，相对球面光源近似为一点，因此只对该点积分。但该点仍具有微小的面积，因此需要乘以面积
+	// 假设三角面元足够小，将其抽象为带有面积的受光点，计算该点光源在目标点上的辐射通量
 	float tri_area = glm::length(tmp) / 2.0f;
 	return sumbuf * tri_area;
 }
@@ -143,7 +149,7 @@ int main(int argc, char** argv) {
 	// 遍历其中所有的矩形面元
 	for (unsigned int u = 0; u < (uSize - 1); u++) {
 		for (unsigned int v = 0; v < (vSize - 1); v++) {
-			unsigned int* ptr = &meshIdx[(u*(vSize-1)+v)*6];
+			unsigned int* ptr = &meshIdx[(u * (vSize - 1) + v) * 6];
 			// 遍历矩形面元中的两个三角形面元
 			for (unsigned int k = 0; k < 2; k++) {
 				float rd = calculateRadiationByTriangle(meshVertex[ptr[k * 3 + 0]], meshVertex[ptr[k * 3 + 1]], meshVertex[ptr[k * 3 + 2]], light);		// 将三角形面元三个顶点传入处理函数
