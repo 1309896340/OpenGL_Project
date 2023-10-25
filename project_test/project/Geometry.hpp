@@ -8,7 +8,8 @@
 #include "stb_image.h"
 
 
-extern Shader* defaultShader;			// 默认着色器，定义在demo.cpp中
+//extern Shader* defaultShader;			// 默认着色器，定义在demo.cpp中
+
 class Transform {
 private:
 	vec3 position;
@@ -59,7 +60,7 @@ public:
 };
 class Drawable {
 protected:
-	Shader* shader{ defaultShader };
+	Shader* shader{ nullptr };
 public:
 	Transform model;		// 模型矩阵
 public:

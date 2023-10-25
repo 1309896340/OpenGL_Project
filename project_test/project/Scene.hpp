@@ -35,13 +35,14 @@ public:
 	}
 
 	void initShaders() {
+		shaders["default"] = new Shader("shader/shader.gvs", "shader/shader.gfs");		// 默认shader
 		shaders["normal"] = new Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs");	// 三角面元法线可视化
 		shaders["normal_v"] = new Shader("shader/nshader.gvs", "shader/nshader.ggs", "shader/nshader.gfs");				// 顶点法线可视化	
-		
-		shaders["line"] = new Shader("shader/line.gvs","shader/line.gfs");				// 绘制简单线条
+
+		shaders["line"] = new Shader("shader/line.gvs", "shader/line.gfs");				// 绘制简单线条
 		shaders["plane"] = new Shader("shader/plane.gvs", "shader/plane.gfs");		// 绘制简单平面
 
-		shaders["leaf"] = new Shader("shader/leaf.gvs","shader/leaf.gfs");		// 渲染小麦叶片的着色器，其中包含材质
+		shaders["leaf"] = new Shader("shader/leaf.gvs", "shader/leaf.gfs");		// 渲染小麦叶片的着色器，其中包含材质
 	}
 
 	void initUniformBuffer() {
@@ -106,13 +107,33 @@ public:
 		// Drawable不考虑子节点
 		obj->draw(nullptr);
 	}
-	//void render(Geometry* obj) {
-	//	// Geometry需要考虑子节点
-	//	obj->drawAll();
-	//}
-	//void render(Leaf* obj, Shader* shader) {
-	//	obj->draw(shader);
-	//}
+
+	void renderOne(Geometry* obj) {
+		// 不考虑Geometry子节点，只绘制当前Geometry
+		Shader& shader = *shaders["default"];
+		shader.use();
+		shader["model"] = obj->getFinalOffset() * obj->model.getMatrix();
+		shader["modelBuffer"] = obj->getModelBufferMatrix();
+		shader["isAuto"] = obj->attribute.autoColor;
+		shader["ncolor"] = obj->attribute.color;
+		for (auto& mesh : obj->getMeshes()) {
+			glBindVertexArray(VAO);			// 物体在第一次绘制时需要将顶点数据等载入显存，目前没有实现
+			glDrawElements(GL_TRIANGLES, mesh->getIndexSize(), GL_UNSIGNED_INT, 0);
+			glBindVertexArray(0);
+		}
+	}
+
+	void render(Geometry* obj) {
+		deque<Geometry*> buf{ obj };
+		Geometry* tmp{ nullptr };
+		while (!buf.empty()) {
+			tmp = buf.front();
+			buf.pop_front();
+			renderOne(tmp);
+			for (auto& child : tmp->getChildren())
+				buf.push_back(child);
+		}
+	}
 };
 
 #endif
