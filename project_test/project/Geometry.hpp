@@ -69,10 +69,10 @@ public:
 
 class Mesh {
 private:
-	Vertex *ptr{ nullptr };		// 用于临时开放数据的指针
+	Vertex* ptr{ nullptr };		// 用于临时开放数据的指针
 protected:
 	// 描述对象相关的数据
-	unsigned int uSize{ 0 }, vSize{ 0 };							// u为第几列，v为第几行。指分割的份数，不是定点数。顶点数为uSize+1和vSize+1
+	unsigned int uSize{ 0 }, vSize{ 0 };							// u为第几列，v为第几行。指分割的份数，不是顶点数。顶点数为uSize+1和vSize+1
 	Vertex** vertex{ nullptr };										// 二维数组，存储顶点数据
 	unsigned int* index{ nullptr };									// 二维数组，存储索引数据
 
@@ -219,6 +219,7 @@ public:
 	}
 	void rotate(float angle, vec3 axis) {
 		model.rotate(angle, axis);
+		//offset.rotate(angle, axis);
 	}
 	void scale(vec3 xyz) {
 		model.scale(xyz);
@@ -262,12 +263,12 @@ public:
 		dz = zLength / zSliceNum;
 
 		// 立方体6个网格面
-		meshes.push_back(new Mesh(xSliceNum + 1, ySliceNum + 1));
-		meshes.push_back(new Mesh(xSliceNum + 1, ySliceNum + 1));
-		meshes.push_back(new Mesh(xSliceNum + 1, zSliceNum + 1));
-		meshes.push_back(new Mesh(xSliceNum + 1, zSliceNum + 1));
-		meshes.push_back(new Mesh(ySliceNum + 1, zSliceNum + 1));
-		meshes.push_back(new Mesh(ySliceNum + 1, zSliceNum + 1));
+		meshes.push_back(new Mesh(xSliceNum, ySliceNum));
+		meshes.push_back(new Mesh(xSliceNum, ySliceNum));
+		meshes.push_back(new Mesh(xSliceNum, zSliceNum));
+		meshes.push_back(new Mesh(xSliceNum, zSliceNum));
+		meshes.push_back(new Mesh(ySliceNum, zSliceNum));
+		meshes.push_back(new Mesh(ySliceNum, zSliceNum));
 
 		// 顶点索引
 		for (unsigned int i = 0; i < 6; i++)
@@ -332,7 +333,7 @@ public:
 		float latStep = PI / latSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
 
-		meshes.push_back(new Mesh(latSliceNum + 1, lonSliceNum + 1));
+		meshes.push_back(new Mesh(latSliceNum, lonSliceNum));
 		meshes[0]->connect();
 		meshes[0]->updateVertexPositionByFunc([=](unsigned int i, unsigned int j) {
 			float lat = -PI / 2 + i * latStep;
@@ -365,9 +366,9 @@ public:
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
 
-		meshes.push_back(new Mesh(rSliceNum + 1, lonSliceNum + 1));
-		meshes.push_back(new Mesh(rSliceNum + 1, lonSliceNum + 1));
-		meshes.push_back(new Mesh(hSliceNum + 1, lonSliceNum + 1));
+		meshes.push_back(new Mesh(rSliceNum, lonSliceNum));
+		meshes.push_back(new Mesh(rSliceNum, lonSliceNum));
+		meshes.push_back(new Mesh(hSliceNum, lonSliceNum));
 
 		for (unsigned int i = 0; i < 3; i++)
 			meshes[i]->connect();
@@ -423,8 +424,8 @@ public:
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
 
-		meshes.push_back(new Mesh(rSliceNum + 1, lonSliceNum + 1));
-		meshes.push_back(new Mesh(hSliceNum + 1, lonSliceNum + 1));
+		meshes.push_back(new Mesh(rSliceNum, lonSliceNum));
+		meshes.push_back(new Mesh(hSliceNum, lonSliceNum));
 
 		for (unsigned int i = 0; i < 2; i++)
 			meshes[i]->connect();

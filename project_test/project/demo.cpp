@@ -27,25 +27,26 @@ void platformCheck() {
 }
 
 StatusInfo status;
-Camera* camera = new Camera(vec3(0.0f, 0.0f, 6.0f), vec3(0.0f, 0.0f, 0.0f));
-
+Camera* camera{ nullptr };
 
 int main(int argc, char** argv) {
 	platformCheck();
 
 	GLFWwindow* window = GLFWinit();
 	GUI gui(window);
+	camera = new Camera(vec3(0.0f, 1.3f, 6.0f), vec3(0.0f, 1.3f, 0.0f));
 	Scene scene(camera);
 
-	Cylinder c1(0.2f, 1.0f), c2(0.2f, 1.0f), c3(0.2f, 1.0f);
-	Sphere s1(0.3f), s2(0.3f);
+	Cylinder c1(0.04f, 1.0f), c2(0.04f, 1.0f), c3(0.04f, 1.0f);
+	Sphere s1(0.06f), s2(0.06f);
 
 	c1.addChild(&s1, Transform(vec3(0.0f, 1.0f, 0.0f)));
-	s1.addChild(&c2);
+	s1.addChild(&c2,Transform(vec3(0.0f),30.0f,_front));
 	c2.addChild(&s2, Transform(vec3(0.0f, 1.0f, 0.0f)));
 	s2.addChild(&c3);
-
 	scene.add(&c1);
+
+	c3.rotate(-30.0f, _front);
 
 
 	while (!glfwWindowShouldClose(window)) {
@@ -53,6 +54,9 @@ int main(int argc, char** argv) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		gui.update();
 		float deltaTime = scene.step();
+
+		c1.rotate(deltaTime * 20.0f, _up);
+		c2.rotate(-deltaTime * 80.0f, _up);
 
 		scene.render();
 		gui.render();
