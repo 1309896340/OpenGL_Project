@@ -28,6 +28,7 @@ void platformCheck() {
 
 StatusInfo status;
 Camera* camera{ nullptr };
+Leaf* leaf{ nullptr };
 
 int main(int argc, char** argv) {
 	platformCheck();
@@ -39,11 +40,16 @@ int main(int argc, char** argv) {
 
 	Cylinder c1(0.04f, 1.0f), c2(0.04f, 1.0f), c3(0.04f, 1.0f);
 	Sphere s1(0.06f), s2(0.06f);
+	Leaf leaf_a(2.0f, 0.2f);
+
+	leaf = &leaf_a;
 
 	c1.addChild(&s1, Transform(vec3(0.0f, 1.0f, 0.0f)));
 	s1.addChild(&c2,Transform(vec3(0.0f),30.0f,_front));
 	c2.addChild(&s2, Transform(vec3(0.0f, 1.0f, 0.0f)));
 	s2.addChild(&c3);
+	c3.addChild(&leaf_a, Transform(vec3(0.04f, 1.0f, 0.0f)));
+
 	scene.add(&c1);
 
 	c3.rotate(-30.0f, _front);
@@ -56,7 +62,7 @@ int main(int argc, char** argv) {
 		float deltaTime = scene.step();
 
 		c1.rotate(deltaTime * 20.0f, _up);
-		c2.rotate(-deltaTime * 80.0f, _up);
+		//c2.rotate(-deltaTime * 80.0f, _up);
 
 		scene.render();
 		gui.render();

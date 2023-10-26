@@ -128,13 +128,17 @@ public:
 			glGenBuffers(1, &mInfo.EBO);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mInfo.EBO);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->getIndexSize() * sizeof(GLuint), mesh->getIndexPtr(), GL_STATIC_DRAW);
-			// 设置绘制点个数
+			// 设置顶点索引数
 			mInfo.elementNum = mesh->getIndexSize();
 			// 加入到gInfo中
 			gInfo.meshesInfo.push_back(mInfo);
 		}
 		objs[obj] = gInfo;		// 存入map
 	}
+	//void addOne(Leaf* obj) {
+	//	addOne(dynamic_cast<Geometry*>(obj));
+	//	objs[obj].type = LEAF;
+	//}
 
 	void add(Geometry* obj) {
 		deque<Geometry*> buf{ obj };
@@ -147,6 +151,7 @@ public:
 			addOne(tmp);
 		}
 	}
+
 
 	void removeOne(Geometry* obj) { // 删除一个Geometry，不考虑子对象
 		GeometryRenderInfo& gInfo = objs[obj];
@@ -182,6 +187,16 @@ public:
 			add(obj);
 		}
 		GeometryRenderInfo& gInfo = objs[obj];
+		if (obj->type == LEAF) {										// 检索不同Geometry类型，更新其顶点数据
+			Leaf* leaf_a = dynamic_cast<Leaf*>(obj);
+			if (leaf_a->isMeshChanged()) {
+				leaf_a->updateVertex();
+				// 更新VBO
+				Mesh* m = leaf_a->getMeshes()[0];
+				glNamedBufferSubData(gInfo.meshesInfo[0].VBO, 0, m->getVertexSize() * sizeof(Vertex), m->mapVertexData());
+				m->unmapVertexData();
+			}
+		}
 		for (auto& meshInfo : gInfo.meshesInfo) {
 			// 物体在加入场景中时需要将顶点数据等载入显存，同时建立其缓冲区ID与对象之间的联系，使用map存储
 			glBindVertexArray(meshInfo.VAO);

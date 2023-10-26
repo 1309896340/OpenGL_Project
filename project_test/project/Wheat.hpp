@@ -16,6 +16,8 @@ private:
 	}
 public:
 	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) :height(height), width(width), hSliceNum(hSliceNum), wSliceNum(wSliceNum) {
+		type = LEAF;
+
 		meshes.push_back(new Mesh(wSliceNum, hSliceNum));
 		meshes[0]->connect();
 
@@ -129,7 +131,7 @@ public:
 		this->MVAngle = angle;
 		isChanged = true;
 	}
-	bool isChangedMesh() {
+	bool isMeshChanged() {
 		return isChanged;
 	}
 };
