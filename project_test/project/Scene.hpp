@@ -27,22 +27,21 @@ class Scene {
 private:
 	std::map<Geometry*, GeometryRenderInfo> objs;		// 在add时绑定一个新的GeometryRenderInfo，并初始化顶点缓冲
 	Camera* camera{ 0 }; // 当前主相机
-	GLuint uboBlock{ 0 };
+	GLuint ubo{ 0 };
 
 	float lastTime{ 0 }, currentTime{ (float)glfwGetTime() }, deltaTime{ 0 };
 
-	const GLuint matrixBindPoint = 0;		// projection和view接口快绑定点
+	const GLuint matrixBindPoint = 0;		// projection和view接口块绑定点
 
 public:
 	std::map<std::string, Shader*> shaders;
 
 	Scene() : currentTime((float)glfwGetTime()) {
-		initUniformBuffer();
 		initShaders();					//  初始化所有Shader，编译、链接
-		bindAllShaders();				//  绑定所有Shader的uniform缓冲区
+		initUniformBuffer();			//  初始化uniform缓冲区
 	}
 
-	Scene(Camera *camera):Scene() {
+	Scene(Camera *camera):Scene(){
 		setCamera(camera);
 	}
 
@@ -50,7 +49,7 @@ public:
 		for (auto& shader : shaders) {
 			delete shader.second;
 		}
-		glDeleteBuffers(1, &uboBlock);
+		glDeleteBuffers(1, &ubo);
 	}
 
 	void initShaders() {
@@ -66,33 +65,16 @@ public:
 
 	void initUniformBuffer() {
 		// 初始化uniform缓冲区
-		glGenBuffers(1, &uboBlock);
-		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
+		glGenBuffers(1, &ubo);
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(mat4), NULL, GL_DYNAMIC_DRAW);
-		// 数据载入uniform缓冲区
-		glBindBufferBase(GL_UNIFORM_BUFFER, matrixBindPoint, uboBlock);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), value_ptr(mat4(1.0)));							// 清空缓冲区
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(mat4(1.0)));	// 清空缓冲区
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	}
-
-	void bindAllShaders() {
-		for (auto& shader : shaders) {
-			bindShader(shader.second);
-		}
-	}
-	void bindShader(Shader* shader) {			// 仅仅只是绑定shader
-		// 绑定新的shader的uniform缓冲区（共享projection和view两个矩阵）
-		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
-		glUniformBlockBinding(shader->getID(), glGetUniformBlockIndex(shader->getID(), "Matrices"), matrixBindPoint);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		glBindBufferBase(GL_UNIFORM_BUFFER, matrixBindPoint, ubo);
 	}
 
 	float step(float* t = nullptr) { // 渲染循环中每一轮调用一次，更新视图变换矩阵，更新计时，并返回时间步长
 		static float t_accum = 0.0f;
-		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		lastTime = currentTime;
 		currentTime = (float)glfwGetTime();
@@ -116,10 +98,10 @@ public:
 
 	void setCamera(Camera* camera) {	// 将camera设置为当前主相机，并第一次更新投影、视图变换矩阵
 		this->camera = camera;
-		glBindBuffer(GL_UNIFORM_BUFFER, uboBlock);
+		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), value_ptr(camera->getProjectionMatrix()));
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		//glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
 	void addOne(Geometry* obj) {	// 添加一个Geometry，不考虑子对象
@@ -129,13 +111,12 @@ public:
 			MeshRenderInfo mInfo;
 			// 创建并绑定VAO
 			glGenVertexArrays(1, &mInfo.VAO);
-			glBindVertexArray(GL_VERTEX_ARRAY);
+			glBindVertexArray(mInfo.VAO);
 			// 创建并绑定VBO
 			glGenBuffers(1, &mInfo.VBO);
 			glBindBuffer(GL_ARRAY_BUFFER, mInfo.VBO);
-			// 这里需要将mesh->getVertexPtr()这个二维数组转换为一维数组，因为VBO只能接受一维数组
-			这里有错误，未修正
-			glBufferData(GL_ARRAY_BUFFER, mesh->getVertexSize() * sizeof(Vertex), mesh->getVertexPtr(), GL_DYNAMIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, mesh->getVertexSize() * sizeof(Vertex), mesh->mapVertexData(), GL_DYNAMIC_DRAW);
+			mesh->unmapVertexData();
 			// 配置VBO的属性组
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);								// 位置属性
 			glEnableVertexAttribArray(0);
@@ -204,7 +185,7 @@ public:
 		for (auto& meshInfo : gInfo.meshesInfo) {
 			// 物体在加入场景中时需要将顶点数据等载入显存，同时建立其缓冲区ID与对象之间的联系，使用map存储
 			glBindVertexArray(meshInfo.VAO);
-			glDrawElements(GL_TRIANGLES, meshInfo.elementNum, GL_UNSIGNED_INT, 0);
+			glDrawElements(GL_TRIANGLES, meshInfo.elementNum, GL_UNSIGNED_INT,0);
 			glBindVertexArray(0);
 		}
 	}
@@ -223,7 +204,7 @@ public:
 
 	void render() {	// 绘制objs中所有对象
 		for(auto &obj : objs)
-			render(obj.first);
+			renderOne(obj.first);
 	}
 };
 

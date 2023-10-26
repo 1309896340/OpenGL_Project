@@ -41,14 +41,13 @@ public:
 		// 计算航向角
 		vec3 frontDown = normalize(front - dot(front, _up) * _up); //映射到xz平面上的front向量
 		float x = dot(frontDown, _right);
-		float z = dot(frontDown, _front);
+		float z = dot(frontDown, -_front);
 
 		yaw = atan2f(z, x);
 	}
 	void updateLocalCoordiante() {	// 更新局部坐标系(根据front向量计算right向量和up向量)
 		right = normalize(cross(front, _up));
 		up = normalize(cross(right, front));
-		// 好像暂时用不到局部坐标系
 	}
 	void lookAt(vec3 dst) {
 		front = normalize(dst - position);
@@ -58,6 +57,10 @@ public:
 	void rotate(float dx, float dy) {	// 控制相机旋转(更新front向量)
 		yaw -= dx * X_ROTATE_SENSITIVITY;
 		pitch -= dy * Y_ROTATE_SENSITIVITY;
+
+		cout << "yaw: " << yaw << endl;
+		cout << "pitch:" << pitch << endl;
+
 		if (pitch > (PI / 2 - 1e-5f))
 			pitch = PI / 2 - 1e-5f;
 		else if (pitch < (-PI / 2 + 1e-5f))
@@ -86,7 +89,7 @@ public:
 
 	// 生成View矩阵和Projection矩阵
 	mat4 getViewMatrix() {
-		return glm::lookAt(position, position + front, up);
+		return glm::lookAt(position, position + front, _up);
 	}
 	mat4 getProjectionMatrix() {
 		return glm::perspective(45.0f, (float)WIDTH / HEIGHT, 0.1f, 50.0f);

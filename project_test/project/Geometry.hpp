@@ -68,6 +68,8 @@ public:
 };
 
 class Mesh {
+private:
+	Vertex *ptr{ nullptr };		// 用于临时开放数据的指针
 protected:
 	// 描述对象相关的数据
 	unsigned int uSize{ 0 }, vSize{ 0 };							// u为第几列，v为第几行。指分割的份数，不是定点数。顶点数为uSize+1和vSize+1
@@ -138,6 +140,19 @@ public:
 	}
 	Vertex** getVertexPtr() {
 		return vertex;
+	}
+	Vertex* mapVertexData() {		// 将二级指针存储的顶点数据映射到一维连续空间，只读
+		ptr = new Vertex[(uSize + 1) * (vSize + 1)];
+		for (unsigned int v = 0; v <= vSize; v++) {
+			for (unsigned int u = 0; u <= uSize; u++) {
+				ptr[v * (uSize + 1) + u] = vertex[v][u];
+			}
+		}
+		return ptr;
+	}
+	void unmapVertexData() {
+		delete[] ptr;
+		ptr = nullptr;
 	}
 	unsigned int* getIndexPtr() {
 		return index;
@@ -498,7 +513,7 @@ public:
 	Axis() {
 		axis_x = new Arrow(_origin, _right, _right);
 		axis_y = new Arrow(_origin, _up, _up);
-		axis_z = new Arrow(_origin, -_front, -_front);
+		axis_z = new Arrow(_origin, _front, _front);
 		addChild(axis_x);
 		addChild(axis_y);
 		addChild(axis_z);
