@@ -136,8 +136,11 @@ public:
 			}
 		}
 	}
-	Vertex **getVertexPtr() {
+	Vertex** getVertexPtr() {
 		return vertex;
+	}
+	unsigned int* getIndexPtr() {
+		return index;
 	}
 	unsigned int getVertexSize() {
 		return (uSize + 1) * (vSize + 1);
@@ -167,7 +170,6 @@ protected:
 public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
-	uniformTable attribute;
 	Geometry() {}
 	~Geometry() {		// 仅删除当前对象，还是删除所有子对象？选择后者
 		for (auto& child : children)
@@ -469,9 +471,6 @@ public:
 		body = new Cylinder(width, len - arrowLength);
 		body->addChild(arrow, Transform(vec3(0.0f, len - arrowLength, 0.0f)));
 		this->addChild(body, Transform());		// 将两个对象加入this中，这样对this的变换会同时作用于两个对象
-
-		arrow->attribute = { false, vec4(arrowColor,1.0f) };
-		body->attribute = { false, vec4(bodyColor,1.0f) };
 
 		model.reset();
 		pose();

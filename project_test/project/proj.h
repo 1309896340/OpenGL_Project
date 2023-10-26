@@ -37,23 +37,19 @@ using glm::dot;
 using glm::radians;
 using glm::identity;
 
+using std::vector;
+using std::deque;
+using std::map;
+using std::cout;
+using std::endl;
+
 extern vec3 _up;
 extern vec3 _right;
 extern vec3 _front;
 extern vec3 _origin;
 
-//typedef struct _vec2 {
-//	float x, y;
-//}vec2;
-//
-//typedef struct _vec3 {
-//	float x, y, z;
-//}vec3;
-//
-//typedef struct _vec4 {
-//	float x, y, z, w;
-//}vec4;
-
+// 为了确保这个结构的内存是连续的，要做一些检查
+// static_assert(sizeof(glm::vec3) == sizeof(GLfloat) * 3, "Platform doesn't support this directly.");
 typedef struct _Vertex{
 	vec3 position;
 	vec3 normal;
