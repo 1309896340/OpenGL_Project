@@ -58,9 +58,6 @@ public:
 		yaw -= dx * X_ROTATE_SENSITIVITY;
 		pitch -= dy * Y_ROTATE_SENSITIVITY;
 
-		cout << "yaw: " << yaw << endl;
-		cout << "pitch:" << pitch << endl;
-
 		if (pitch > (PI / 2 - 1e-5f))
 			pitch = PI / 2 - 1e-5f;
 		else if (pitch < (-PI / 2 + 1e-5f))
@@ -93,7 +90,6 @@ public:
 	}
 	mat4 getProjectionMatrix() {
 		return glm::perspective(45.0f, (float)WIDTH / HEIGHT, 0.1f, 50.0f);
-		//return ortho(-5.0, 8.0, -3.0, 7.0, 0.1, 50.0);
 	}
 	vec3 getShootPos(double x, double y) {
 		// x和y为窗口的未归一化坐标

@@ -16,12 +16,6 @@
     <Filter Include="OpenGL">
       <UniqueIdentifier>{717b386f-badf-484c-98a4-5e16eee8a405}</UniqueIdentifier>
     </Filter>
-    <Filter Include="头文件\ImGui">
-      <UniqueIdentifier>{1b7b7f1c-e079-40d8-b4f6-43b41b13d71d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="源文件\ImGui">
-      <UniqueIdentifier>{b552b274-61d6-4b5c-ae7d-2b1f14f78624}</UniqueIdentifier>
-    </Filter>
     <Filter Include="类">
       <UniqueIdentifier>{4a3c3105-9415-474d-98c9-761a135a8888}</UniqueIdentifier>
     </Filter>
@@ -30,6 +24,12 @@
     </Filter>
     <Filter Include="资源文件\texture">
       <UniqueIdentifier>{7602c97a-d873-4220-a802-d0cd9b6efb5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{5605f538-994d-4366-98d7-3aa7bd0e075e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui\header">
+      <UniqueIdentifier>{67ca7b26-3dcb-4318-a347-08142be73172}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -42,38 +42,38 @@
     <ClCompile Include="interaction.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\imgui.cpp">
-      <Filter>源文件\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui\imgui_demo.cpp">
-      <Filter>源文件\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui\imgui_draw.cpp">
-      <Filter>源文件\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui\backends\imgui_impl_glfw.cpp">
-      <Filter>源文件\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui\misc\cpp\imgui_stdlib.cpp">
-      <Filter>源文件\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui\imgui_tables.cpp">
-      <Filter>源文件\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui\imgui_widgets.cpp">
-      <Filter>源文件\ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="glad\src\glad.c">
       <Filter>OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui\backends\imgui_impl_opengl3.cpp">
-      <Filter>头文件\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Shader.hpp">
       <Filter>类</Filter>
     </ClCompile>
     <ClCompile Include="globalVariables.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\backends\imgui_impl_opengl3.cpp">
+      <Filter>ImGui\header</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_demo.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\misc\cpp\imgui_stdlib.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_tables.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
