@@ -232,34 +232,23 @@ public:
 #include "Light.hpp"
 #include "Geometry.hpp"
 
-typedef struct _DepthMap {
-	float* ptr{ nullptr };	// 以h*width+w的索引顺序进行存储
-	unsigned int width{ 0 };
-	unsigned int height{ 0 };
-}DepthMap;
 
 class Scene {
 private:
-	vector<Mesh*>* meshes{ nullptr };	// 用于遍历所有Geometry的Mesh
-	DepthMap depthmap;	// 用于存储深度图
+	vector<Mesh *> meshes;	// 用于遍历所有Geometry的Mesh
 	Camera* camera{ nullptr };
+public:
+	set<Geometry*> objs;		// 存储所有Geometry对象（嵌套结构已经展开）
+	set<Light *> lights;			// 存储所有Light对象
 
-	// 判断光线相交算法
-	bool rayTriangleIntersect(const Triangle& t, const vec3& lightPos, const vec3& lightDir, float* tnear) {
-		vec3 S = lightPos - t.vertex[0].position;
-		vec3 E1 = t.vertex[1].position - t.vertex[0].position;
-		vec3 E2 = t.vertex[2].position - t.vertex[0].position;
-		vec3 S1 = cross(lightDir, E2);
-		vec3 S2 = cross(S, E1);
-		float S1E1 = dot(S1, E1);
-		float tt = dot(S2, E2) / S1E1;
-		float b1 = dot(S1, S) / S1E1;
-		float b2 = dot(S2, lightDir) / S1E1;
-		if (tt >= 0.0f && b1 >= 0.0f && b2 >= 0.0f && (1 - b1 - b2) >= 0.0f) {
-			*tnear = tt;	// 击中光线的长度
-			return true;
-		}
-		return false;
+	Scene() {}
+	Scene(Camera* camera) :Scene() {
+		this->camera = camera;
+	}
+
+	float step() {
+
+		return 0.0f;		// 没有实现计数
 	}
 	// 坐标变换
 	vec2 world2screen(const vec3& v, bool* isCulled) {
@@ -278,18 +267,9 @@ private:
 		pos.y = (1.0f - pos.y) * HEIGHT / 2.0f;
 		return vec2(pos.x, pos.y);
 	}
-public:
-	set<Geometry*> objs;		// 存储所有Geometry对象（嵌套结构已经展开）
-
-	Scene() {}
-	Scene(Camera* camera) :Scene() {
-		this->camera = camera;
-	}
-
-	float step() {
-
-
-		return 0.0f;		// 没有实现计数
+	void add(Light* obj) {
+		obj->setScene(this);
+		lights.insert(obj);
 	}
 
 	void addOne(Geometry* obj) {	// 添加一个Geometry，不考虑子对象
@@ -309,16 +289,12 @@ public:
 	}
 
 	// 用于遍历所有Geometry的Mesh
-	vector<Mesh*>* mapAllMeshes() {
-		meshes = new vector<Mesh*>();
+	vector<Mesh*> &mapAllMeshes() {			// 这里需要考虑是否要对每个Geometry中的Mesh进行local2world的变换，可以将local2world函数封装在Geometry中
+		meshes.clear();
 		for (auto& obj : objs)
 			for (auto& mesh : obj->getMeshes())
-				meshes->push_back(mesh);
+				meshes.push_back(mesh);
 		return meshes;
-	}
-	void unmapAllMeshes() {
-		delete meshes;
-		meshes = nullptr;
 	}
 
 	void renderOne(Geometry* obj, Mat& canvas) {
@@ -365,66 +341,29 @@ public:
 		}
 	}
 
-	DepthMap genDepthMap(Light* obj, unsigned int wNum, unsigned int hNum) {
-		vector<Triangle> triBuf;
-		for (auto& geo : objs) {
-			for (auto& mesh : geo->getMeshes()) {
-				Triangle* ptr = mesh->mapAllTriangles();
-				for (unsigned int i = 0; i < mesh->getTriangleSize(); i++)
-					triBuf.push_back(ptr[i]);
-				mesh->unmapAllTriangles();
-			}
-		}
-		// 生成光线采样
-		obj->genLightSample(wNum, hNum);
-		vec3* lightSamples = obj->getLightSamples();
-		// 生成深度图
-		this->depthmap.ptr = new float[wNum * hNum];
-		for (unsigned int i = 0; i < wNum * hNum; i++)
-			this->depthmap.ptr[i] = 4.0f;
-		this->depthmap.width = wNum;
-		this->depthmap.height = hNum;
-			
-		// 遍历所有三角形
-		vec3 lightDir = obj->direction;
-		for (auto& triangle : triBuf) {
-			// 遍历所有光线采样
-			for (unsigned int i = 0; i < wNum * hNum; i++) {
-				vec3 lightPos = lightSamples[i];
-				// 判断光线与三角形是否相交
-				float depth;
-				bool isHit = rayTriangleIntersect(triangle, lightPos, lightDir, &depth);
-				if (isHit) {
-					this->depthmap.ptr[i] = std::min(this->depthmap.ptr[i], depth);
-					cout << "击中，深度为 " << this->depthmap.ptr[i] << endl;
-				}
-			}
-		}
-		return this->depthmap;
-	}
-	void showLight(Light* obj) {
-		if (this->depthmap.ptr == nullptr)
-			return;
+	//void showLight(Light* obj) {
+	//	if (this->depthmap.ptr == nullptr)
+	//		return;
 
-		vec3* lightSamples = obj->getLightSamples();
-		for (unsigned int h = 0; h < this->depthmap.height; h++) {
-			for (unsigned int w = 0; w < this->depthmap.width; w++) {
-				unsigned int idx = h * this->depthmap.width + w;
-				vec3 p1 = lightSamples[idx];
-				vec3 p2 = p1 + obj->direction * this->depthmap.ptr[idx];
-				vec2 pp1 = world2screen(p1, nullptr);
-				vec2 pp2 = world2screen(p2, nullptr);
-				Point2f pf1(pp1.x, pp1.y),pf2(pp2.x,pp2.y);
-				line(canvas, pf1, pf2, Vec3f(0.0f, 0.0f, 1.0f), 1, cv::LINE_AA);
-			}
-		}
-	}
-	void deleteDepthMap() {
-		delete[] depthmap.ptr;
-		depthmap.ptr = nullptr;
-		depthmap.width = 0;
-		depthmap.height = 0;
-	}
+	//	vec3* lightSamples = obj->getLightSamples();
+	//	for (unsigned int h = 0; h < this->depthmap.height; h++) {
+	//		for (unsigned int w = 0; w < this->depthmap.width; w++) {
+	//			unsigned int idx = h * this->depthmap.width + w;
+	//			vec3 p1 = lightSamples[idx];
+	//			vec3 p2 = p1 + obj->direction * this->depthmap.ptr[idx];
+	//			vec2 pp1 = world2screen(p1, nullptr);
+	//			vec2 pp2 = world2screen(p2, nullptr);
+	//			Point2f pf1(pp1.x, pp1.y),pf2(pp2.x,pp2.y);
+	//			line(canvas, pf1, pf2, Vec3f(0.0f, 0.0f, 1.0f), 1, cv::LINE_AA);
+	//		}
+	//	}
+	//}
+	//void deleteDepthMap() {
+	//	delete[] depthmap.ptr;
+	//	depthmap.ptr = nullptr;
+	//	depthmap.width = 0;
+	//	depthmap.height = 0;
+	//}
 };
 
 

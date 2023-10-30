@@ -1,8 +1,8 @@
-#ifdef TEST_OPENGL
 #ifndef _WIND_UTILS
 #define _WIND_UTILS
-
 #include "proj.h"
+
+#ifdef TEST_OPENGL
 
 std::string readSource(std::string filename);
 void loadShader(GLuint shader, std::string source);
@@ -30,4 +30,10 @@ extern void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 
 #endif
+
+
+#ifdef TEST_SOFT_RASTERIZATION
+Point2f toPoint2f(const vec2& v);
+#endif
+
 #endif

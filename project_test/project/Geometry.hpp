@@ -88,13 +88,15 @@ protected:
 	//GLuint VAO{ 0 }, VBO[4]{ 0,0,0,0 }, texture{ 0 };			// VBO分别为position、normal、index、texture
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
-		index = new unsigned int** [vSize] {nullptr};
+		index = new unsigned int** [vSize];
 		for (unsigned int v = 0; v < vSize; v++) {
-			index[v] = new unsigned int* [uSize] {nullptr};
-			for (unsigned int u = 0; u < uSize; u++)
-				index[v][u] = new unsigned int[6] {0};
+			index[v] = new unsigned int* [uSize];
+			for (unsigned int u = 0; u < uSize; u++) {
+				index[v][u] = new unsigned int[6];
+				for (unsigned int k = 0; k < 6; k++)
+					index[v][u][k] = 0;
+			}
 		}
-
 		vertex = new Vertex * [vSize + 1] {nullptr};
 		for (unsigned int v = 0; v <= vSize; v++) {
 			vertex[v] = new Vertex[uSize + 1];
@@ -104,6 +106,52 @@ public:
 				vertex[v][u].color = vec4(0.0f);
 			}
 		}
+	}
+	Mesh(const Mesh& m) {
+		this->uSize = m.uSize;
+		this->vSize = m.vSize;
+		this->index = new unsigned int** [vSize] {nullptr};
+		for (unsigned int v = 0; v < vSize; v++) {
+			this->index[v] = new unsigned int* [uSize] {nullptr};
+			for (unsigned int u = 0; u < uSize; u++) {
+				this->index[v][u] = new unsigned int[6] {0};
+				for (unsigned int k = 0; k < 6; k++)
+					index[v][u][k] = m.index[v][u][k];
+			}
+		}
+		this->vertex = new Vertex * [vSize + 1] {nullptr};
+		for (unsigned int v = 0; v <= vSize; v++) {
+			this->vertex[v] = new Vertex[uSize + 1];
+			for (unsigned int u = 0; u <= uSize; u++) {
+				this->vertex[v][u].position = m.vertex[v][u].position;
+				this->vertex[v][u].normal = m.vertex[v][u].normal;
+				this->vertex[v][u].color = m.vertex[v][u].color;
+			}
+		}
+		return *this;
+	};
+	Mesh& operator=(const Mesh& m) {
+		this->uSize = m.uSize;
+		this->vSize = m.vSize;
+		this->index = new unsigned int** [vSize] {nullptr};
+		for (unsigned int v = 0; v < vSize; v++) {
+			this->index[v] = new unsigned int* [uSize] {nullptr};
+			for (unsigned int u = 0; u < uSize; u++) {
+				this->index[v][u] = new unsigned int[6] {0};
+				for (unsigned int k = 0; k < 6; k++)
+					index[v][u][k] = m.index[v][u][k];
+			}
+		}
+		this->vertex = new Vertex * [vSize + 1] {nullptr};
+		for (unsigned int v = 0; v <= vSize; v++) {
+			this->vertex[v] = new Vertex[uSize + 1];
+			for (unsigned int u = 0; u <= uSize; u++) {
+				this->vertex[v][u].position = m.vertex[v][u].position;
+				this->vertex[v][u].normal = m.vertex[v][u].normal;
+				this->vertex[v][u].color = m.vertex[v][u].color;
+			}
+		}
+		return *this;
 	}
 	~Mesh() {
 		delete[] index;
@@ -180,12 +228,12 @@ public:
 		delete[] indexPtr;
 		indexPtr = nullptr;
 	}
-	Triangle* mapAllTriangles() {
+	Triangle* mapAllTriangles() {									// 这里的三角形顶点全处于局部坐标系下
 		trianglePtr = new Triangle[uSize * vSize * 2];
 		Vertex* vtx = mapVertexData();
 		for (unsigned int v = 0; v < vSize; v++) {
 			for (unsigned int u = 0; u < uSize; u++) {
-				trianglePtr[(v * uSize + u) * 2] = { vtx[index[v][u][0]],vtx[index[v][u][1]] ,vtx[index[v][u][2]] };
+				trianglePtr[(v * uSize + u) * 2 + 0] = { vtx[index[v][u][0]],vtx[index[v][u][1]] ,vtx[index[v][u][2]] };
 				trianglePtr[(v * uSize + u) * 2 + 1] = { vtx[index[v][u][3]],vtx[index[v][u][4]] ,vtx[index[v][u][5]] };
 			}
 		}
@@ -193,7 +241,7 @@ public:
 		return trianglePtr;
 	}
 	void unmapAllTriangles() {
-		delete [] trianglePtr;
+		delete[] trianglePtr;
 		trianglePtr = nullptr;
 	}
 	unsigned int getVertexSize() {
@@ -240,6 +288,18 @@ public:
 	}
 	vector<Geometry*>& getChildren() {
 		return children;
+	}
+	// 需要调用方手动释放内存
+	//std::allocator<Mesh> alloc;
+	//Mesh* ptr = alloc.allocate(meshes.size());
+	void getWorldMeshes(vector<Mesh *> &worldMeshes) {
+		worldMeshes.clear();
+		for (unsigned int i = 0; i < meshes.size(); i++) {
+			Mesh* mesh = new Mesh(*(meshes[i]));
+			// 对 mesh 做变换
+			// 。。。
+			worldMeshes.push_back(mesh);
+		}
 	}
 	vector<Mesh*>& getMeshes() {
 		return meshes;

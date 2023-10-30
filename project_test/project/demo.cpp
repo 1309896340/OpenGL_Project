@@ -89,6 +89,7 @@ int main(int argc, char** argv) {
 #include "Light.hpp"
 
 #include "interaction.h"
+#include "utils.h"
 
 Camera* camera{ nullptr };
 StatusInfo status;
@@ -104,8 +105,11 @@ int main(int argc, char** argv) {
 	Scene scene(camera);
 	Leaf leaf_a(2.0f, 0.2f);
 
-	Light light(vec3(0.0f, 1.8f, 0.0f), vec3(0.6f, -0.9f, 0.0f), vec3(1.0f, 1.0f, 1.0f), 1.0f,
-		0.4f, 2.4f);
+	Light light(
+		vec3(0.0f, 1.8f, 0.0f), vec3(0.6f, -0.9f, 0.0f),		// 位置，方向
+		vec3(1.0f, 1.0f, 1.0f), 1.0f,									// 颜色，强度
+		0.4f, 2.4f															// 矩形覆盖范围，宽度，高度
+	);
 
 	scene.addOne(dynamic_cast<Geometry*>(&leaf_a));
 
@@ -115,8 +119,7 @@ int main(int argc, char** argv) {
 	bool quit = false;
 
 
-	DepthMap mapPtr = scene.genDepthMap(&light, 8, 48);
-	// 深度图的计算
+	// 深度图计算
 
 	while (!quit) {
 		key = waitKey(10);
@@ -139,10 +142,8 @@ int main(int argc, char** argv) {
 		}
 		canvas = Mat(HEIGHT, WIDTH, CV_32FC3, Vec3f(1.0f, 1.0f, 1.0f));
 		scene.renderOne(&leaf_a, canvas);
-		scene.showLight(&light);
 		imshow("demo", canvas);
 	}
-	scene.deleteDepthMap();
 	cv::destroyAllWindows();
 
 	return 0;

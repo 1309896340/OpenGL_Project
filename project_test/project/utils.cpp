@@ -1,6 +1,6 @@
-#ifdef TEST_OPENGL
 #include "utils.h"
 
+#ifdef TEST_OPENGL
 std::string readSource(std::string filename) {
 	std::ifstream ifs(filename);
 	if (!ifs) {
@@ -160,4 +160,12 @@ vec3 toVec(const vec3& v) {
 vec4 toVec(const vec4& v) {
 	return { v.x, v.y, v.z ,v.w };
 }
+#endif
+
+#ifdef TEST_SOFT_RASTERIZATION
+
+Point2f toPoint2f(const vec2& v) {
+	return Point2f(v.x, v.y);
+}
+
 #endif

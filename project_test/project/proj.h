@@ -14,6 +14,7 @@
 #include <map>
 #include <set>
 
+#include <memory>
 #include <cfloat>
 
 #ifdef TEST_OPENGL
