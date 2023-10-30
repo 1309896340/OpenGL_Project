@@ -1,3 +1,4 @@
+#ifdef TEST_OPENGL
 #ifndef _WIND_UTILS
 #define _WIND_UTILS
 
@@ -28,4 +29,5 @@ extern void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 extern void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 
+#endif
 #endif

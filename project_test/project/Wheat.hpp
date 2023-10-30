@@ -56,13 +56,10 @@ public:
 			for (unsigned int u = 0; u <= wSliceNum; u++) {
 				z = (u - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * z_rt;
 				// 进行主脉旋转
-				tp = toVec(trans * vec4(x_accum, y_accum, z, 1.0f));			// 坐标旋转
-				//ptr[i * (wSliceNum + 1) + j] = { tp.x, tp.y, tp.z };
+				tp = trans * vec4(x_accum, y_accum, z, 1.0f);			// 坐标旋转
 				ptr[v][u].position = { tp.x, tp.y, tp.z };
 				// 法线旋转
-				tp = toVec(transpose(inverse(trans)) * vec4(-sintheta, costheta, 0.0f, 0.0f));
-				//tp = toVec(trans * vec4(-sintheta, costheta, 0.0f, 0.0f));		// 也没问题？
-				//norm_ptr[i * (wSliceNum + 1) + j] = { tp.x,tp.y,tp.z };
+				tp = transpose(inverse(trans)) * vec4(-sintheta, costheta, 0.0f, 0.0f);
 				ptr[v][u].normal = { tp.x, tp.y, tp.z };
 			}
 			tmp = 2.0f * a * x + b;

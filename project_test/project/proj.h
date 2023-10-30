@@ -1,6 +1,8 @@
 #ifndef _WIND_MAIN_HEADER
 #define _WIND_MAIN_HEADER
 
+#define TEST_SOFT_RASTERIZATION
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,19 +13,31 @@
 #include <deque>
 #include <map>
 
+#ifdef TEST_OPENGL
 #include "GLAD/glad.h"
 #include "GLFW/glfw3.h"
+#endif
+
+#ifdef TEST_SOFT_RASTERIZATION
+#include "opencv2/opencv.hpp"
+using cv::line;
+using cv::Mat;
+using cv::Point2i;
+using cv::Point2f;
+using cv::Scalar;
+using cv::Vec3f;
+#endif
+
 #include "glm/glm.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-
 #define WIDTH 1600
 #define HEIGHT 1200
 #define PI 3.1415926535f
 #define DEFAULT_LINE_WIDTH 0.02f
-#define EPS 1e-7
+#define MEPS 1e-7
 
 using glm::vec3;
 using glm::vec4;
@@ -48,12 +62,13 @@ extern vec3 _right;
 extern vec3 _front;
 extern vec3 _origin;
 
+
 // 为了确保这个结构的内存是连续的，要做一些检查
 // static_assert(sizeof(glm::vec3) == sizeof(GLfloat) * 3, "Platform doesn't support this directly.");
-typedef struct _Vertex{
-	vec3 position;
-	vec3 normal;
-	vec4 color;
+typedef struct _Vertex {
+	vec3 position{ 0.0f,0.0f,0.0f };
+	vec3 normal{ 0.0f,1.0f,0.0f };
+	vec4 color{ 0.0f,0.0f,0.0f,0.0f };
 	// 后续可以增加其他属性
 }Vertex;
 

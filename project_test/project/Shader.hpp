@@ -1,3 +1,4 @@
+#ifdef TEST_OPENGL
 #ifndef __WIND_SHADER
 #define __WIND_SHADER
 
@@ -122,4 +123,5 @@ public:
 
 };
 
+#endif
 #endif

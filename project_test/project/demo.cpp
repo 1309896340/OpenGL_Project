@@ -1,5 +1,11 @@
 // 考虑将“几何形体描述”与“OpenGL可视化”两部分分离开来
 
+// 尝试一下软光栅实现
+//#define TEST_OPENGL
+#include "proj.h"
+
+#ifdef TEST_OPENGL
+
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "Scene.hpp"
@@ -45,7 +51,7 @@ int main(int argc, char** argv) {
 	leaf = &leaf_a;
 
 	c1.addChild(&s1, Transform(vec3(0.0f, 1.0f, 0.0f)));
-	s1.addChild(&c2,Transform(vec3(0.0f),30.0f,_front));
+	s1.addChild(&c2, Transform(vec3(0.0f), 30.0f, _front));
 	c2.addChild(&s2, Transform(vec3(0.0f, 1.0f, 0.0f)));
 	s2.addChild(&c3);
 	c3.addChild(&leaf_a, Transform(vec3(0.04f, 1.0f, 0.0f)));
@@ -72,4 +78,62 @@ int main(int argc, char** argv) {
 	glfwTerminate();
 	return 0;
 }
+#endif
 
+#ifdef TEST_SOFT_RASTERIZATION
+
+#include "Geometry.hpp"
+#include "Wheat.hpp"
+#include "Camera.hpp"
+#include "Scene.hpp"
+
+#include "interaction.h"
+
+Camera* camera{ nullptr };
+StatusInfo status;
+
+using namespace cv;
+
+int main(int argc, char** argv) {
+	Camera camera_m(vec3(0.0f, 0.5f, 2.0f), vec3(0.0f, 0.5f, 0.0f));
+	camera = &camera_m;
+
+	Scene scene(camera);
+	Cylinder c(0.3f, 1.0f);
+
+	namedWindow("demo", WINDOW_NORMAL);
+	setMouseCallback("demo", opencv_mouseCallback, 0);
+	int key = 0;
+	bool quit = false;
+	//line(a, Point2i(10, 10), Point2i(300, 100), Scalar(0, 0, 255), 1);
+
+	while (!quit) {
+		key = waitKey(10);
+		switch (key) {
+		case 27:
+			quit = true;
+			break;
+		case 'w':
+			camera->move(0.0f, 0.0f, 10.0f);
+			break;
+		case 's':
+			camera->move(0.0f, 0.0f, -10.0f);
+			break;
+		case 'a':
+			camera->move(-10.0f, 0.0f, 0.0f);
+			break;
+		case 'd':
+			camera->move(10.0f, 0.0f, 0.0f);
+			break;
+		}
+
+		Mat canvas(HEIGHT, WIDTH, CV_32FC3, Vec3f(0.0f, 0.0f, 0.0f));
+		scene.renderOne(&c, canvas);
+		imshow("demo", canvas);
+	}
+	destroyAllWindows();
+
+	return 0;
+}
+
+#endif

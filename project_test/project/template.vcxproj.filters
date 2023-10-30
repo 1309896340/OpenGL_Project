@@ -72,6 +72,9 @@
     <ClCompile Include="Shader.hpp">
       <Filter>类</Filter>
     </ClCompile>
+    <ClCompile Include="globalVariables.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="proj.h">

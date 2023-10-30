@@ -1,5 +1,6 @@
-#include "interaction.h"
 
+#include "interaction.h"
+#ifdef TEST_OPENGL
 extern StatusInfo status;
 extern Camera* camera;
 
@@ -124,3 +125,38 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		status.lastKey = GLFW_KEY_UNKNOWN;
 	}
 }
+#endif
+
+#ifdef TEST_SOFT_RASTERIZATION
+
+extern StatusInfo status;
+extern Camera* camera;
+
+void opencv_mouseCallback(int event, int x, int y, int flags, void* userdata) {
+	if (event == cv::EVENT_RBUTTONDOWN || event == cv::EVENT_LBUTTONDOWN) {
+		status.mousePos[0] = (double)x;
+		status.mousePos[1] = (double)y;
+	}
+	else if (event == cv::EVENT_MOUSEMOVE && flags == cv::EVENT_FLAG_LBUTTON) {
+		double dx = status.mousePos[0] - (double)x;
+		double dy = status.mousePos[1] - (double)y;
+		status.mousePos[0] = (double)x;
+		status.mousePos[1] = (double)y;
+		camera->move((float)dx, -(float)dy);
+	}
+	else if (event == cv::EVENT_MOUSEMOVE && flags == cv::EVENT_FLAG_RBUTTON) {
+		double dx = status.mousePos[0] - (double)x;
+		double dy = status.mousePos[1] - (double)y;
+		status.mousePos[0] = (double)x;
+		status.mousePos[1] = (double)y;
+		camera->rotate((float)dx, (float)dy);
+	}
+	else if (event == cv::EVENT_MOUSEMOVE && flags == (cv::EVENT_FLAG_RBUTTON | cv::EVENT_FLAG_SHIFTKEY)) {
+		double dx = status.mousePos[0] - (double)x;
+		double dy = status.mousePos[1] - (double)y;
+		status.mousePos[0] = (double)x;
+		status.mousePos[1] = (double)y;
+		camera->rotateByAxis(-(float)dx, -(float)dy);	// 绕着圆心轴旋转，第三个参数写得有点问题
+	}
+}
+#endif

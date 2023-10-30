@@ -1,12 +1,9 @@
 #ifndef __WIND_GEOMETRY
 #define __WIND_GEOMETRY
 
-#include "utils.h"
 #include "proj.h"
-#include "Shader.hpp"
 
 #include "stb_image.h"
-
 
 //extern Shader* defaultShader;			// 默认着色器，定义在demo.cpp中
 typedef enum {
@@ -63,29 +60,41 @@ public:
 		return Tmat;
 	}
 };
-class Drawable {
-protected:
-	Shader* shader{ nullptr };
-public:
-	Transform model;		// 模型矩阵
-public:
-	virtual void draw(Shader* shader) = 0;
-};
+//class Drawable {
+//protected:
+//	Shader* shader{ nullptr };
+//public:
+//	Transform model;		// 模型矩阵
+//public:
+//	virtual void draw(Shader* shader) = 0;
+//};
+
+typedef struct _Triangle {
+	Vertex vertex[3];
+}Triangle;
 
 class Mesh {
 private:
-	Vertex* ptr{ nullptr };		// 用于临时开放数据的指针
+	Vertex* vertexPtr{ nullptr };		// 用于临时开放数据的指针
+	unsigned int* indexPtr{ nullptr };
+	vector<Triangle>* triangles{ nullptr };		// 用于遍历图元
 protected:
 	// 描述对象相关的数据
 	unsigned int uSize{ 0 }, vSize{ 0 };							// u为第几列，v为第几行。指分割的份数，不是顶点数。顶点数为uSize+1和vSize+1
 	Vertex** vertex{ nullptr };										// 二维数组，存储顶点数据
-	unsigned int* index{ nullptr };									// 二维数组，存储索引数据
+	unsigned int*** index{ nullptr };								// 三维数组，存储索引数据
 
 	// 渲染相关的数据
 	//GLuint VAO{ 0 }, VBO[4]{ 0,0,0,0 }, texture{ 0 };			// VBO分别为position、normal、index、texture
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
-		index = new unsigned int[(uSize * vSize) * 6] {0};
+		index = new unsigned int** [vSize] {nullptr};
+		for (unsigned int v = 0; v < vSize; v++) {
+			index[v] = new unsigned int* [uSize] {nullptr};
+			for (unsigned int u = 0; u < uSize; u++)
+				index[v][u] = new unsigned int[6] {0};
+		}
+
 		vertex = new Vertex * [vSize + 1] {nullptr};
 		for (unsigned int v = 0; v <= vSize; v++) {
 			vertex[v] = new Vertex[uSize + 1];
@@ -104,10 +113,9 @@ public:
 	}
 	void connect() {
 		// 默认以行优先连接（指第1行连完后开始第2行）
-		GLuint* ptr;
 		for (unsigned int v = 0; v < vSize; v++) {
 			for (unsigned int u = 0; u < uSize; u++) {
-				ptr = index + (v * uSize + u) * 6;		// 采用逆时针绕行
+				unsigned int* ptr = index[v][u];		// 采用逆时针绕行
 				ptr[0] = v * (uSize + 1) + u;						// 左上
 				ptr[1] = (v + 1) * (uSize + 1) + u;			// 左下
 				ptr[2] = (v + 1) * (uSize + 1) + u + 1;		// 右下
@@ -147,20 +155,46 @@ public:
 		return vertex;
 	}
 	Vertex* mapVertexData() {		// 将二级指针存储的顶点数据映射到一维连续空间，只读
-		ptr = new Vertex[(uSize + 1) * (vSize + 1)];
+		vertexPtr = new Vertex[(uSize + 1) * (vSize + 1)];
 		for (unsigned int v = 0; v <= vSize; v++) {
 			for (unsigned int u = 0; u <= uSize; u++) {
-				ptr[v * (uSize + 1) + u] = vertex[v][u];
+				vertexPtr[v * (uSize + 1) + u] = vertex[v][u];
 			}
 		}
-		return ptr;
+		return vertexPtr;
 	}
 	void unmapVertexData() {
-		delete[] ptr;
-		ptr = nullptr;
+		delete[] vertexPtr;
+		vertexPtr = nullptr;
 	}
-	unsigned int* getIndexPtr() {
-		return index;
+	unsigned int* mapIndexData() {
+		indexPtr = new unsigned int[uSize * vSize * 6];
+		for (unsigned int v = 0; v < vSize; v++)
+			for (unsigned int u = 0; u < uSize; u++)
+				for (unsigned int idx = 0; idx < 6; idx++) {
+					indexPtr[(v * uSize + u) * 6 + idx] = index[v][u][idx];
+				}
+		return indexPtr;
+	}
+	void unmapIndexData() {
+		delete[] indexPtr;
+		indexPtr = nullptr;
+	}
+	vector<Triangle>* mapAllTriangles() {
+		triangles = new vector<Triangle>();
+		Vertex* vtx = mapVertexData();
+		for (unsigned int v = 0; v < vSize; v++) {
+			for (unsigned int u = 0; u < uSize; u++) {
+				triangles->push_back(Triangle{ vtx[index[v][u][0]] ,vtx[index[v][u][1]] ,vtx[index[v][u][2]] });
+				triangles->push_back(Triangle{ vtx[index[v][u][3]] ,vtx[index[v][u][4]] ,vtx[index[v][u][5]] });
+			}
+		}
+		unmapVertexData();
+		return triangles;
+	}
+	void unmapAllTriangles() {
+		delete triangles;
+		triangles = nullptr;
 	}
 	unsigned int getVertexSize() {
 		return (uSize + 1) * (vSize + 1);
@@ -500,11 +534,11 @@ public:
 		// 箭头原始姿态为从(0,0,0)指向(0,height,0)，通过变换将其映射为从_begin到_end
 		vec3 rotate_axis = cross(_up, direction);
 		float rotate_radian = acos(dot(vec3(0.0f, 1.0f, 0.0f), direction));
-		if (abs(rotate_radian) < EPS) {		// 完全平行时rotate_axis接近全零会导致rotate方法调用出错
+		if (abs(rotate_radian) < MEPS) {		// 完全平行时rotate_axis接近全零会导致rotate方法调用出错
 			rotate_axis = vec3(0.0f, 0.0f, 1.0f);
 			rotate_radian = 0.0f;
 		}
-		else if (abs(rotate_radian - PI) < EPS) {
+		else if (abs(rotate_radian - PI) < MEPS) {
 			rotate_axis = vec3(0.0f, 0.0f, 1.0f);
 			rotate_radian = PI;
 		}

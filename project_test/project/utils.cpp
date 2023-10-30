@@ -1,3 +1,4 @@
+#ifdef TEST_OPENGL
 #include "utils.h"
 
 std::string readSource(std::string filename) {
@@ -159,3 +160,4 @@ vec3 toVec(const vec3& v) {
 vec4 toVec(const vec4& v) {
 	return { v.x, v.y, v.z ,v.w };
 }
+#endif

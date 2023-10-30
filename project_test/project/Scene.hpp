@@ -1,3 +1,4 @@
+#ifdef TEST_OPENGL
 #ifndef __WIND_SCENE
 #define __WIND_SCENE
 
@@ -41,7 +42,7 @@ public:
 		initUniformBuffer();			//  初始化uniform缓冲区
 	}
 
-	Scene(Camera *camera):Scene(){
+	Scene(Camera* camera) :Scene() {
 		setCamera(camera);
 	}
 
@@ -122,7 +123,7 @@ public:
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(sizeof(vec3)));			// 法向量属性
 			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(2*sizeof(vec3)));			// 颜色属性
+			glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(2 * sizeof(vec3)));			// 颜色属性
 			glEnableVertexAttribArray(2);
 			// 创建并绑定EBO
 			glGenBuffers(1, &mInfo.EBO);
@@ -200,7 +201,7 @@ public:
 		for (auto& meshInfo : gInfo.meshesInfo) {
 			// 物体在加入场景中时需要将顶点数据等载入显存，同时建立其缓冲区ID与对象之间的联系，使用map存储
 			glBindVertexArray(meshInfo.VAO);
-			glDrawElements(GL_TRIANGLES, meshInfo.elementNum, GL_UNSIGNED_INT,0);
+			glDrawElements(GL_TRIANGLES, meshInfo.elementNum, GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
 		}
 	}
@@ -218,9 +219,116 @@ public:
 	}
 
 	void render() {	// 绘制objs中所有对象
-		for(auto &obj : objs)
+		for (auto& obj : objs)
 			renderOne(obj.first);
 	}
 };
+
+#endif
+#endif
+
+#ifdef TEST_SOFT_RASTERIZATION
+#include "proj.h"
+
+class Scene {
+private:
+	vector<Mesh*>* meshes{ nullptr };	// 用于遍历所有Geometry的Mesh
+	Camera* camera{ nullptr };
+
+public:
+	vector<Geometry*> objs;
+
+	Scene() {}
+	Scene(Camera* camera) :Scene() {
+		this->camera = camera;
+	}
+
+	float step() {
+
+
+		return 0.0f;		// 没有实现计数
+	}
+
+	void addOne(Geometry* obj) {	// 添加一个Geometry，不考虑子对象
+		objs.push_back(obj);
+	}
+
+	void add(Geometry* obj) {
+		deque<Geometry*> buf{ obj };
+		Geometry* tmp{ nullptr };
+		while (!buf.empty()) {
+			tmp = buf.front();
+			buf.pop_front();
+			for (auto& child : tmp->getChildren())
+				buf.push_back(child);
+			addOne(tmp);
+		}
+	}
+
+	// 用于遍历所有Geometry的Mesh
+	vector<Mesh*>* mapAllMeshes() {
+		meshes = new vector<Mesh*>();
+		for (auto& obj : objs)
+			for (auto& mesh : obj->getMeshes())
+				meshes->push_back(mesh);
+		return meshes;
+	}
+	void unmapAllMeshes() {
+		delete meshes;
+		meshes = nullptr;
+	}
+
+	void renderOne(Geometry* obj, Mat& canvas) {
+		for (auto& mesh : obj->getMeshes()) {
+			// 遍历mesh中所有三角形
+			vector<Triangle>* triangles = mesh->mapAllTriangles();
+			for (auto& triangle : *triangles) {
+				// 进行MVP变换，然后绘制连接线
+				vec4 pos[3];
+				Point2f p2f[3];
+				mat4 modelBuffer = obj->getModelBufferMatrix();
+				mat4 model = obj->getFinalOffset() * obj->model.getMatrix();
+				mat4 trans = (camera->getProjectionMatrix()) * (camera->getViewMatrix()) * model * modelBuffer;
+				bool isCulled = false;
+				for (unsigned int k = 0; k < 3; k++) {
+					pos[k] = trans * vec4(triangle.vertex[k].position, 1.0f);
+					// 需要进行透视除法
+					pos[k] /= pos[k].w;
+					// 裁剪坐标
+					if (pos[k].x > 1.0f || pos[k].x < -1.0f || pos[k].y>1.0f || pos[k].y < -1.0f || pos[k].z>1.0f || pos[k].z<-1.0f) {
+						isCulled = true;
+						break;
+					}
+					p2f[k].x = pos[k].x;
+					p2f[k].y = pos[k].y;
+					// 视口变换
+					p2f[k].x = (p2f[k].x + 1.0f) * canvas.cols / 2.0f;
+					p2f[k].y = (1.0f - p2f[k].y) * canvas.rows / 2.0f;
+					//p2i[k].z = pos[k].z > 1.0f ? 1.0f : (pos[k].z < -1.0f ? -1.0f : pos[k].z);
+				}
+				if (isCulled)
+					continue;
+				line(canvas, p2f[2], p2f[0], Vec3f(0.0f, 0.0f, 1.0f), 1, cv::LINE_AA);
+				line(canvas, p2f[0], p2f[1], Vec3f(1.0f, 0.0f, 0.0f), 1, cv::LINE_AA);
+				line(canvas, p2f[1], p2f[2], Vec3f(0.0f, 1.0f, 0.0f), 1, cv::LINE_AA);
+			}
+			mesh->unmapAllTriangles();
+		}
+	}
+
+	void render(Geometry* obj, Mat& canvas) {		// 绘制obj及其子对象
+		deque<Geometry*> buf{ obj };
+		Geometry* tmp{ nullptr };
+		while (!buf.empty()) {
+			tmp = buf.front();
+			buf.pop_front();
+			for (auto& child : tmp->getChildren())
+				buf.push_back(child);
+			renderOne(tmp, canvas);
+		}
+	}
+
+};
+
 
 #endif
