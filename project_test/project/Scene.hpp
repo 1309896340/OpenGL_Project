@@ -229,14 +229,57 @@ public:
 
 #ifdef TEST_SOFT_RASTERIZATION
 #include "proj.h"
+#include "Light.hpp"
+#include "Geometry.hpp"
+
+typedef struct _DepthMap {
+	float* ptr{ nullptr };	// 以h*width+w的索引顺序进行存储
+	unsigned int width{ 0 };
+	unsigned int height{ 0 };
+}DepthMap;
 
 class Scene {
 private:
 	vector<Mesh*>* meshes{ nullptr };	// 用于遍历所有Geometry的Mesh
+	DepthMap depthmap;	// 用于存储深度图
 	Camera* camera{ nullptr };
 
+	// 判断光线相交算法
+	bool rayTriangleIntersect(const Triangle& t, const vec3& lightPos, const vec3& lightDir, float* tnear) {
+		vec3 S = lightPos - t.vertex[0].position;
+		vec3 E1 = t.vertex[1].position - t.vertex[0].position;
+		vec3 E2 = t.vertex[2].position - t.vertex[0].position;
+		vec3 S1 = cross(lightDir, E2);
+		vec3 S2 = cross(S, E1);
+		float S1E1 = dot(S1, E1);
+		float tt = dot(S2, E2) / S1E1;
+		float b1 = dot(S1, S) / S1E1;
+		float b2 = dot(S2, lightDir) / S1E1;
+		if (tt >= 0.0f && b1 >= 0.0f && b2 >= 0.0f && (1 - b1 - b2) >= 0.0f) {
+			*tnear = tt;	// 击中光线的长度
+			return true;
+		}
+		return false;
+	}
+	// 坐标变换
+	vec2 world2screen(const vec3& v, bool* isCulled) {
+		return world2screen(vec4(v, 1.0f), isCulled);
+	}
+	vec2 world2screen(const vec4& v, bool* isCulled) {
+		vec4 pos = camera->getProjectionMatrix() * camera->getViewMatrix() * v;
+		// 透视除法
+		pos /= pos.w;
+		// 裁剪判断
+		if (pos.x > 1.0f || pos.x < -1.0f || pos.y>1.0f || pos.y < -1.0f || pos.z>1.0f || pos.z < -1.0f)
+			if (isCulled != nullptr)
+				*isCulled = true;
+		// 视口变换
+		pos.x = (pos.x + 1.0f) * WIDTH / 2.0f;
+		pos.y = (1.0f - pos.y) * HEIGHT / 2.0f;
+		return vec2(pos.x, pos.y);
+	}
 public:
-	vector<Geometry*> objs;
+	set<Geometry*> objs;		// 存储所有Geometry对象（嵌套结构已经展开）
 
 	Scene() {}
 	Scene(Camera* camera) :Scene() {
@@ -250,7 +293,7 @@ public:
 	}
 
 	void addOne(Geometry* obj) {	// 添加一个Geometry，不考虑子对象
-		objs.push_back(obj);
+		objs.insert(obj);
 	}
 
 	void add(Geometry* obj) {
@@ -281,30 +324,20 @@ public:
 	void renderOne(Geometry* obj, Mat& canvas) {
 		for (auto& mesh : obj->getMeshes()) {
 			// 遍历mesh中所有三角形
-			vector<Triangle>* triangles = mesh->mapAllTriangles();
-			for (auto& triangle : *triangles) {
+			Triangle* triangles = mesh->mapAllTriangles();
+			for (unsigned int idx = 0; idx < mesh->getTriangleSize(); idx++) {
 				// 进行MVP变换，然后绘制连接线
 				vec4 pos[3];
 				Point2f p2f[3];
 				mat4 modelBuffer = obj->getModelBufferMatrix();
 				mat4 model = obj->getFinalOffset() * obj->model.getMatrix();
-				mat4 trans = (camera->getProjectionMatrix()) * (camera->getViewMatrix()) * model * modelBuffer;
 				bool isCulled = false;
 				for (unsigned int k = 0; k < 3; k++) {
-					pos[k] = trans * vec4(triangle.vertex[k].position, 1.0f);
-					// 需要进行透视除法
-					pos[k] /= pos[k].w;
-					// 裁剪坐标
-					if (pos[k].x > 1.0f || pos[k].x < -1.0f || pos[k].y>1.0f || pos[k].y < -1.0f || pos[k].z>1.0f || pos[k].z<-1.0f) {
-						isCulled = true;
+					pos[k] = model * modelBuffer * vec4(triangles[idx].vertex[k].position, 1.0f);
+					vec2 tmp = world2screen(pos[k], &isCulled);
+					p2f[k] = Point2f(tmp.x, tmp.y);		// 转换为opencv的line支持的参数格式
+					if (isCulled)
 						break;
-					}
-					p2f[k].x = pos[k].x;
-					p2f[k].y = pos[k].y;
-					// 视口变换
-					p2f[k].x = (p2f[k].x + 1.0f) * canvas.cols / 2.0f;
-					p2f[k].y = (1.0f - p2f[k].y) * canvas.rows / 2.0f;
-					//p2i[k].z = pos[k].z > 1.0f ? 1.0f : (pos[k].z < -1.0f ? -1.0f : pos[k].z);
 				}
 				if (isCulled)
 					continue;
@@ -315,7 +348,11 @@ public:
 			mesh->unmapAllTriangles();
 		}
 	}
-
+	void render() {
+		for (auto& obj : objs) {
+			render(obj, canvas);
+		}
+	}
 	void render(Geometry* obj, Mat& canvas) {		// 绘制obj及其子对象
 		deque<Geometry*> buf{ obj };
 		Geometry* tmp{ nullptr };
@@ -328,6 +365,66 @@ public:
 		}
 	}
 
+	DepthMap genDepthMap(Light* obj, unsigned int wNum, unsigned int hNum) {
+		vector<Triangle> triBuf;
+		for (auto& geo : objs) {
+			for (auto& mesh : geo->getMeshes()) {
+				Triangle* ptr = mesh->mapAllTriangles();
+				for (unsigned int i = 0; i < mesh->getTriangleSize(); i++)
+					triBuf.push_back(ptr[i]);
+				mesh->unmapAllTriangles();
+			}
+		}
+		// 生成光线采样
+		obj->genLightSample(wNum, hNum);
+		vec3* lightSamples = obj->getLightSamples();
+		// 生成深度图
+		this->depthmap.ptr = new float[wNum * hNum];
+		for (unsigned int i = 0; i < wNum * hNum; i++)
+			this->depthmap.ptr[i] = 4.0f;
+		this->depthmap.width = wNum;
+		this->depthmap.height = hNum;
+			
+		// 遍历所有三角形
+		vec3 lightDir = obj->direction;
+		for (auto& triangle : triBuf) {
+			// 遍历所有光线采样
+			for (unsigned int i = 0; i < wNum * hNum; i++) {
+				vec3 lightPos = lightSamples[i];
+				// 判断光线与三角形是否相交
+				float depth;
+				bool isHit = rayTriangleIntersect(triangle, lightPos, lightDir, &depth);
+				if (isHit) {
+					this->depthmap.ptr[i] = std::min(this->depthmap.ptr[i], depth);
+					cout << "击中，深度为 " << this->depthmap.ptr[i] << endl;
+				}
+			}
+		}
+		return this->depthmap;
+	}
+	void showLight(Light* obj) {
+		if (this->depthmap.ptr == nullptr)
+			return;
+
+		vec3* lightSamples = obj->getLightSamples();
+		for (unsigned int h = 0; h < this->depthmap.height; h++) {
+			for (unsigned int w = 0; w < this->depthmap.width; w++) {
+				unsigned int idx = h * this->depthmap.width + w;
+				vec3 p1 = lightSamples[idx];
+				vec3 p2 = p1 + obj->direction * this->depthmap.ptr[idx];
+				vec2 pp1 = world2screen(p1, nullptr);
+				vec2 pp2 = world2screen(p2, nullptr);
+				Point2f pf1(pp1.x, pp1.y),pf2(pp2.x,pp2.y);
+				line(canvas, pf1, pf2, Vec3f(0.0f, 0.0f, 1.0f), 1, cv::LINE_AA);
+			}
+		}
+	}
+	void deleteDepthMap() {
+		delete[] depthmap.ptr;
+		depthmap.ptr = nullptr;
+		depthmap.width = 0;
+		depthmap.height = 0;
+	}
 };
 
 

@@ -157,6 +157,7 @@
     <ClInclude Include="Geometry.hpp" />
     <ClInclude Include="GUI.hpp" />
     <ClInclude Include="interaction.h" />
+    <ClInclude Include="Light.hpp" />
     <ClInclude Include="proj.h" />
     <ClInclude Include="Scene.hpp" />
     <ClInclude Include="stb_image.h" />

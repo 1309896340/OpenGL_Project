@@ -77,7 +77,7 @@ class Mesh {
 private:
 	Vertex* vertexPtr{ nullptr };		// 用于临时开放数据的指针
 	unsigned int* indexPtr{ nullptr };
-	vector<Triangle>* triangles{ nullptr };		// 用于遍历图元
+	Triangle* trianglePtr{ nullptr };		// 用于遍历图元
 protected:
 	// 描述对象相关的数据
 	unsigned int uSize{ 0 }, vSize{ 0 };							// u为第几列，v为第几行。指分割的份数，不是顶点数。顶点数为uSize+1和vSize+1
@@ -180,24 +180,27 @@ public:
 		delete[] indexPtr;
 		indexPtr = nullptr;
 	}
-	vector<Triangle>* mapAllTriangles() {
-		triangles = new vector<Triangle>();
+	Triangle* mapAllTriangles() {
+		trianglePtr = new Triangle[uSize * vSize * 2];
 		Vertex* vtx = mapVertexData();
 		for (unsigned int v = 0; v < vSize; v++) {
 			for (unsigned int u = 0; u < uSize; u++) {
-				triangles->push_back(Triangle{ vtx[index[v][u][0]] ,vtx[index[v][u][1]] ,vtx[index[v][u][2]] });
-				triangles->push_back(Triangle{ vtx[index[v][u][3]] ,vtx[index[v][u][4]] ,vtx[index[v][u][5]] });
+				trianglePtr[(v * uSize + u) * 2] = { vtx[index[v][u][0]],vtx[index[v][u][1]] ,vtx[index[v][u][2]] };
+				trianglePtr[(v * uSize + u) * 2 + 1] = { vtx[index[v][u][3]],vtx[index[v][u][4]] ,vtx[index[v][u][5]] };
 			}
 		}
 		unmapVertexData();
-		return triangles;
+		return trianglePtr;
 	}
 	void unmapAllTriangles() {
-		delete triangles;
-		triangles = nullptr;
+		delete [] trianglePtr;
+		trianglePtr = nullptr;
 	}
 	unsigned int getVertexSize() {
 		return (uSize + 1) * (vSize + 1);
+	}
+	unsigned int getTriangleSize() {
+		return uSize * vSize * 2;
 	}
 	unsigned int getIndexSize() {
 		return uSize * vSize * 6;

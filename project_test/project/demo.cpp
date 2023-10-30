@@ -86,26 +86,37 @@ int main(int argc, char** argv) {
 #include "Wheat.hpp"
 #include "Camera.hpp"
 #include "Scene.hpp"
+#include "Light.hpp"
 
 #include "interaction.h"
 
 Camera* camera{ nullptr };
 StatusInfo status;
 
+Mat canvas;		// 为了方便调试声明在全局域
+
 using namespace cv;
 
 int main(int argc, char** argv) {
-	Camera camera_m(vec3(0.0f, 0.5f, 2.0f), vec3(0.0f, 0.5f, 0.0f));
+	Camera camera_m(vec3(0.0f, 0.5f, 5.0f), vec3(0.0f, 0.5f, 0.0f));
 	camera = &camera_m;
 
 	Scene scene(camera);
-	Cylinder c(0.3f, 1.0f);
+	Leaf leaf_a(2.0f, 0.2f);
+
+	Light light(vec3(0.0f, 1.8f, 0.0f), vec3(0.6f, -0.9f, 0.0f), vec3(1.0f, 1.0f, 1.0f), 1.0f,
+		0.4f, 2.4f);
+
+	scene.addOne(dynamic_cast<Geometry*>(&leaf_a));
 
 	namedWindow("demo", WINDOW_NORMAL);
 	setMouseCallback("demo", opencv_mouseCallback, 0);
 	int key = 0;
 	bool quit = false;
-	//line(a, Point2i(10, 10), Point2i(300, 100), Scalar(0, 0, 255), 1);
+
+
+	DepthMap mapPtr = scene.genDepthMap(&light, 8, 48);
+	// 深度图的计算
 
 	while (!quit) {
 		key = waitKey(10);
@@ -126,12 +137,13 @@ int main(int argc, char** argv) {
 			camera->move(10.0f, 0.0f, 0.0f);
 			break;
 		}
-
-		Mat canvas(HEIGHT, WIDTH, CV_32FC3, Vec3f(0.0f, 0.0f, 0.0f));
-		scene.renderOne(&c, canvas);
+		canvas = Mat(HEIGHT, WIDTH, CV_32FC3, Vec3f(1.0f, 1.0f, 1.0f));
+		scene.renderOne(&leaf_a, canvas);
+		scene.showLight(&light);
 		imshow("demo", canvas);
 	}
-	destroyAllWindows();
+	scene.deleteDepthMap();
+	cv::destroyAllWindows();
 
 	return 0;
 }

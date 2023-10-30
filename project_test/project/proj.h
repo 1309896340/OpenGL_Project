@@ -12,6 +12,9 @@
 #include <vector>
 #include <deque>
 #include <map>
+#include <set>
+
+#include <cfloat>
 
 #ifdef TEST_OPENGL
 #include "GLAD/glad.h"
@@ -39,6 +42,7 @@ using cv::Vec3f;
 #define DEFAULT_LINE_WIDTH 0.02f
 #define MEPS 1e-7
 
+using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 using glm::mat4;
@@ -54,6 +58,7 @@ using glm::identity;
 using std::vector;
 using std::deque;
 using std::map;
+using std::set;
 using std::cout;
 using std::endl;
 
@@ -97,5 +102,8 @@ typedef struct _uniformTable {	// 除了MVP矩阵以外的其他定制化uniform变量
 	bool autoColor{ true };
 	vec4 color{ 0.0f,0.0f,0.0f,0.0f };
 }uniformTable;
+
+
+extern Mat canvas;		// 仅用于调试声明的全局变量
 
 #endif
