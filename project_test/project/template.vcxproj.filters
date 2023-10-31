@@ -75,6 +75,24 @@
     <ClCompile Include="imgui\imgui_widgets.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Light.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
+    <ClCompile Include="Geometry.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
+    <ClCompile Include="TriangleGetter.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="proj.h">
@@ -86,26 +104,11 @@
     <ClInclude Include="interaction.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Camera.hpp">
-      <Filter>类</Filter>
-    </ClInclude>
-    <ClInclude Include="Geometry.hpp">
-      <Filter>类</Filter>
-    </ClInclude>
-    <ClInclude Include="GUI.hpp">
-      <Filter>类</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene.hpp">
-      <Filter>类</Filter>
-    </ClInclude>
     <ClInclude Include="Wheat.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">
       <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Light.hpp">
-      <Filter>类</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,10 @@
+#include "proj.h"
+
 #ifndef __WIND_LIGHT
 #define __WIND_LIGHT
-#include "proj.h"
-//#include "Geometry.hpp"
+
+#include "Geometry.hpp"
+#include "TriangleGetter.hpp"
 
 typedef struct _DepthMap {
 	float* ptr{ nullptr };	// 以h*width+w的索引顺序进行存储
@@ -13,7 +16,8 @@ class Light {
 	// 目前暂定其为平行光
 private:
 	// 调用genLightSample()才会生成
-	Scene* scene{ nullptr };
+	//Scene* scene{ nullptr };
+	TriangleGetter* triangleGetter{ nullptr };
 	vec3* lightSamplePos{ nullptr };
 	bool updateSample{ false };
 	DepthMap depthmap;		// 用于存储深度图
@@ -42,8 +46,7 @@ public:
 	float intensity{ 1.0f };	// 这里指辐射照度，单位为W/m^2。对于平行光，所有位置辐照度相等
 	float width{ 1.0f }, height{ 1.0f };
 	unsigned int wNum{ 1 }, hNum{ 1 };
-
-	Light() {}
+	Light() = default;
 	Light(vec3 position, vec3 direction, vec3 color, float intensity, float width, float height) :
 		position(position), direction(normalize(direction)), color(color), intensity(intensity),
 		width(width), height(height) {}
@@ -51,14 +54,18 @@ public:
 		if (lightSamplePos != nullptr)
 			delete[] lightSamplePos;
 	}
+	//void setScene(Scene* scene) {
+	//	this->scene = scene;
+	//}
 
-	void setScene(Scene* scene) {
-		this->scene = scene;
+	void setTriangleGetter(TriangleGetter* triangleGetter) {
+		this->triangleGetter = triangleGetter;
 	}
 
 	void genLightSample(unsigned int wNum, unsigned int hNum) {
 		if (lightSamplePos != nullptr)
 			delete[] lightSamplePos;
+		cout << "生成一次光线采样" << endl;
 
 		this->wNum = wNum;
 		this->hNum = hNum;
@@ -81,21 +88,17 @@ public:
 		this->updateSample = true;
 	}
 
-	DepthMap& genDepthMap() {		// 该操作会执行所有采样光线与场景中所有三角面元的求交判断，计算开销较大
+	DepthMap genDepthMap() {		// 该操作会执行所有采样光线与场景中所有三角面元的求交判断，计算开销较大
 		if (lightSamplePos == nullptr) {
 			cout << "未生成采样光线" << endl;
 			return this->depthmap;
 		}
+		cout << "生成一次深度图" << endl;
 
 		vector<Triangle> triBuf;
-		vector<Mesh*> meshes = scene->mapAllMeshes();			// 注意每个mesh有其对应的gometry，而geometry中存储了这个mesh的model变换矩阵
-		for (auto& mesh : meshes) {
-			Triangle* ptr = mesh->mapAllTriangles();
-			// 此时的triangle是世界坐标系下的三角形，需要将其进行model变换转换到世界坐标系下
-			for (unsigned int i = 0; i < mesh->getTriangleSize(); i++)
-				triBuf.push_back(ptr[i]);
-			mesh->unmapAllTriangles();
-		}
+		assert(triangleGetter != nullptr);
+		vector<Triangle> tris= triangleGetter->getAllTriangles();		// 其中所有的Mesh*都是动态生成的，在最后需要释放
+		triBuf.insert(triBuf.end(), tris.begin(), tris.end());
 
 		// 初始化深度图
 		if (this->updateSample) {
@@ -119,10 +122,16 @@ public:
 				bool isHit = rayTriangleIntersect(triangle, lightSamplePos[i], this->direction, &depth);
 				if (isHit) {
 					this->depthmap.ptr[i] = std::min(this->depthmap.ptr[i], depth);
-					cout << "击中，深度为 " << this->depthmap.ptr[i] << endl;
+					//cout << i << "击中，深度为 " << this->depthmap.ptr[i] << endl;
 				}
 			}
 		}
+		return this->depthmap;
+	}
+	vec3* getLightSamplePos() {
+		return this->lightSamplePos;
+	}
+	DepthMap getDepthMap() {
 		return this->depthmap;
 	}
 };

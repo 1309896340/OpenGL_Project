@@ -1,8 +1,7 @@
-#ifndef __WIND_CAMERA
-#define __WIND_CAMERA
-
 #include "proj.h"
 
+#ifndef __WIND_CAMERA
+#define __WIND_CAMERA
 #define X_ROTATE_SENSITIVITY 0.001f
 #define Y_ROTATE_SENSITIVITY 0.001f
 

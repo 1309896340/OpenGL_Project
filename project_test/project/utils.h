@@ -33,7 +33,7 @@ extern void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 
 #ifdef TEST_SOFT_RASTERIZATION
-Point2f toPoint2f(const vec2& v);
+cv::Point2f toPoint2f(const glm::vec2& v);
 #endif
 
 #endif

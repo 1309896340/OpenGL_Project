@@ -1,12 +1,9 @@
-#ifdef TEST_OPENGL
+#include "proj.h"
+
 #ifndef __WIND_SCENE
 #define __WIND_SCENE
 
-#include "proj.h"
-#include "Camera.hpp"
-#include "Geometry.hpp"
-#include "Wheat.hpp"
-
+#ifdef TEST_OPENGL
 typedef struct {
 	GLuint VAO;
 	GLuint VBO;
@@ -225,29 +222,25 @@ public:
 };
 
 #endif
-#endif
 
 #ifdef TEST_SOFT_RASTERIZATION
-#include "proj.h"
-#include "Light.hpp"
+#include "Camera.hpp"
 #include "Geometry.hpp"
+#include "Light.hpp"
 
+#include "TriangleGetter.hpp"
 
-class Scene {
+class Scene : public TriangleGetter {
 private:
-	vector<Mesh *> meshes;	// 用于遍历所有Geometry的Mesh
 	Camera* camera{ nullptr };
 public:
 	set<Geometry*> objs;		// 存储所有Geometry对象（嵌套结构已经展开）
-	set<Light *> lights;			// 存储所有Light对象
+	set<Light*> lights;			// 存储所有Light对象
 
-	Scene() {}
-	Scene(Camera* camera) :Scene() {
-		this->camera = camera;
-	}
+	Scene() = default;
+	Scene(Camera* camera) :camera(camera) {}
 
 	float step() {
-
 		return 0.0f;		// 没有实现计数
 	}
 	// 坐标变换
@@ -268,7 +261,7 @@ public:
 		return vec2(pos.x, pos.y);
 	}
 	void add(Light* obj) {
-		obj->setScene(this);
+		obj->setTriangleGetter(dynamic_cast<TriangleGetter*>(this));
 		lights.insert(obj);
 	}
 
@@ -288,28 +281,55 @@ public:
 		}
 	}
 
-	// 用于遍历所有Geometry的Mesh
-	vector<Mesh*> &mapAllMeshes() {			// 这里需要考虑是否要对每个Geometry中的Mesh进行local2world的变换，可以将local2world函数封装在Geometry中
-		meshes.clear();
-		for (auto& obj : objs)
-			for (auto& mesh : obj->getMeshes())
-				meshes.push_back(mesh);
-		return meshes;
+	//// 用于遍历所有Geometry的Mesh， 已经变换到世界坐标系
+	//vector<Mesh*> mapAllMeshes() {		// 每次调用都会重新计算世界坐标系下的Mesh，效率较低
+	//	vector<Mesh*> meshes;
+	//	for (auto& obj : objs){
+	//		for (auto& mesh : obj->getWorldMeshes())	// 在每个Geometry中计算并生成世界坐标系下的Mesh
+	//			meshes.push_back(mesh);
+	//	}
+	//	return meshes;
+	//}
+	vector<Triangle> getAllTriangles() {		// 遍历Scene中所有三角面元，每个三角形顶点坐标都处于世界坐标系下
+		vector<Triangle> triangles;
+		for (auto& obj : objs) {
+			mat4 local2world = obj->getLocal2WorldMatrix();
+			mat4 local2world_normal = transpose(inverse(local2world));
+			for (auto& mesh : obj->getMeshes()) {
+				Vertex* vtx = mesh->getVertexPtr();
+				unsigned int vertexNum = mesh->getVertexSize();
+				unsigned int* idx = mesh->getIndexPtr();
+				unsigned int triNum = mesh->getIndexSize() / 3;
+				// 拷贝一份变换到世界坐标系下的顶点数据
+				Vertex* worldVtx = new Vertex[vertexNum];
+				for (unsigned int i = 0; i < vertexNum; i++) {
+					worldVtx[i].position = vec3(local2world * vec4(vtx[i].position, 1.0f));
+					worldVtx[i].normal = vec3(local2world_normal * vec4(vtx[i].normal, 0.0f));
+					worldVtx[i].color = vtx[i].color;
+				}
+				// 加入到三角形列表中
+				for (unsigned int i = 0; i < triNum; i++) {
+					triangles.push_back(Triangle{
+						{worldVtx[idx[i * 3 + 0]], worldVtx[idx[i * 3 + 1]], worldVtx[idx[i * 3 + 2]]}
+						});
+				}
+			}
+		}
+		return triangles;
 	}
 
 	void renderOne(Geometry* obj, Mat& canvas) {
+		mat4 local2worldMatrix = obj->getLocal2WorldMatrix();
 		for (auto& mesh : obj->getMeshes()) {
 			// 遍历mesh中所有三角形
-			Triangle* triangles = mesh->mapAllTriangles();
-			for (unsigned int idx = 0; idx < mesh->getTriangleSize(); idx++) {
+			vector<Triangle> triangles = mesh->getAllTriangles();
+			for (auto& triangle : triangles) {
 				// 进行MVP变换，然后绘制连接线
 				vec4 pos[3];
 				Point2f p2f[3];
-				mat4 modelBuffer = obj->getModelBufferMatrix();
-				mat4 model = obj->getFinalOffset() * obj->model.getMatrix();
 				bool isCulled = false;
 				for (unsigned int k = 0; k < 3; k++) {
-					pos[k] = model * modelBuffer * vec4(triangles[idx].vertex[k].position, 1.0f);
+					pos[k] = local2worldMatrix * vec4(triangle.vertex[k].position, 1.0f);
 					vec2 tmp = world2screen(pos[k], &isCulled);
 					p2f[k] = Point2f(tmp.x, tmp.y);		// 转换为opencv的line支持的参数格式
 					if (isCulled)
@@ -321,13 +341,36 @@ public:
 				line(canvas, p2f[0], p2f[1], Vec3f(1.0f, 0.0f, 0.0f), 1, cv::LINE_AA);
 				line(canvas, p2f[1], p2f[2], Vec3f(0.0f, 1.0f, 0.0f), 1, cv::LINE_AA);
 			}
-			mesh->unmapAllTriangles();
 		}
 	}
 	void render() {
 		for (auto& obj : objs) {
 			render(obj, canvas);
 		}
+		for (auto& light : lights) {
+			render(light, canvas);
+		}
+	}
+	void render(Light* light, Mat& canvas) {
+		// 假设已经生成了光源的深度图
+		//light->genLightSample(8, 48);
+		//light->genDepthMap();
+		DepthMap dm = light->getDepthMap();
+		vec3* lightPos = light->getLightSamplePos();
+		vec3 lightDir = light->direction;
+		unsigned int vSize = dm.height, uSize = dm.width;
+		for (unsigned int v = 0; v < vSize; v++) {
+			for (unsigned int u = 0; u < uSize; u++) {
+				if (dm.ptr[v * uSize + u] == FLT_MAX)
+					dm.ptr[v * uSize + u] = 5.0f;
+				vec3 p1 = lightPos[v * uSize + u];
+				vec3 p2 = p1 + lightDir * dm.ptr[v * uSize + u];
+				Point2f pt1 = toPoint2f(world2screen(p1, nullptr));
+				Point2f pt2 = toPoint2f(world2screen(p2, nullptr));
+				line(canvas, pt1, pt2, Vec3f(0.0f, 0.0f, 1.0f), 1);
+			}
+		}
+
 	}
 	void render(Geometry* obj, Mat& canvas) {		// 绘制obj及其子对象
 		deque<Geometry*> buf{ obj };
@@ -341,30 +384,7 @@ public:
 		}
 	}
 
-	//void showLight(Light* obj) {
-	//	if (this->depthmap.ptr == nullptr)
-	//		return;
-
-	//	vec3* lightSamples = obj->getLightSamples();
-	//	for (unsigned int h = 0; h < this->depthmap.height; h++) {
-	//		for (unsigned int w = 0; w < this->depthmap.width; w++) {
-	//			unsigned int idx = h * this->depthmap.width + w;
-	//			vec3 p1 = lightSamples[idx];
-	//			vec3 p2 = p1 + obj->direction * this->depthmap.ptr[idx];
-	//			vec2 pp1 = world2screen(p1, nullptr);
-	//			vec2 pp2 = world2screen(p2, nullptr);
-	//			Point2f pf1(pp1.x, pp1.y),pf2(pp2.x,pp2.y);
-	//			line(canvas, pf1, pf2, Vec3f(0.0f, 0.0f, 1.0f), 1, cv::LINE_AA);
-	//		}
-	//	}
-	//}
-	//void deleteDepthMap() {
-	//	delete[] depthmap.ptr;
-	//	depthmap.ptr = nullptr;
-	//	depthmap.width = 0;
-	//	depthmap.height = 0;
-	//}
 };
-
+#endif
 
 #endif

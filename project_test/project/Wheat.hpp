@@ -43,13 +43,14 @@ public:
 		mat4 trans(1.0f);
 		vec4 tp;
 
-		Vertex** ptr = meshes[0]->getVertexPtr();
+		Vertex* ptr = meshes[0]->getVertexPtr();
+		unsigned int uSize = meshes[0]->getUSize(), vSize = meshes[0]->getVSize();
 
 		tmp = b;
 		frac = sqrtf(1.0f + tmp * tmp);
 		costheta = 1.0f / frac;
 		sintheta = tmp / frac;
-		for (unsigned int v= 0; v<= hSliceNum; v++) {
+		for (unsigned int v = 0; v <= hSliceNum; v++) {
 			x_rt = (float)v / hSliceNum;
 			x = x_rt * height;
 			z_rt = wFunc(x);
@@ -57,10 +58,10 @@ public:
 				z = (u - wSliceNum / 2.0f) / (wSliceNum / 2.0f) * z_rt;
 				// 进行主脉旋转
 				tp = trans * vec4(x_accum, y_accum, z, 1.0f);			// 坐标旋转
-				ptr[v][u].position = { tp.x, tp.y, tp.z };
+				ptr[v * (uSize + 1) + u].position = { tp.x, tp.y, tp.z };
 				// 法线旋转
 				tp = transpose(inverse(trans)) * vec4(-sintheta, costheta, 0.0f, 0.0f);
-				ptr[v][u].normal = { tp.x, tp.y, tp.z };
+				ptr[v * (uSize + 1) + u].normal = { tp.x, tp.y, tp.z };
 			}
 			tmp = 2.0f * a * x + b;
 			frac = sqrtf(1.0f + tmp * tmp);
@@ -77,7 +78,7 @@ public:
 		}
 	}
 	virtual void pose() {}
-	
+
 	void setLength(float length) {
 		this->height = length;
 		isChanged = true;

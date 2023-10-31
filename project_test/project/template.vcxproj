@@ -153,13 +153,17 @@
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.hpp" />
-    <ClInclude Include="Geometry.hpp" />
-    <ClInclude Include="GUI.hpp" />
+    <ClCompile Include="Camera.hpp" />
+    <ClCompile Include="Geometry.hpp" />
+    <ClCompile Include="GUI.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
     <ClInclude Include="interaction.h" />
-    <ClInclude Include="Light.hpp" />
+    <ClCompile Include="Light.hpp" />
+    <ClCompile Include="TriangleGetter.hpp" />
     <ClInclude Include="proj.h" />
-    <ClInclude Include="Scene.hpp" />
+    <ClCompile Include="Scene.hpp" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="Wheat.hpp" />

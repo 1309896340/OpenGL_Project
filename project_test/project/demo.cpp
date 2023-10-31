@@ -1,7 +1,3 @@
-// 考虑将“几何形体描述”与“OpenGL可视化”两部分分离开来
-
-// 尝试一下软光栅实现
-//#define TEST_OPENGL
 #include "proj.h"
 
 #ifdef TEST_OPENGL
@@ -82,11 +78,11 @@ int main(int argc, char** argv) {
 
 #ifdef TEST_SOFT_RASTERIZATION
 
-#include "Geometry.hpp"
-#include "Wheat.hpp"
-#include "Camera.hpp"
 #include "Scene.hpp"
 #include "Light.hpp"
+#include "Wheat.hpp"
+#include "Geometry.hpp"
+#include "Camera.hpp"
 
 #include "interaction.h"
 #include "utils.h"
@@ -99,27 +95,42 @@ Mat canvas;		// 为了方便调试声明在全局域
 using namespace cv;
 
 int main(int argc, char** argv) {
-	Camera camera_m(vec3(0.0f, 0.5f, 5.0f), vec3(0.0f, 0.5f, 0.0f));
+	Camera camera_m(vec3(0.0f, 2.0f, 5.0f), vec3(0.3f, 0.5f, 0.0f));
 	camera = &camera_m;
 
 	Scene scene(camera);
 	Leaf leaf_a(2.0f, 0.2f);
 
 	Light light(
-		vec3(0.0f, 1.8f, 0.0f), vec3(0.6f, -0.9f, 0.0f),		// 位置，方向
+		vec3(0.0f, 2.0f, 0.0f), vec3(0.5f, -0.9f, 0.0f),		// 位置，方向
 		vec3(1.0f, 1.0f, 1.0f), 1.0f,									// 颜色，强度
-		0.4f, 2.4f															// 矩形覆盖范围，宽度，高度
+		1.2f, 2.4f															// 矩形覆盖范围，宽度，高度
 	);
 
-	scene.addOne(dynamic_cast<Geometry*>(&leaf_a));
+	//scene.add(dynamic_cast<Geometry*>(&leaf_a));
+
+	Cylinder c1(0.08f, 1.0f), c2(0.08f, 2.0f);
+	Sphere s1(0.1f);
+
+	//c1.translateTo(vec3(0.5f, 0.0f, 0.0f));
+	c1.addChild(&s1, Transform(vec3(0.0f, 1.0f, 0.0f)));
+	s1.addChild(&c2);
+
+	c2.rotate(45.0f, _front);
+
+	scene.add(&c1);
+	scene.add(&light);
+
+	c2.rotate(90.0f, _up);
+
+	// 生成深度图
+	light.genLightSample(20, 40);
+	light.genDepthMap();				// 该函数要在light添加到场景中后才有效
 
 	namedWindow("demo", WINDOW_NORMAL);
 	setMouseCallback("demo", opencv_mouseCallback, 0);
 	int key = 0;
 	bool quit = false;
-
-
-	// 深度图计算
 
 	while (!quit) {
 		key = waitKey(10);
@@ -141,7 +152,9 @@ int main(int argc, char** argv) {
 			break;
 		}
 		canvas = Mat(HEIGHT, WIDTH, CV_32FC3, Vec3f(1.0f, 1.0f, 1.0f));
-		scene.renderOne(&leaf_a, canvas);
+		//c2.rotate(13.0f, _up);
+		//light.genDepthMap();
+		scene.render();
 		imshow("demo", canvas);
 	}
 	cv::destroyAllWindows();

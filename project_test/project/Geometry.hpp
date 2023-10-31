@@ -5,7 +5,6 @@
 
 #include "stb_image.h"
 
-//extern Shader* defaultShader;			// 默认着色器，定义在demo.cpp中
 typedef enum {
 	DEFAULT,
 	LEAF
@@ -60,110 +59,35 @@ public:
 		return Tmat;
 	}
 };
-//class Drawable {
-//protected:
-//	Shader* shader{ nullptr };
-//public:
-//	Transform model;		// 模型矩阵
-//public:
-//	virtual void draw(Shader* shader) = 0;
-//};
 
-typedef struct _Triangle {
-	Vertex vertex[3];
-}Triangle;
 
 class Mesh {
 private:
-	Vertex* vertexPtr{ nullptr };		// 用于临时开放数据的指针
-	unsigned int* indexPtr{ nullptr };
-	Triangle* trianglePtr{ nullptr };		// 用于遍历图元
 protected:
 	// 描述对象相关的数据
 	unsigned int uSize{ 0 }, vSize{ 0 };							// u为第几列，v为第几行。指分割的份数，不是顶点数。顶点数为uSize+1和vSize+1
-	Vertex** vertex{ nullptr };										// 二维数组，存储顶点数据
-	unsigned int*** index{ nullptr };								// 三维数组，存储索引数据
-
-	// 渲染相关的数据
-	//GLuint VAO{ 0 }, VBO[4]{ 0,0,0,0 }, texture{ 0 };			// VBO分别为position、normal、index、texture
+	//Vertex** vertex{ nullptr };										// 二维数组，存储顶点数据
+	//unsigned int*** index{ nullptr };								// 三维数组，存储索引数据
+	// 后来发现使用多级指针反而会有很多不方便，因此重构为vector类型的一维数组
+	vector<Vertex> vertex;
+	vector<unsigned int> index;
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
-		index = new unsigned int** [vSize];
-		for (unsigned int v = 0; v < vSize; v++) {
-			index[v] = new unsigned int* [uSize];
-			for (unsigned int u = 0; u < uSize; u++) {
-				index[v][u] = new unsigned int[6];
-				for (unsigned int k = 0; k < 6; k++)
-					index[v][u][k] = 0;
-			}
-		}
-		vertex = new Vertex * [vSize + 1] {nullptr};
-		for (unsigned int v = 0; v <= vSize; v++) {
-			vertex[v] = new Vertex[uSize + 1];
-			for (unsigned int u = 0; u <= uSize; u++) {
-				vertex[v][u].position = vec3(0.0f);
-				vertex[v][u].normal = vec3(0.0f);
-				vertex[v][u].color = vec4(0.0f);
-			}
-		}
+		index.resize(vSize * uSize * 6, 0);
+		vertex.resize((vSize + 1) * (uSize + 1), Vertex());
 	}
-	Mesh(const Mesh& m) {
-		this->uSize = m.uSize;
-		this->vSize = m.vSize;
-		this->index = new unsigned int** [vSize] {nullptr};
-		for (unsigned int v = 0; v < vSize; v++) {
-			this->index[v] = new unsigned int* [uSize] {nullptr};
-			for (unsigned int u = 0; u < uSize; u++) {
-				this->index[v][u] = new unsigned int[6] {0};
-				for (unsigned int k = 0; k < 6; k++)
-					index[v][u][k] = m.index[v][u][k];
-			}
-		}
-		this->vertex = new Vertex * [vSize + 1] {nullptr};
-		for (unsigned int v = 0; v <= vSize; v++) {
-			this->vertex[v] = new Vertex[uSize + 1];
-			for (unsigned int u = 0; u <= uSize; u++) {
-				this->vertex[v][u].position = m.vertex[v][u].position;
-				this->vertex[v][u].normal = m.vertex[v][u].normal;
-				this->vertex[v][u].color = m.vertex[v][u].color;
-			}
-		}
-		return *this;
-	};
-	Mesh& operator=(const Mesh& m) {
-		this->uSize = m.uSize;
-		this->vSize = m.vSize;
-		this->index = new unsigned int** [vSize] {nullptr};
-		for (unsigned int v = 0; v < vSize; v++) {
-			this->index[v] = new unsigned int* [uSize] {nullptr};
-			for (unsigned int u = 0; u < uSize; u++) {
-				this->index[v][u] = new unsigned int[6] {0};
-				for (unsigned int k = 0; k < 6; k++)
-					index[v][u][k] = m.index[v][u][k];
-			}
-		}
-		this->vertex = new Vertex * [vSize + 1] {nullptr};
-		for (unsigned int v = 0; v <= vSize; v++) {
-			this->vertex[v] = new Vertex[uSize + 1];
-			for (unsigned int u = 0; u <= uSize; u++) {
-				this->vertex[v][u].position = m.vertex[v][u].position;
-				this->vertex[v][u].normal = m.vertex[v][u].normal;
-				this->vertex[v][u].color = m.vertex[v][u].color;
-			}
-		}
-		return *this;
-	}
+	// 由于Vertex只是简单对象，只需做浅拷贝
+	Mesh(const Mesh& m) = default;
+	Mesh& operator=(const Mesh& m) = default;
 	~Mesh() {
-		delete[] index;
-		for (unsigned int v = 0; v <= vSize; v++)
-			delete[] vertex[v];
-		delete[] vertex;
+		vertex.clear();
+		index.clear();
 	}
 	void connect() {
 		// 默认以行优先连接（指第1行连完后开始第2行）
 		for (unsigned int v = 0; v < vSize; v++) {
 			for (unsigned int u = 0; u < uSize; u++) {
-				unsigned int* ptr = index[v][u];		// 采用逆时针绕行
+				unsigned int* ptr = &index[(v * uSize + u) * 6];		// 采用逆时针绕行
 				ptr[0] = v * (uSize + 1) + u;						// 左上
 				ptr[1] = (v + 1) * (uSize + 1) + u;			// 左下
 				ptr[2] = (v + 1) * (uSize + 1) + u + 1;		// 右下
@@ -173,20 +97,17 @@ public:
 			}
 		}
 	}
-	//bool isTexture() {
-	//	return glIsTexture(texture) == GL_TRUE;
-	//}
 	void updateVertexPositionByFunc(std::function<vec3(unsigned int, unsigned int)> func) {
 		for (unsigned int v = 0; v <= vSize; v++) {
 			for (unsigned int u = 0; u <= uSize; u++) {
-				vertex[v][u].position = func(u, v);
+				vertex[v * (uSize + 1) + u].position = func(u, v);
 			}
 		}
 	}
 	void updateVertexNormalByFunc(std::function<vec3(unsigned int, unsigned int)> func) {
 		for (unsigned int v = 0; v <= vSize; v++) {
 			for (unsigned int u = 0; u <= uSize; u++) {
-				vertex[v][u].normal = func(u, v);
+				vertex[v * (uSize + 1) + u].normal = func(u, v);
 			}
 		}
 	}
@@ -194,75 +115,41 @@ public:
 		vec3 pos;
 		for (unsigned int v = 0; v <= vSize; v++) {
 			for (unsigned int u = 0; u <= uSize; u++) {
-				pos = vertex[v][u].position;
-				vertex[v][u].normal = func(pos.x, pos.y, pos.z);
+				pos = vertex[v * (uSize + 1) + u].position;
+				vertex[v * (uSize + 1) + u].normal = func(pos.x, pos.y, pos.z);
 			}
 		}
 	}
-	Vertex** getVertexPtr() {
-		return vertex;
+	Vertex* getVertexPtr() {
+		return vertex.data();
 	}
-	Vertex* mapVertexData() {		// 将二级指针存储的顶点数据映射到一维连续空间，只读
-		vertexPtr = new Vertex[(uSize + 1) * (vSize + 1)];
-		for (unsigned int v = 0; v <= vSize; v++) {
-			for (unsigned int u = 0; u <= uSize; u++) {
-				vertexPtr[v * (uSize + 1) + u] = vertex[v][u];
-			}
-		}
-		return vertexPtr;
+	unsigned int* getIndexPtr() {
+		return index.data();
 	}
-	void unmapVertexData() {
-		delete[] vertexPtr;
-		vertexPtr = nullptr;
-	}
-	unsigned int* mapIndexData() {
-		indexPtr = new unsigned int[uSize * vSize * 6];
-		for (unsigned int v = 0; v < vSize; v++)
-			for (unsigned int u = 0; u < uSize; u++)
-				for (unsigned int idx = 0; idx < 6; idx++) {
-					indexPtr[(v * uSize + u) * 6 + idx] = index[v][u][idx];
-				}
-		return indexPtr;
-	}
-	void unmapIndexData() {
-		delete[] indexPtr;
-		indexPtr = nullptr;
-	}
-	Triangle* mapAllTriangles() {									// 这里的三角形顶点全处于局部坐标系下
-		trianglePtr = new Triangle[uSize * vSize * 2];
-		Vertex* vtx = mapVertexData();
+	vector<Triangle> getAllTriangles() {
+		// 遍历Mesh中所有三角形
+		vector<Triangle> triangles(vSize * uSize * 2);
 		for (unsigned int v = 0; v < vSize; v++) {
 			for (unsigned int u = 0; u < uSize; u++) {
-				trianglePtr[(v * uSize + u) * 2 + 0] = { vtx[index[v][u][0]],vtx[index[v][u][1]] ,vtx[index[v][u][2]] };
-				trianglePtr[(v * uSize + u) * 2 + 1] = { vtx[index[v][u][3]],vtx[index[v][u][4]] ,vtx[index[v][u][5]] };
+				unsigned int* idxPtr = &index[(v * uSize + u) * 6];
+				triangles[(v * uSize + u) * 2 + 0] = { vertex[idxPtr[0]] ,vertex[idxPtr[1]] ,vertex[idxPtr[2]] };
+				triangles[(v * uSize + u) * 2 + 1] = { vertex[idxPtr[3]] ,vertex[idxPtr[4]] ,vertex[idxPtr[5]] };
 			}
 		}
-		unmapVertexData();
-		return trianglePtr;
-	}
-	void unmapAllTriangles() {
-		delete[] trianglePtr;
-		trianglePtr = nullptr;
+		return triangles;
 	}
 	unsigned int getVertexSize() {
 		return (uSize + 1) * (vSize + 1);
 	}
-	unsigned int getTriangleSize() {
-		return uSize * vSize * 2;
-	}
 	unsigned int getIndexSize() {
 		return uSize * vSize * 6;
 	}
-	//virtual void draw(Shader* sd) {		// Mesh对象可以单独绘制，但其没有model和modelBuffer，采用位置相关的自动颜色
-	//	sd->use();
-	//	(*sd)["modelBuffer"] = mat4(1.0f);
-	//	(*sd)["model"] = mat4(1.0f);
-	//	(*sd)["isAuto"] = true;
-	//	(*sd)["ncolor"] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-	//	glBindVertexArray(VAO);
-	//	glDrawElements(GL_TRIANGLES, getIndexSize(), GL_UNSIGNED_INT, 0);
-	//	glBindVertexArray(0);
-	//}
+	unsigned int getUSize() {
+		return uSize;
+	}
+	unsigned int getVSize() {
+		return vSize;
+	}
 };
 class Geometry {
 	// Geometry本身没有生成网格
@@ -290,17 +177,26 @@ public:
 		return children;
 	}
 	// 需要调用方手动释放内存
-	//std::allocator<Mesh> alloc;
-	//Mesh* ptr = alloc.allocate(meshes.size());
-	void getWorldMeshes(vector<Mesh *> &worldMeshes) {
-		worldMeshes.clear();
-		for (unsigned int i = 0; i < meshes.size(); i++) {
-			Mesh* mesh = new Mesh(*(meshes[i]));
-			// 对 mesh 做变换
-			// 。。。
-			worldMeshes.push_back(mesh);
-		}
-	}
+	// 这个方法太臃肿了，需要重构
+	//vector<Mesh*> getWorldMeshes() {
+	//	vector<Mesh*> buf;
+	//	mat4 local2world = this->getLocal2WorldMatrix();
+	//	mat4 local2world_normal = transpose(inverse(local2world));
+	//	for (auto& originMesh : meshes) {
+	//		Mesh* mesh = new Mesh(*originMesh);
+	//		unsigned int uSize = mesh->getUSize(), vSize = mesh->getVSize();
+	//		Vertex* ptr = mesh->getVertexPtr();
+	//		for (unsigned int v = 0; v < vSize; v++) {
+	//			for (unsigned int u = 0; u < uSize; u++) {
+	//				ptr[v * (uSize + 1) + u].position = local2world * vec4(ptr[v * (uSize + 1) + u].position, 1.0f);
+	//				ptr[v * (uSize + 1) + u].normal = local2world_normal * vec4(ptr[v * (uSize + 1) + u].normal, 0.0f);
+	//				// 颜色仍然保持原样
+	//			}
+	//		}
+	//		buf.push_back(mesh);
+	//	}
+	//	return buf;
+	//}
 	vector<Mesh*>& getMeshes() {
 		return meshes;
 	}
@@ -308,6 +204,9 @@ public:
 	// 预变换
 	mat4 getModelBufferMatrix() {
 		return modelBuffer;
+	}
+	mat4 getLocal2WorldMatrix() {
+		return this->getFinalOffset() * model.getMatrix() * modelBuffer;
 	}
 	void applyTransform() {
 		modelBuffer = (model.getMatrix()) * modelBuffer;

@@ -37,6 +37,8 @@ using cv::Vec3f;
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
+#include "utils.h"
+
 #define WIDTH 1600
 #define HEIGHT 1200
 #define PI 3.1415926535f
@@ -104,7 +106,14 @@ typedef struct _uniformTable {	// 除了MVP矩阵以外的其他定制化uniform变量
 	vec4 color{ 0.0f,0.0f,0.0f,0.0f };
 }uniformTable;
 
+typedef struct _Triangle {
+	Vertex vertex[3];
+}Triangle;
 
 extern Mat canvas;		// 仅用于调试声明的全局变量
+
+//class Light;
+//class Scene;
+
 
 #endif
