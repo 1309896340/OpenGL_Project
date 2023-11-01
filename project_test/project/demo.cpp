@@ -109,14 +109,14 @@ int main(int argc, char** argv) {
 
 	//scene.add(dynamic_cast<Geometry*>(&leaf_a));
 
-	Cylinder c1(0.12f, 1.0f), c2(0.12f, 2.0f);
+	Cylinder c1(0.12f, 1.0f), c2(0.12f, 1.0f);
 	Sphere s1(0.1f);
 
 	//c1.translateTo(vec3(0.5f, 0.0f, 0.0f));
 	c1.addChild(&s1, Transform(vec3(0.0f, 1.0f, 0.0f)));
 	s1.addChild(&c2);
 
-	c2.rotate(45.0f, _front);
+	c2.rotate(-75.0f, _front);
 
 	scene.add(&c1);
 	scene.add(&light);

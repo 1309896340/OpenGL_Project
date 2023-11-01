@@ -94,21 +94,17 @@ public:
 			return this->depthmap;
 		}
 		cout << "生成一次深度图" << endl;
-
 		// 初始化深度图
 		if (this->updateSample) {
 			if (this->depthmap.ptr != nullptr)
 				delete[] this->depthmap.ptr;
-
 			this->depthmap.ptr = new float[this->wNum * this->hNum];
 			this->depthmap.width = this->wNum;
 			this->depthmap.height = this->hNum;
-
 			this->updateSample = false;
 		}
 		for (unsigned int i = 0; i < this->depthmap.width * this->depthmap.height; i++)
 			this->depthmap.ptr[i] = FLT_MAX;		// 初始化为最大值	
-
 		// 计算深度图
 		assert(triangleGetter != nullptr);
 		vector<Triangle> tribuf;
@@ -126,6 +122,38 @@ public:
 		}
 		return this->depthmap;
 	}
+
+	//DepthMap genDepthMap() {		// 通过变换的方式记录深度
+	//	if (lightSamplePos == nullptr) {
+	//		cout << "未生成采样光线" << endl;
+	//		return this->depthmap;
+	//	}
+	//	cout << "生成一次深度图" << endl;
+	//	// 初始化深度图
+	//	if (this->updateSample) {
+	//		if (this->depthmap.ptr != nullptr)
+	//			delete[] this->depthmap.ptr;
+	//		this->depthmap.ptr = new float[this->wNum * this->hNum];
+	//		this->depthmap.width = this->wNum;
+	//		this->depthmap.height = this->hNum;
+	//		this->updateSample = false;
+	//	}
+	//	// 计算深度图
+	//	assert(triangleGetter != nullptr);
+	//	vector<Triangle> tribuf;
+	//	triangleGetter->getAllTriangles(tribuf);
+	//	for (auto& triangle : tribuf) {
+	//		for (unsigned int i = 0; i < this->depthmap.width * this->depthmap.height; i++) {
+	//			// 判断光线与三角形是否相交
+	//			float depth;
+	//			bool isHit = rayTriangleIntersect(triangle, lightSamplePos[i], this->direction, &depth);
+	//			if (isHit) {
+	//				this->depthmap.ptr[i] = std::min(this->depthmap.ptr[i], depth);
+	//			}
+	//		}
+	//	}
+	//	return this->depthmap;
+	//}
 	vec3* getLightSamplePos() {
 		return this->lightSamplePos;
 	}

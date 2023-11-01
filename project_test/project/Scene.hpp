@@ -290,7 +290,7 @@ public:
 	//	}
 	//	return meshes;
 	//}
-	void getAllTriangles(vector<Triangle> &outTrianglesVector) {		// 遍历Scene中所有三角面元，每个三角形顶点坐标都处于世界坐标系下
+	void getAllTriangles(vector<Triangle>& outTrianglesVector) {		// 遍历Scene中所有三角面元，每个三角形顶点坐标都处于世界坐标系下
 		outTrianglesVector.clear();
 		for (auto& obj : objs) {
 			mat4 local2world = obj->getLocal2WorldMatrix();
@@ -369,10 +369,12 @@ public:
 				vec3 p2 = p1 + lightDir * depth;
 				Point2f pt1 = toPoint2f(world2screen(p1, nullptr));
 				Point2f pt2 = toPoint2f(world2screen(p2, nullptr));
-				if (dm.ptr[v * uSize + u] == FLT_MAX)
-				{}
-				else
-					line(canvas, pt1, pt2, Vec3f(0.0f, 0.0f, 2.0f), 2);
+				if (dm.ptr[v * uSize + u] == FLT_MAX) {
+					line(canvas, pt1, pt2, Vec3f(0.0f, 1.0f, 0.0f), 1);
+				}
+				else {
+					line(canvas, pt1, pt2, Vec3f(1.0f, 0.0f, 0.0f), 2);
+				}
 			}
 		}
 
