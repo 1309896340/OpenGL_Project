@@ -290,8 +290,8 @@ public:
 	//	}
 	//	return meshes;
 	//}
-	vector<Triangle> getAllTriangles() {		// 遍历Scene中所有三角面元，每个三角形顶点坐标都处于世界坐标系下
-		vector<Triangle> triangles;
+	void getAllTriangles(vector<Triangle> &outTrianglesVector) {		// 遍历Scene中所有三角面元，每个三角形顶点坐标都处于世界坐标系下
+		outTrianglesVector.clear();
 		for (auto& obj : objs) {
 			mat4 local2world = obj->getLocal2WorldMatrix();
 			mat4 local2world_normal = transpose(inverse(local2world));
@@ -309,13 +309,15 @@ public:
 				}
 				// 加入到三角形列表中
 				for (unsigned int i = 0; i < triNum; i++) {
-					triangles.push_back(Triangle{
+					Triangle tt = {
 						{worldVtx[idx[i * 3 + 0]], worldVtx[idx[i * 3 + 1]], worldVtx[idx[i * 3 + 2]]}
-						});
+					};
+					outTrianglesVector.push_back(tt);
 				}
+				delete[] worldVtx;
+				worldVtx = nullptr;
 			}
 		}
-		return triangles;
 	}
 
 	void renderOne(Geometry* obj, Mat& canvas) {
@@ -361,13 +363,16 @@ public:
 		unsigned int vSize = dm.height, uSize = dm.width;
 		for (unsigned int v = 0; v < vSize; v++) {
 			for (unsigned int u = 0; u < uSize; u++) {
-				if (dm.ptr[v * uSize + u] == FLT_MAX)
-					dm.ptr[v * uSize + u] = 5.0f;
+				float depth = dm.ptr[v * uSize + u];
+				depth = (depth == FLT_MAX) ? 5.0f : depth;
 				vec3 p1 = lightPos[v * uSize + u];
-				vec3 p2 = p1 + lightDir * dm.ptr[v * uSize + u];
+				vec3 p2 = p1 + lightDir * depth;
 				Point2f pt1 = toPoint2f(world2screen(p1, nullptr));
 				Point2f pt2 = toPoint2f(world2screen(p2, nullptr));
-				line(canvas, pt1, pt2, Vec3f(0.0f, 0.0f, 1.0f), 1);
+				if (dm.ptr[v * uSize + u] == FLT_MAX)
+				{}
+				else
+					line(canvas, pt1, pt2, Vec3f(0.0f, 0.0f, 2.0f), 2);
 			}
 		}
 

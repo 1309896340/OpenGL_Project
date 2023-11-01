@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
 	camera = &camera_m;
 
 	Scene scene(camera);
-	Leaf leaf_a(2.0f, 0.2f);
+	//Leaf leaf_a(2.0f, 0.2f);
 
 	Light light(
 		vec3(0.0f, 2.0f, 0.0f), vec3(0.5f, -0.9f, 0.0f),		// 位置，方向
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 
 	//scene.add(dynamic_cast<Geometry*>(&leaf_a));
 
-	Cylinder c1(0.08f, 1.0f), c2(0.08f, 2.0f);
+	Cylinder c1(0.12f, 1.0f), c2(0.12f, 2.0f);
 	Sphere s1(0.1f);
 
 	//c1.translateTo(vec3(0.5f, 0.0f, 0.0f));
@@ -121,10 +121,10 @@ int main(int argc, char** argv) {
 	scene.add(&c1);
 	scene.add(&light);
 
-	c2.rotate(90.0f, _up);
+	c2.rotate(40.0f, _up);
 
 	// 生成深度图
-	light.genLightSample(20, 40);
+	light.genLightSample(30, 60);
 	light.genDepthMap();				// 该函数要在light添加到场景中后才有效
 
 	namedWindow("demo", WINDOW_NORMAL);

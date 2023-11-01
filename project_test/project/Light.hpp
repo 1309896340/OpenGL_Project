@@ -95,11 +95,6 @@ public:
 		}
 		cout << "生成一次深度图" << endl;
 
-		vector<Triangle> triBuf;
-		assert(triangleGetter != nullptr);
-		vector<Triangle> tris= triangleGetter->getAllTriangles();		// 其中所有的Mesh*都是动态生成的，在最后需要释放
-		triBuf.insert(triBuf.end(), tris.begin(), tris.end());
-
 		// 初始化深度图
 		if (this->updateSample) {
 			if (this->depthmap.ptr != nullptr)
@@ -115,14 +110,17 @@ public:
 			this->depthmap.ptr[i] = FLT_MAX;		// 初始化为最大值	
 
 		// 计算深度图
-		for (auto& triangle : triBuf) {
+		assert(triangleGetter != nullptr);
+		vector<Triangle> tribuf;
+		triangleGetter->getAllTriangles(tribuf);
+		for (auto& triangle : tribuf) {
 			for (unsigned int i = 0; i < this->depthmap.width * this->depthmap.height; i++) {
 				// 判断光线与三角形是否相交
 				float depth;
 				bool isHit = rayTriangleIntersect(triangle, lightSamplePos[i], this->direction, &depth);
 				if (isHit) {
 					this->depthmap.ptr[i] = std::min(this->depthmap.ptr[i], depth);
-					//cout << i << "击中，深度为 " << this->depthmap.ptr[i] << endl;
+					cout << i << "击中，深度为 " << this->depthmap.ptr[i] << endl;
 				}
 			}
 		}
