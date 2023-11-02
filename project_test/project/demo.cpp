@@ -123,9 +123,9 @@ int main(int argc, char** argv) {
 
 	c2.rotate(40.0f, _up);
 
-	// 生成深度图
-	light.genLightSample(30, 60);
-	light.genDepthMap();				// 该函数要在light添加到场景中后才有效
+	//// 生成深度图
+	//light.genLightSample(30, 60);
+	//light.genDepthMap();				// 该函数要在light添加到场景中后才有效
 
 	namedWindow("demo", WINDOW_NORMAL);
 	setMouseCallback("demo", opencv_mouseCallback, 0);

@@ -42,6 +42,17 @@ private:
 		}
 		return false;
 	}
+	// 判断点是否在三角内部
+	bool checkInTriangle(const vec3& point, const vector<vec3>& wPos) {
+		float v1 = cross(wPos[1] - wPos[0], point - wPos[0]).z;
+		float v2 = cross(wPos[2] - wPos[1], point - wPos[1]).z;
+		float v3 = cross(wPos[0] - wPos[2], point - wPos[2]).z;
+		if (v1 > 0.0f && v2 > 0.0f && v3 > 0.0f)
+			return true;
+		if (v1 < 0.0f && v2 < 0.0f && v3 < 0.0f)
+			return true;
+		return false;
+	}
 public:
 	vec3 position{ 0.0f,1.5f,0.0f };
 	vec3 direction{ 0.0f,-1.0f,0.0f };
@@ -157,10 +168,19 @@ public:
 				float hCur = -(this->height) / 2.0f + dh / 2.0f + h * dh;
 				// 将三角形的三个顶点坐标变换到光源的视角下，然后做正交变换
 				vec3 vPos[3];
-				for (unsigned int k = 0; k < 3; k++) 
+				for (unsigned int k = 0; k < 3; k++)
 					vPos[k] = this->world2screen(triangle.vertex[k].position);
 				// 判断(wCur,hCur)是否在vPos[0]、vPos[1]、vPos[2]的xy坐标同侧
-				// 暂时没想清楚要怎么实现
+				// 暂时先忽略z坐标，即只考虑(wCur, hCur, 0)和(vPos.x, vPos.y, 0)
+				// 在得到(wCur, hCur, 0)在三角形内部后，再将深度值取出，进行三角形三点深度的插值，与原深度图对应位置元素比较，取较小值
+				vec3 checkPoint(wCur, hCur, 0.0f);
+				vector<vec3> wPos;
+				for (unsigned int k = 0; k < 3; k++)
+					wPos.push_back(vec3(vPos[k].x, vPos[k].y, 0.0f));
+				if (checkInTriangle(checkPoint, wPos)) {
+					// checkPoint在三角形内部，对checkPoint进行深度插值
+
+				}
 			}
 		}
 		return this->depthmap;
