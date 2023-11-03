@@ -76,7 +76,7 @@ public:
 		position(position), direction(normalize(direction)), color(color), intensity(intensity),
 		width(width), height(height) {
 		this->view = glm::lookAt(this->position, this->position + this->direction, _up);
-		this->projection = glm::ortho(-this->width / 2.0f, this->width / 2.0f, -this->height / 2.0f, this->height / 2.0f, 0.1f, 100.0f);
+		this->projection = glm::ortho(-this->width / 2.0f, this->width / 2.0f, -this->height / 2.0f, this->height / 2.0f, 0.01f, 3.0f);
 	}
 
 	~Light() {
@@ -168,6 +168,9 @@ public:
 		this->depthmap.width = wNum;
 		this->depthmap.height = hNum;
 
+		for(unsigned int i=0;i<hNum*wNum;i++)
+			this->depthmap.ptr[i] = FLT_MAX;		// 初始化为最大值
+
 
 		// 计算深度图
 		assert(triangleGetter != nullptr);
@@ -210,8 +213,22 @@ public:
 				}
 			}
 		}
-
-		exit(0);		// 测试深度图情况，因此到这里结束
+		// 调试深度图输出
+		Mat depthimg(hNum,wNum,CV_8UC1);
+		std::stringstream imgPath;
+		imgPath << "C:\\Users\\windwhisper\\Desktop\\test_image\\data" << ".jpg";
+		for (unsigned int h = 0; h < depthmap.height; h++)
+			for (unsigned int w = 0; w < depthmap.width; w++) {
+				float tmp = depthmap.ptr[h * wNum + w];
+				unsigned char ttp = 0;
+				if (tmp != FLT_MAX) {
+					ttp = (unsigned char)((tmp + 1.0f) / 2.0f * 255.0f);
+				}
+				depthimg.at<unsigned char>(hNum - 1 - h, w) = ttp;
+			}
+		cv::imwrite(imgPath.str(), depthimg);
+		cout << "生成深度图，调试输出图片到文件 " << imgPath.str() << endl;
+		exit(0);
 
 		return this->depthmap;
 	}

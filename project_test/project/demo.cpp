@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
 	//light.genDepthMap();				// 该函数要在light添加到场景中后才有效
 	light.genDepthMap(400, 300);
 
-	namedWindow("demo", WINDOW_NORMAL);
+namedWindow("demo", WINDOW_NORMAL);
 	setMouseCallback("demo", opencv_mouseCallback, 0);
 	int key = 0;
 	bool quit = false;
