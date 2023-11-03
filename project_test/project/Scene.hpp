@@ -349,36 +349,36 @@ public:
 		for (auto& obj : objs) {
 			render(obj, canvas);
 		}
-		for (auto& light : lights) {
-			render(light, canvas);
-		}
+		//for (auto& light : lights) {
+		//	render(light, canvas);
+		//}
 	}
-	void render(Light* light, Mat& canvas) {
-		// 假设已经生成了光源的深度图
-		//light->genLightSample(8, 48);
-		//light->genDepthMap();
-		DepthMap dm = light->getDepthMap();
-		vec3* lightPos = light->getLightSamplePos();
-		vec3 lightDir = light->direction;
-		unsigned int vSize = dm.height, uSize = dm.width;
-		for (unsigned int v = 0; v < vSize; v++) {
-			for (unsigned int u = 0; u < uSize; u++) {
-				float depth = dm.ptr[v * uSize + u];
-				depth = (depth == FLT_MAX) ? 5.0f : depth;
-				vec3 p1 = lightPos[v * uSize + u];
-				vec3 p2 = p1 + lightDir * depth;
-				Point2f pt1 = toPoint2f(world2screen(p1, nullptr));
-				Point2f pt2 = toPoint2f(world2screen(p2, nullptr));
-				if (dm.ptr[v * uSize + u] == FLT_MAX) {
-					line(canvas, pt1, pt2, Vec3f(0.0f, 1.0f, 0.0f), 1);
-				}
-				else {
-					line(canvas, pt1, pt2, Vec3f(1.0f, 0.0f, 0.0f), 2);
-				}
-			}
-		}
+	//void render(Light* light, Mat& canvas) {
+	//	// 假设已经生成了光源的深度图
+	//	//light->genLightSample(8, 48);
+	//	//light->genDepthMap();
+	//	DepthMap dm = light->getDepthMap();
+	//	vec3* lightPos = light->getLightSamplePos();
+	//	vec3 lightDir = light->direction;
+	//	unsigned int vSize = dm.height, uSize = dm.width;
+	//	for (unsigned int v = 0; v < vSize; v++) {
+	//		for (unsigned int u = 0; u < uSize; u++) {
+	//			float depth = dm.ptr[v * uSize + u];
+	//			depth = (depth == FLT_MAX) ? 5.0f : depth;
+	//			vec3 p1 = lightPos[v * uSize + u];
+	//			vec3 p2 = p1 + lightDir * depth;
+	//			Point2f pt1 = toPoint2f(world2screen(p1, nullptr));
+	//			Point2f pt2 = toPoint2f(world2screen(p2, nullptr));
+	//			if (dm.ptr[v * uSize + u] == FLT_MAX) {
+	//				line(canvas, pt1, pt2, Vec3f(0.0f, 1.0f, 0.0f), 1);
+	//			}
+	//			else {
+	//				line(canvas, pt1, pt2, Vec3f(1.0f, 0.0f, 0.0f), 2);
+	//			}
+	//		}
+	//	}
 
-	}
+	//}
 	void render(Geometry* obj, Mat& canvas) {		// 绘制obj及其子对象
 		deque<Geometry*> buf{ obj };
 		Geometry* tmp{ nullptr };

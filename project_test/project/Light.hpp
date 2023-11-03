@@ -42,15 +42,26 @@ private:
 		}
 		return false;
 	}
-	// 判断点是否在三角内部
-	bool checkInTriangle(const vec3& point, const vector<vec3>& wPos) {
+	bool checkInTriangle(const vec3& point, const vector<vec3>& wPos, float* depth) {
+		// 判断点是否在三角内部，如果在，则返回true，并通过depth返回计算得到的深度值
 		float v1 = cross(wPos[1] - wPos[0], point - wPos[0]).z;
 		float v2 = cross(wPos[2] - wPos[1], point - wPos[1]).z;
 		float v3 = cross(wPos[0] - wPos[2], point - wPos[2]).z;
+		bool isHit = false;
 		if (v1 > 0.0f && v2 > 0.0f && v3 > 0.0f)
-			return true;
+			isHit = true;
 		if (v1 < 0.0f && v2 < 0.0f && v3 < 0.0f)
+			isHit = true;
+		if (isHit) {
+			// 计算深度值
+			float Adet = dot(wPos[0], cross(wPos[1], wPos[2]));
+			float A2det = dot(wPos[0], cross(point, wPos[2]));
+			float A3det = dot(wPos[0], cross(wPos[1], point));
+			float k1 = A2det / Adet;
+			float k2 = A3det / Adet;
+			*depth = (1 - k1 - k2) * wPos[0].z + k1 * wPos[1].z + k2 * wPos[2].z;
 			return true;
+		}
 		return false;
 	}
 public:
@@ -157,32 +168,51 @@ public:
 		this->depthmap.width = wNum;
 		this->depthmap.height = hNum;
 
+
 		// 计算深度图
 		assert(triangleGetter != nullptr);
 		vector<Triangle> tribuf;
 		triangleGetter->getAllTriangles(tribuf);
-		for (auto& triangle : tribuf) {
+		for (unsigned int t = 0; t < tribuf.size(); t++) {
+			auto& triangle = tribuf[t];
+			cout << "第" << t << "/" << tribuf.size() << "个三角形" << endl;
+			// 将三角形的三个顶点坐标变换到光源的视角下，然后做正交变换
+			vector<vec3> vPos(3);
+			for (unsigned int k = 0; k < 3; k++)
+				vPos[k] = this->world2screen(triangle.vertex[k].position);
+			// 生成三角的简单包围盒
+			float minX = std::min(vPos[0].x, std::min(vPos[1].x, vPos[2].x));
+			float maxX = std::max(vPos[0].x, std::max(vPos[1].x, vPos[2].x));
+			float minY = std::min(vPos[0].y, std::min(vPos[1].y, vPos[2].y));
+			float maxY = std::max(vPos[0].y, std::max(vPos[1].y, vPos[2].y));
+
 			for (unsigned int i = 0; i < this->depthmap.width * this->depthmap.height; i++) {
 				unsigned int w = i % (this->depthmap.width), h = i / (this->depthmap.height);	// 图像当前像素的坐标
 				float wCur = -(this->width) / 2.0f + dw / 2.0f + w * dw;		// 采样点
 				float hCur = -(this->height) / 2.0f + dh / 2.0f + h * dh;
-				// 将三角形的三个顶点坐标变换到光源的视角下，然后做正交变换
-				vec3 vPos[3];
-				for (unsigned int k = 0; k < 3; k++)
-					vPos[k] = this->world2screen(triangle.vertex[k].position);
-				// 判断(wCur,hCur)是否在vPos[0]、vPos[1]、vPos[2]的xy坐标同侧
+				// 判断(wCur,hCur)是否在vPos[0]、vPos[1]、vPos[2]的同侧
 				// 暂时先忽略z坐标，即只考虑(wCur, hCur, 0)和(vPos.x, vPos.y, 0)
-				// 在得到(wCur, hCur, 0)在三角形内部后，再将深度值取出，进行三角形三点深度的插值，与原深度图对应位置元素比较，取较小值
+				// 在得到(wCur, hCur, 0)在三角形内部后，再将深度值算出，与原深度图对应位置元素比较，取较小值
 				vec3 checkPoint(wCur, hCur, 0.0f);
-				vector<vec3> wPos;
-				for (unsigned int k = 0; k < 3; k++)
-					wPos.push_back(vec3(vPos[k].x, vPos[k].y, 0.0f));
-				if (checkInTriangle(checkPoint, wPos)) {
-					// checkPoint在三角形内部，对checkPoint进行深度插值
+				float depth = FLT_MAX;
+				if (wCur<minX || wCur>maxX || hCur<minY || hCur > maxY) {
+					//cout << "(" << w << "," << h << ")" << "没有击中" << endl;		// 调试信息
+					continue;
+				}
 
+				if (checkInTriangle(checkPoint, vPos, &depth)) {
+					// checkPoint在三角形内部，记录深度值
+					depthmap.ptr[h * wNum + w] = std::min(depthmap.ptr[h * wNum + w], depth);
+					cout << "(" << w << "," << h << ")" << "击中深度：" << depth << endl;		// 调试信息
+				}
+				else {
+					//cout << "(" << w << "," << h << ")" << "没有击中" << endl;		// 调试信息
 				}
 			}
 		}
+
+		exit(0);		// 测试深度图情况，因此到这里结束
+
 		return this->depthmap;
 	}
 

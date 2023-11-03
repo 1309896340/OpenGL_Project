@@ -1,3 +1,6 @@
+//#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include "proj.h"
 
 #ifdef TEST_OPENGL
@@ -78,6 +81,7 @@ int main(int argc, char** argv) {
 
 #ifdef TEST_SOFT_RASTERIZATION
 
+
 #include "Scene.hpp"
 #include "Light.hpp"
 #include "Wheat.hpp"
@@ -86,6 +90,7 @@ int main(int argc, char** argv) {
 
 #include "interaction.h"
 #include "utils.h"
+
 
 Camera* camera{ nullptr };
 StatusInfo status;
@@ -109,8 +114,8 @@ int main(int argc, char** argv) {
 
 	//scene.add(dynamic_cast<Geometry*>(&leaf_a));
 
-	Cylinder c1(0.12f, 1.0f), c2(0.12f, 1.0f);
-	Sphere s1(0.1f);
+	Cylinder c1(0.12f, 1.0f, 10, 10, 12), c2(0.12f, 1.0f, 10, 10, 12);
+	Sphere s1(0.1f, 12, 10);
 
 	//c1.translateTo(vec3(0.5f, 0.0f, 0.0f));
 	c1.addChild(&s1, Transform(vec3(0.0f, 1.0f, 0.0f)));
@@ -126,6 +131,7 @@ int main(int argc, char** argv) {
 	//// 生成深度图
 	//light.genLightSample(30, 60);
 	//light.genDepthMap();				// 该函数要在light添加到场景中后才有效
+	light.genDepthMap(400, 300);
 
 	namedWindow("demo", WINDOW_NORMAL);
 	setMouseCallback("demo", opencv_mouseCallback, 0);
