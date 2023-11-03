@@ -162,7 +162,6 @@ protected:
 public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
-	GeometryType type{ DEFAULT };
 	Geometry() {}
 	~Geometry() {		// 仅删除当前对象，还是删除所有子对象？选择后者
 		for (auto& child : children)

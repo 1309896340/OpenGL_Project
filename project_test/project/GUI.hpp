@@ -1,7 +1,9 @@
+#include "proj.h"
+
+#ifdef TEST_OPENGL
+
 #ifndef __WIND_GUI
 #define __WIND_GUI
-
-#ifdef __TEST_OPENGL
 
 #include "proj.h"
 #include "Geometry.hpp"

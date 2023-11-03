@@ -3,25 +3,29 @@
 #ifndef __WIND_SCENE
 #define __WIND_SCENE
 
+#include "Wheat.hpp"
+#include "Geometry.hpp"
+#include "Camera.hpp"
+#include "Shader.hpp"
+
 #ifdef TEST_OPENGL
-typedef struct {
-	GLuint VAO;
-	GLuint VBO;
-	GLuint EBO;
-	GLuint elementNum;	// 网格所需绘制点个数
+typedef struct _MeshRenderInfo {
+	GLuint VAO{ 0 };
+	GLuint VBO{ 0 };
+	GLuint EBO{ 0 };
+	GLuint elementNum{ 0 };		// 网格所需绘制点个数
+	bool isChanged{ false };		// 是否需要更新顶点缓冲
+	unsigned int id{ 0 };				// 该网格在Geometry的meshes中的索引
 	// 每个Mesh应当有各自的shader，后续会扩展
 }MeshRenderInfo;
 
-typedef struct {
+typedef struct _GeometryRenderInfo {
 	vector<MeshRenderInfo> meshesInfo;
-	//每个Mesh应当还有其他属性，后续会扩展
+	GeometryType gtype{ GeometryType::DEFAULT };			// 几何体的类型
 } GeometryRenderInfo;
 
 
 class Scene {
-	// 目前来看 Scene类是一个管理器，管理所有的Shader、Geometry、Camera
-	// 但它不是单向依赖的，Geometry需要Scene来获取一个默认shader
-	// 那就干脆把这个特殊的shader拿出来声明为一个全局变量，这样Geometry就不需要依赖Scene了
 private:
 	std::map<Geometry*, GeometryRenderInfo> objs;		// 在add时绑定一个新的GeometryRenderInfo，并初始化顶点缓冲
 	Camera* camera{ 0 }; // 当前主相机
@@ -54,10 +58,8 @@ public:
 		shaders["default"] = new Shader("shader/shader.gvs", "shader/shader.gfs");		// 默认shader
 		shaders["normal"] = new Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs");	// 三角面元法线可视化
 		shaders["normal_v"] = new Shader("shader/nshader.gvs", "shader/nshader.ggs", "shader/nshader.gfs");				// 顶点法线可视化	
-
 		shaders["line"] = new Shader("shader/line.gvs", "shader/line.gfs");				// 绘制简单线条
 		shaders["plane"] = new Shader("shader/plane.gvs", "shader/plane.gfs");		// 绘制简单平面
-
 		shaders["leaf"] = new Shader("shader/leaf.gvs", "shader/leaf.gfs");		// 渲染小麦叶片的着色器，其中包含材质
 	}
 
@@ -103,9 +105,14 @@ public:
 	}
 
 	void addOne(Geometry* obj) {	// 添加一个Geometry，不考虑子对象
+		if (objs.count(obj) > 0)
+			return;		// 已经存在，不再添加
+
+		// 在obj第一次加入时，为其创建一个GeometryRenderInfo来存储其渲染信息，初始化顶点缓冲
 		GeometryRenderInfo gInfo;
 		vector<Mesh*> meshes = obj->getMeshes();
-		for (auto& mesh : meshes) {
+		for (unsigned int k = 0; k < meshes.size(); k++) {
+			Mesh* mesh = meshes[k];
 			MeshRenderInfo mInfo;
 			// 创建并绑定VAO
 			glGenVertexArrays(1, &mInfo.VAO);
@@ -113,8 +120,7 @@ public:
 			// 创建并绑定VBO
 			glGenBuffers(1, &mInfo.VBO);
 			glBindBuffer(GL_ARRAY_BUFFER, mInfo.VBO);
-			glBufferData(GL_ARRAY_BUFFER, mesh->getVertexSize() * sizeof(Vertex), mesh->mapVertexData(), GL_DYNAMIC_DRAW);
-			mesh->unmapVertexData();
+			glBufferData(GL_ARRAY_BUFFER, mesh->getVertexSize() * sizeof(Vertex), mesh->getVertexPtr(), GL_DYNAMIC_DRAW);
 			// 配置VBO的属性组
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);								// 位置属性
 			glEnableVertexAttribArray(0);
@@ -126,12 +132,14 @@ public:
 			glGenBuffers(1, &mInfo.EBO);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mInfo.EBO);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->getIndexSize() * sizeof(GLuint), mesh->getIndexPtr(), GL_STATIC_DRAW);
-			// 设置顶点索引数
+			// 记录其他网格属性
 			mInfo.elementNum = mesh->getIndexSize();
+			mInfo.isChanged = true;
+			mInfo.id = k;
 			// 加入到gInfo中
 			gInfo.meshesInfo.push_back(mInfo);
 		}
-		objs[obj] = gInfo;		// 存入map
+		objs[obj] = gInfo;
 	}
 	//void addOne(Leaf* obj) {
 	//	addOne(dynamic_cast<Geometry*>(obj));
@@ -185,17 +193,29 @@ public:
 			add(obj);
 		}
 		GeometryRenderInfo& gInfo = objs[obj];
-		if (obj->type == LEAF) {										// 检索不同Geometry类型，更新其顶点数据
-			Leaf* leaf_a = dynamic_cast<Leaf*>(obj);
-			if (leaf_a->isMeshChanged()) {
-				leaf_a->updateVertex();
-				// 更新VBO
-				Mesh* m = leaf_a->getMeshes()[0];
-				glNamedBufferSubData(gInfo.meshesInfo[0].VBO, 0, m->getVertexSize() * sizeof(Vertex), m->mapVertexData());
-				m->unmapVertexData();
-			}
-		}
+		//if (obj->type == LEAF) {										// 检索不同Geometry类型，更新其顶点数据
+		//	Leaf* leaf_a = dynamic_cast<Leaf*>(obj);
+		//	if (leaf_a->isMeshChanged()) {
+		//		leaf_a->updateVertex();
+		//		// 更新VBO
+		//		Mesh* m = leaf_a->getMeshes()[0];
+		//		glNamedBufferSubData(gInfo.meshesInfo[0].VBO, 0, m->getVertexSize() * sizeof(Vertex), m->getVertexPtr());
+		//	}
+		//}
 		for (auto& meshInfo : gInfo.meshesInfo) {
+			if (meshInfo.isChanged) {
+				// 检查更新网格
+				Mesh* mesh = obj->getMeshes()[meshInfo.id];
+				//Vertex* vptr = mesh->getVertexPtr();
+				//unsigned int uSize = mesh->getUSize(), vSize = mesh->getVSize();
+				//mesh->upda
+				
+				// 由于没有定义Mesh的自动更新函数，但其实目前除了Leaf类以外其他对象的网格都是静态的，两者具有完全不同的控制逻辑
+				// 有必要进行一层抽象，将Mesh的更新函数抽象出来
+
+
+				meshInfo.isChanged = false;	// 更新完毕
+			}
 			// 物体在加入场景中时需要将顶点数据等载入显存，同时建立其缓冲区ID与对象之间的联系，使用map存储
 			glBindVertexArray(meshInfo.VAO);
 			glDrawElements(GL_TRIANGLES, meshInfo.elementNum, GL_UNSIGNED_INT, 0);
@@ -388,7 +408,7 @@ public:
 			for (auto& child : tmp->getChildren())
 				buf.push_back(child);
 			renderOne(tmp, canvas);
-		}
+}
 	}
 
 };

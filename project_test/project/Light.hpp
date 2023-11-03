@@ -80,12 +80,7 @@ public:
 	}
 
 	~Light() {
-		//if (lightSamplePos != nullptr)
-		//	delete[] lightSamplePos;
 	}
-	//void setScene(Scene* scene) {
-	//	this->scene = scene;
-	//}
 
 	void setTriangleGetter(TriangleGetter* triangleGetter) {
 		this->triangleGetter = triangleGetter;

@@ -1,7 +1,8 @@
 #ifndef _WIND_MAIN_HEADER
 #define _WIND_MAIN_HEADER
 
-#define TEST_SOFT_RASTERIZATION
+//#define TEST_SOFT_RASTERIZATION
+#define TEST_OPENGL
 
 #include <iostream>
 #include <fstream>
@@ -25,9 +26,6 @@
 #ifdef TEST_SOFT_RASTERIZATION
 #include "stb_image.h"
 #include "stb_image_write.h"
-#endif
-
-#ifdef TEST_SOFT_RASTERIZATION
 #include "opencv2/opencv.hpp"
 using cv::line;
 using cv::Mat;
