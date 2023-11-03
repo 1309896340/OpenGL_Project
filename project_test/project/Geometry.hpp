@@ -60,7 +60,6 @@ public:
 	}
 };
 
-
 class Mesh {
 private:
 protected:
@@ -151,6 +150,17 @@ public:
 		return vSize;
 	}
 };
+
+
+class DynamicMesh : public Mesh {
+	// 动态网格类，继承自Mesh类，但具有一个updateVertex纯虚方法方法，用于更新网格顶点数据
+	// 由于更新顶点的具体做法并没有实现，是交给特定子类完成的，因此DynamicMesh类本身是抽象类
+	// 将继承Geometry类的Leaf类中的Mesh由这个类的子类描述
+public:
+	DynamicMesh(unsigned int uSize = 2, unsigned int vSize = 2) :Mesh(uSize, vSize) {}
+	virtual void updateVertex() = 0;
+};
+
 class Geometry {
 	// Geometry本身没有生成网格
 private:
