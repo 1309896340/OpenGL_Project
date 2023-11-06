@@ -3,6 +3,7 @@
 
 //#define TEST_SOFT_RASTERIZATION
 #define TEST_OPENGL
+#define TEST_RAY_TRACE
 
 #include <iostream>
 #include <fstream>

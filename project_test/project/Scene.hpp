@@ -27,6 +27,10 @@ typedef struct _GeometryRenderInfo {
 typedef struct _LightInfo {
 	GLuint FBO_depth{ 0 };
 	GLuint texture_depth{ 0 };
+
+	// 用于可视化光线的顶点缓冲区，采用glDrawArrays(GL_LINES, 0, 2)绘制
+	GLuint VAO{ 0 };
+	GLuint VBO{ 0 };
 }LightInfo;
 
 
@@ -118,12 +122,12 @@ public:
 		// 加入light时，为其创建一个LightInfo来存储其渲染信息
 		// LightInfo应当用于存储深度图，当Light对象的属性(如位置、方向、分辨率)发生变化时，应当重新生成深度图
 		LightInfo info;
-		{
+		unsigned int wNum, hNum;
+		light->getResolution(&wNum, &hNum);
+		{// 生成深度图
 			// 创建纹理附件
 			glGenTextures(1, &info.texture_depth);
 			glBindTexture(GL_TEXTURE_2D, info.texture_depth);
-			unsigned int wNum, hNum;
-			light->getResolution(&wNum, &hNum);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, wNum, hNum, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);		// 创建空的深度纹理
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -135,6 +139,19 @@ public:
 			glReadBuffer(GL_NONE);		// 不使用颜色缓冲区
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
+#ifdef TEST_RAY_TRACE
+		//可视化光线（用于调试）
+		{
+			// 创建顶点缓冲区
+			glGenVertexArrays(1, &info.VAO);
+			glBindVertexArray(info.VAO);
+			glGenBuffers(1, &info.VBO);
+			glBindBuffer(GL_ARRAY_BUFFER, info.VBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * (wNum * hNum * 2), nullptr, GL_DYNAMIC_DRAW);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, NULL, nullptr);
+			glEnableVertexAttribArray(0);
+		}
+#endif
 		lights[light] = info;
 	}
 
@@ -234,14 +251,59 @@ public:
 		}
 	}
 
-	void render() {	// 绘制objs中所有对象
+#ifdef TEST_RAY_TRACE
+	void visualizeRay() {
+		// 用来调试Light的光线是否正确
+		// 通过遍历Light对象指定分辨率图像上的每个像素，生成线段，连接发射面与被照射面，进行可视化
+
+		// 这里只考虑第一个Light对象
+		Light* light = lights.begin()->first;
+		unsigned int wNum, hNum;
+		float width, height, near, far;
+		light->getResolution(&wNum, &hNum);
+		light->getFieldSize(&width, &height, &near, &far);
+		float dw = width / wNum, dh = height / hNum;
+
+		vec3 lightDir = light->getDirection();
+		vec3 lightPos = light->getPosition();
+		vec3 lightRight = normalize(cross(lightDir, _up));
+		vec3 lightUp = normalize(cross(lightRight, lightDir));
+
+		float* depthDataPtr = new float[wNum * hNum];
+		glBindFramebuffer(GL_FRAMEBUFFER, lights[light].FBO_depth);
+		glReadPixels(0, 0, wNum, hNum, GL_DEPTH_COMPONENT, GL_FLOAT, depthDataPtr);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		mat4 trans = light->getProjectionViewMatrix();
+		vec3 lineSeg[2];
+		for (unsigned int h = 0; h < hNum; h++) {
+			for (unsigned int w = 0; w < wNum; w++) {
+				float depth = depthDataPtr[h * wNum + w] * (far - near) + near;
+				//depth = 2.0f * near * far / (far + near - depth * (far - near));
+				lineSeg[0] = lightPos + lightRight * (-width / 2.0f + dw / 2.0f + dw * w) + lightUp * (-height / 2.0f + dh / 2.0f + dh * h);
+				lineSeg[1] = lineSeg[0] + lightDir * depth;
+				if (depth > 13.0f)
+					lineSeg[1] = lineSeg[0] + lightDir * 0.001f;
+				//lineSeg[1] = vec3(0.0f, 0.0f, 0.0f);
+				//glBindBuffer(GL_ARRAY_BUFFER, lights[light].VBO);
+				//glBufferSubData(GL_ARRAY_BUFFER, (h * wNum + w) * 2 * sizeof(vec3), sizeof(vec3) * 2, lineSeg);
+				glNamedBufferSubData(lights[light].VBO, (h * wNum + w) * 2 * sizeof(vec3), sizeof(vec3) * 2, lineSeg);
+			}
+		}
+		delete[] depthDataPtr;
+		(*shader)["color"] = vec4(1.0f, 0.0f, 0.0f, 1.0f);	// 绘制红线
+		glBindVertexArray(lights[light].VAO);
+		glDrawArrays(GL_LINES, 0, wNum * hNum * 2);
+	}
+#endif
+	// 绘制objs中所有对象，并为每个光源生成深度贴图
+	void render() {
 		shader = shaders["default"];
 		shader->use();
 		glViewport(0, 0, WIDTH, HEIGHT);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		for (auto& elem : objs)
 			renderOne(elem.first);
-		
+
 		// 遍历所有Light对象，生成其深度贴图
 		// 这里不用shaders["default"]，因为默认shader使用ubo来存储相机视角的view和projection矩阵
 		// 而shaders["depthmap"]中直接使用光源获取的变换矩阵进行变换，和ubo无关
@@ -265,6 +327,14 @@ public:
 				renderOne(elem.first);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+#ifdef TEST_RAY_TRACE
+		// 通过生成的深度贴图，可视化光线轨迹
+		shader = shaders["line"];
+		shader->use();
+		glViewport(0, 0, WIDTH, HEIGHT);
+		visualizeRay();
+#endif
 	}
 };
 
@@ -436,7 +506,7 @@ public:
 				buf.push_back(child);
 			renderOne(tmp, canvas);
 		}
-}
+	}
 
 };
 #endif

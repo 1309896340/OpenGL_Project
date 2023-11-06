@@ -36,6 +36,8 @@ int main(int argc, char** argv) {
 	camera = new Camera(vec3(0.0f, 1.3f, 6.0f), vec3(0.0f, 1.3f, 0.0f));
 	Scene scene(camera);
 
+	//Axis axis;
+
 	Cylinder c1(0.04f, 1.0f), c2(0.04f, 1.0f), c3(0.04f, 1.0f);
 	Sphere s1(0.06f), s2(0.06f);
 	Leaf leaf_a(2.0f, 0.2f), leaf_b(2.0f, 0.2f);
@@ -52,14 +54,15 @@ int main(int argc, char** argv) {
 	c1.addChild(&leaf_a, Transform(vec3(0.0f, 1.0f, 0.0f)));
 	c2.addChild(&leaf_b, Transform(vec3(0.04f, 1.0f, 0.0f), 180.0f, _up));
 
+	//scene.add(&axis);
 	scene.add(&c1);
 	scene.addLight(&light);
 
 	c3.rotate(-30.0f, _front);
 
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		gui.update();
 		float deltaTime = scene.step();
 

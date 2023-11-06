@@ -253,8 +253,8 @@ private:
 	float farPlane{ 14.0f };
 
 	// 决定采样点的分辨率
-	unsigned int wSliceNum{ 800 };
-	unsigned int hSliceNum{ 600 };
+	unsigned int wSliceNum{ 100 };
+	unsigned int hSliceNum{ 100 };
 
 	bool changeFlag{ false };
 public:
@@ -267,7 +267,7 @@ public:
 		hSliceNum = hRes;
 	}
 
-	void setLightFieldSize(float width, float height, float near, float far) {
+	void setFieldSize(float width, float height, float near, float far) {
 		this->width = width;
 		this->height = height;
 		this->nearPlane = near;
@@ -288,6 +288,13 @@ public:
 	void getResolution(unsigned int* wRes, unsigned int* hRes) {
 		*wRes = wSliceNum;
 		*hRes = hSliceNum;
+	}
+
+	void getFieldSize(float *width,float *height,float *near,float *far) {
+		*width = this->width;
+		*height = this->height;
+		*near = this->nearPlane;
+		*far = this->farPlane;
 	}
 
 	vec3 getPosition() {
