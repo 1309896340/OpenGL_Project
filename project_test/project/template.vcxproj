@@ -171,6 +171,8 @@
     <ClCompile Include="Wheat.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shader\depthmap.gfs" />
+    <None Include="shader\depthmap.gvs" />
     <None Include="shader\leaf.gfs" />
     <None Include="shader\leaf.gvs" />
     <None Include="shader\lightShader.gfs" />

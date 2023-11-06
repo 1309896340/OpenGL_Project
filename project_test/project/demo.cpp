@@ -40,6 +40,8 @@ int main(int argc, char** argv) {
 	Sphere s1(0.06f), s2(0.06f);
 	Leaf leaf_a(2.0f, 0.2f), leaf_b(2.0f, 0.2f);
 
+	Light light(vec3(0.0f, 1.0f, 6.0f), vec3(0.0f, 1.3f, 0.0f));
+
 	leaf = &leaf_a;
 
 	c1.addChild(&s1, Transform(vec3(0.0f, 1.0f, 0.0f)));
@@ -51,6 +53,7 @@ int main(int argc, char** argv) {
 	c2.addChild(&leaf_b, Transform(vec3(0.04f, 1.0f, 0.0f), 180.0f, _up));
 
 	scene.add(&c1);
+	scene.addLight(&light);
 
 	c3.rotate(-30.0f, _front);
 

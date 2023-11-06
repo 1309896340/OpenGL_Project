@@ -25,7 +25,8 @@ typedef struct _GeometryRenderInfo {
 } GeometryRenderInfo;
 
 typedef struct _LightInfo {
-	GLuint FBO{ 0 };
+	GLuint FBO_depth{ 0 };
+	GLuint texture_depth{ 0 };
 }LightInfo;
 
 
@@ -35,7 +36,8 @@ private:
 	map<Geometry*, GeometryRenderInfo> objs;		// 在add时绑定一个新的GeometryRenderInfo，并初始化顶点缓冲
 	map<Light*, LightInfo> lights;		// 光源
 
-	Camera* camera{ 0 }; // 当前主相机
+	Shader* shader{ nullptr };		// 当前使用的shader，渲染过程中可能会切换shader
+	Camera* camera{ 0 };				// 当前主相机
 	GLuint ubo{ 0 };
 
 	float lastTime{ 0 }, currentTime{ (float)glfwGetTime() }, deltaTime{ 0 };
@@ -68,6 +70,7 @@ public:
 		shaders["line"] = new Shader("shader/line.gvs", "shader/line.gfs");				// 绘制简单线条
 		shaders["plane"] = new Shader("shader/plane.gvs", "shader/plane.gfs");		// 绘制简单平面
 		shaders["leaf"] = new Shader("shader/leaf.gvs", "shader/leaf.gfs");		// 渲染小麦叶片的着色器，其中包含材质
+		shaders["depthmap"] = new Shader("shader/depthmap.gvs", "shader/depthmap.gfs");		// 渲染深度图的着色器
 	}
 
 	void initUniformBuffer() {
@@ -115,9 +118,23 @@ public:
 		// 加入light时，为其创建一个LightInfo来存储其渲染信息
 		// LightInfo应当用于存储深度图，当Light对象的属性(如位置、方向、分辨率)发生变化时，应当重新生成深度图
 		LightInfo info;
-		// 生成帧缓冲
-
-		// 。。。
+		{
+			// 创建纹理附件
+			glGenTextures(1, &info.texture_depth);
+			glBindTexture(GL_TEXTURE_2D, info.texture_depth);
+			unsigned int wNum, hNum;
+			light->getResolution(&wNum, &hNum);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, wNum, hNum, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);		// 创建空的深度纹理
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			// 生成帧缓冲对象，将纹理附件附加上去
+			glGenFramebuffers(1, &info.FBO_depth);
+			glBindFramebuffer(GL_FRAMEBUFFER, info.FBO_depth);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, info.texture_depth, 0);
+			glDrawBuffer(GL_NONE);	// 不使用颜色缓冲区
+			glReadBuffer(GL_NONE);		// 不使用颜色缓冲区
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
 		lights[light] = info;
 	}
 
@@ -195,33 +212,59 @@ public:
 
 	// 该方法仅为Scene.render()调用，以渲染场景中所有Geometry对象。不考虑Geometry子节点，只绘制当前Geometry
 	void renderOne(Geometry* obj) {
-		Shader& shader = *shaders["default"];
-		shader.use();
-		shader["model"] = obj->getFinalOffset() * obj->model.getMatrix();
-		shader["modelBuffer"] = obj->getModelBufferMatrix();
+		(*shader)["model"] = obj->getFinalOffset() * obj->model.getMatrix();
+		(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
 		// 检查对象是否存在，不存在则添加。（一般是不通过Scene.render()调用的对象会进入到这里）
 		if (objs.count(obj) <= 0) {
 			cout << "Geometry对象不存在，已进行添加" << endl;
 			add(obj);
 		}
 		GeometryRenderInfo& gInfo = objs[obj];
-		for (auto& meshInfo : gInfo.meshesInfo) {
-			// 检查更新网格
-			Mesh* mesh = obj->getMeshes()[meshInfo.id];
+		for (auto& meshinfo : gInfo.meshesInfo) {
+			// 检查更新Mesh
+			Mesh* mesh = obj->getMeshes()[meshinfo.id];
 			if (mesh->isChanged()) {
 				mesh->updateVertex();
-				glNamedBufferSubData(meshInfo.VBO, 0, mesh->getVertexSize() * sizeof(Vertex), mesh->getVertexPtr());
+				glNamedBufferSubData(meshinfo.VBO, 0, mesh->getVertexSize() * sizeof(Vertex), mesh->getVertexPtr());
 				mesh->resetChangeFlag();		// 重置标志位
 			}
-			glBindVertexArray(meshInfo.VAO);
-			glDrawElements(GL_TRIANGLES, meshInfo.elementNum, GL_UNSIGNED_INT, 0);
+			glBindVertexArray(meshinfo.VAO);
+			glDrawElements(GL_TRIANGLES, meshinfo.elementNum, GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
 		}
 	}
 
 	void render() {	// 绘制objs中所有对象
-		for (auto& obj : objs)
-			renderOne(obj.first);
+		shader = shaders["default"];
+		shader->use();
+		glViewport(0, 0, WIDTH, HEIGHT);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		for (auto& elem : objs)
+			renderOne(elem.first);
+		
+		// 遍历所有Light对象，生成其深度贴图
+		// 这里不用shaders["default"]，因为默认shader使用ubo来存储相机视角的view和projection矩阵
+		// 而shaders["depthmap"]中直接使用光源获取的变换矩阵进行变换，和ubo无关
+		shader = shaders["depthmap"];
+		shader->use();
+		for (auto& elem : lights) {
+			Light* light = elem.first;
+
+			assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);		// 验证一下FBO是否完整
+
+			glBindFramebuffer(GL_FRAMEBUFFER, lights[light].FBO_depth);
+			// 设置视口，清空深度缓冲
+			unsigned int wNum, hNum;
+			light->getResolution(&wNum, &hNum);
+			glViewport(0, 0, wNum, hNum);
+			glClear(GL_DEPTH_BUFFER_BIT);
+			// 配置光源的变换矩阵
+			(*shader)["lightSpaceMatrix"] = light->getProjectionViewMatrix();		// 不同的光源有不同的视角
+			// 渲染深度图
+			for (auto& elem : objs)
+				renderOne(elem.first);
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 };
 
@@ -393,7 +436,7 @@ public:
 				buf.push_back(child);
 			renderOne(tmp, canvas);
 		}
-	}
+}
 
 };
 #endif

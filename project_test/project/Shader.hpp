@@ -1,9 +1,10 @@
+#include "proj.h"
+
 #ifdef TEST_OPENGL
 #ifndef __WIND_SHADER
 #define __WIND_SHADER
 
 #include "utils.h"
-#include "proj.h"
 
 class ShaderUniform {
 private:

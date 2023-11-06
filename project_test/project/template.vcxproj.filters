@@ -169,6 +169,12 @@
     <None Include="shader\plane.gvs">
       <Filter>资源文件\shader</Filter>
     </None>
+    <None Include="shader\depthmap.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\depthmap.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="texture\leaf.jpg">

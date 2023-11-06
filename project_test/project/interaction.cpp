@@ -89,6 +89,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		if (!camera)
 			return;
 		switch (key) {
+		case GLFW_KEY_ESCAPE:
+			glfwSetWindowShouldClose(window, GLFW_TRUE);
+			break;
 		case GLFW_KEY_W:
 			camera->move(0.0f, 0.0f, 10.0f);
 			break;
@@ -157,6 +160,6 @@ void opencv_mouseCallback(int event, int x, int y, int flags, void* userdata) {
 		status.mousePos[0] = (double)x;
 		status.mousePos[1] = (double)y;
 		camera->rotateByAxis(-(float)dx, -(float)dy);	// 绕着圆心轴旋转，第三个参数写得有点问题
-	}
+}
 }
 #endif
