@@ -28,7 +28,6 @@ void platformCheck() {
 StatusInfo status;
 Camera* camera{ nullptr };
 Leaf* leaf{ nullptr };
-
 int main(int argc, char** argv) {
 	platformCheck();
 

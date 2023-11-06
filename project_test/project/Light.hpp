@@ -249,18 +249,17 @@ private:
 
 	float width{ 1.0f };
 	float height{ 1.0f };
+	float nearPlane{ 0.01f };
+	float farPlane{ 4.0f };
 
 	// 决定采样点的分辨率
 	unsigned int wSliceNum{ 800 };
 	unsigned int hSliceNum{ 600 };
 
-	mat4 projection{ mat4(1.0f) };
-	mat4 view{ mat4(1.0f) };
+	bool changeFlag{ false };
 public:
 	Light() = delete;
 	Light(vec3 position, vec3 direction) :position(position), direction(normalize(direction)) {
-		this->projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
-		this->view = glm::lookAt(this->position, this->position + this->direction, _up);
 	}
 
 	void setResolution(unsigned int wRes, unsigned int hRes) {
@@ -268,9 +267,22 @@ public:
 		hSliceNum = hRes;
 	}
 
-	void setLightFieldSize(float width, float height) {
+	void setLightFieldSize(float width, float height, float near = 0.001f, float far = 4.0f) {
 		this->width = width;
 		this->height = height;
+		this->nearPlane = near;
+		this->farPlane = far;
+		setChangeFlag();
+	}
+
+	void setPosition(vec3 position) {
+		this->position = position;
+		setChangeFlag();
+	}
+
+	void setDirection(vec3 direction) {
+		this->direction = normalize(direction);
+		setChangeFlag();
 	}
 
 	vec3 getPosition() {
@@ -280,6 +292,24 @@ public:
 		return this->direction;
 	}
 
+	// 得到从世界坐标系到光视角下的标准裁剪坐标系的变换矩阵
+	// 该方法主要用以提供给Scene生成深度图
+	mat4 world2LightSpace() {
+		mat4 projection = glm::ortho(-width / 2.0f, width / 2.0f, -height / 2.0f, height / 2.0f, nearPlane, farPlane);
+		mat4 view = glm::lookAt(this->position, this->position + this->direction, _up);
+		return projection * view;
+	}
+
+	// 留给Scene判断是否更新深度图的接口
+	bool isChange() {
+		return this->changeFlag;
+	}
+	void resetChangeFlag() {
+		this->changeFlag = false;
+	}
+	void setChangeFlag() {
+		this->changeFlag = true;
+	}
 };
 
 #endif

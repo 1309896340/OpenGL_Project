@@ -7,6 +7,7 @@
 #include "Geometry.hpp"
 #include "Camera.hpp"
 #include "Shader.hpp"
+#include "Light.hpp"
 
 #ifdef TEST_OPENGL
 typedef struct _MeshRenderInfo {
@@ -23,10 +24,17 @@ typedef struct _GeometryRenderInfo {
 	//GeometryType gtype{ GeometryType::DEFAULT };			// 几何体的类型
 } GeometryRenderInfo;
 
+typedef struct _LightInfo {
+	GLuint FBO{ 0 };
+}LightInfo;
+
 
 class Scene {
+	// Scene类与OpenGL高度耦合，其主要功能是管理场景中的所有对象，包括几何体、光源、相机、着色器
 private:
-	std::map<Geometry*, GeometryRenderInfo> objs;		// 在add时绑定一个新的GeometryRenderInfo，并初始化顶点缓冲
+	map<Geometry*, GeometryRenderInfo> objs;		// 在add时绑定一个新的GeometryRenderInfo，并初始化顶点缓冲
+	map<Light*, LightInfo> lights;		// 光源
+
 	Camera* camera{ 0 }; // 当前主相机
 	GLuint ubo{ 0 };
 
@@ -35,7 +43,7 @@ private:
 	const GLuint matrixBindPoint = 0;		// projection和view接口块绑定点
 
 public:
-	std::map<std::string, Shader*> shaders;
+	map<std::string, Shader*> shaders;
 
 	Scene() : currentTime((float)glfwGetTime()) {
 		initShaders();					//  初始化所有Shader，编译、链接
@@ -101,6 +109,16 @@ public:
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), value_ptr(camera->getProjectionMatrix()));
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
 		//glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+
+	void addLight(Light* light) {
+		// 加入light时，为其创建一个LightInfo来存储其渲染信息
+		// LightInfo应当用于存储深度图，当Light对象的属性(如位置、方向、分辨率)发生变化时，应当重新生成深度图
+		LightInfo info;
+		// 生成帧缓冲
+
+		// 。。。
+		lights[light] = info;
 	}
 
 	void addOne(Geometry* obj) {	// 添加一个Geometry，不考虑子对象
@@ -200,18 +218,6 @@ public:
 			glBindVertexArray(0);
 		}
 	}
-
-	//void render(Geometry* obj) {		// 绘制obj及其子对象
-	//	deque<Geometry*> buf{ obj };
-	//	Geometry* tmp{ nullptr };
-	//	while (!buf.empty()) {
-	//		tmp = buf.front();
-	//		buf.pop_front();
-	//		for (auto& child : tmp->getChildren())
-	//			buf.push_back(child);
-	//		renderOne(tmp);
-	//	}
-	//}
 
 	void render() {	// 绘制objs中所有对象
 		for (auto& obj : objs)
@@ -386,7 +392,7 @@ public:
 			for (auto& child : tmp->getChildren())
 				buf.push_back(child);
 			renderOne(tmp, canvas);
-}
+		}
 	}
 
 };
