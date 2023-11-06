@@ -18,12 +18,6 @@
 #include "utils.h"
 #include "proj.h"
 
-
-vec3 _up = vec3(0.0f, 1.0f, 0.0f);
-vec3 _right = vec3(1.0f, 0.0f, 0.0f);
-vec3 _front = vec3(0.0f, 0.0f, 1.0f);
-vec3 _origin = vec3(0.0f, 0.0f, 0.0f);
-
 void platformCheck() {
 	// 检查glm的vec类型内存结构
 	static_assert(sizeof(glm::vec3) == sizeof(GLfloat) * 3, "glm::vec3不支持");
@@ -45,7 +39,7 @@ int main(int argc, char** argv) {
 
 	Cylinder c1(0.04f, 1.0f), c2(0.04f, 1.0f), c3(0.04f, 1.0f);
 	Sphere s1(0.06f), s2(0.06f);
-	Leaf leaf_a(2.0f, 0.2f);
+	Leaf leaf_a(2.0f, 0.2f), leaf_b(2.0f, 0.2f);
 
 	leaf = &leaf_a;
 
@@ -53,12 +47,13 @@ int main(int argc, char** argv) {
 	s1.addChild(&c2, Transform(vec3(0.0f), 30.0f, _front));
 	c2.addChild(&s2, Transform(vec3(0.0f, 1.0f, 0.0f)));
 	s2.addChild(&c3);
-	c3.addChild(&leaf_a, Transform(vec3(0.04f, 1.0f, 0.0f)));
+
+	c1.addChild(&leaf_a, Transform(vec3(0.0f, 1.0f, 0.0f)));
+	c2.addChild(&leaf_b, Transform(vec3(0.04f, 1.0f, 0.0f), 180.0f, _up));
 
 	scene.add(&c1);
 
 	c3.rotate(-30.0f, _front);
-
 
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -67,7 +62,7 @@ int main(int argc, char** argv) {
 		float deltaTime = scene.step();
 
 		c1.rotate(deltaTime * 20.0f, _up);
-		//c2.rotate(-deltaTime * 80.0f, _up);
+
 
 		scene.render();
 		gui.render();
@@ -133,7 +128,7 @@ int main(int argc, char** argv) {
 	//light.genDepthMap();				// 该函数要在light添加到场景中后才有效
 	light.genDepthMap(400, 300);
 
-namedWindow("demo", WINDOW_NORMAL);
+	namedWindow("demo", WINDOW_NORMAL);
 	setMouseCallback("demo", opencv_mouseCallback, 0);
 	int key = 0;
 	bool quit = false;

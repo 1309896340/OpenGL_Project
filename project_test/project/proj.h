@@ -40,7 +40,6 @@ using cv::Vec3f;
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-#include "utils.h"
 
 #define WIDTH 1600
 #define HEIGHT 1200
@@ -113,7 +112,7 @@ typedef struct _Triangle {
 	Vertex vertex[3];
 }Triangle;
 
-extern Mat canvas;		// 仅用于调试声明的全局变量
+//extern Mat canvas;		// 仅用于调试声明的全局变量
 
 //class Light;
 //class Scene;

@@ -14,14 +14,13 @@ typedef struct _MeshRenderInfo {
 	GLuint VBO{ 0 };
 	GLuint EBO{ 0 };
 	GLuint elementNum{ 0 };		// 网格所需绘制点个数
-	bool isChanged{ false };		// 是否需要更新顶点缓冲
 	unsigned int id{ 0 };				// 该网格在Geometry的meshes中的索引
 	// 每个Mesh应当有各自的shader，后续会扩展
 }MeshRenderInfo;
 
 typedef struct _GeometryRenderInfo {
 	vector<MeshRenderInfo> meshesInfo;
-	GeometryType gtype{ GeometryType::DEFAULT };			// 几何体的类型
+	//GeometryType gtype{ GeometryType::DEFAULT };			// 几何体的类型
 } GeometryRenderInfo;
 
 
@@ -134,17 +133,12 @@ public:
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->getIndexSize() * sizeof(GLuint), mesh->getIndexPtr(), GL_STATIC_DRAW);
 			// 记录其他网格属性
 			mInfo.elementNum = mesh->getIndexSize();
-			mInfo.isChanged = true;
 			mInfo.id = k;
 			// 加入到gInfo中
 			gInfo.meshesInfo.push_back(mInfo);
 		}
 		objs[obj] = gInfo;
 	}
-	//void addOne(Leaf* obj) {
-	//	addOne(dynamic_cast<Geometry*>(obj));
-	//	objs[obj].type = LEAF;
-	//}
 
 	void add(Geometry* obj) {
 		deque<Geometry*> buf{ obj };
@@ -181,59 +175,43 @@ public:
 		}
 	}
 
+	// 该方法仅为Scene.render()调用，以渲染场景中所有Geometry对象。不考虑Geometry子节点，只绘制当前Geometry
 	void renderOne(Geometry* obj) {
-		// 不考虑Geometry子节点，只绘制当前Geometry
 		Shader& shader = *shaders["default"];
 		shader.use();
 		shader["model"] = obj->getFinalOffset() * obj->model.getMatrix();
 		shader["modelBuffer"] = obj->getModelBufferMatrix();
-		// 检查对象是否存在，不存在则添加
+		// 检查对象是否存在，不存在则添加。（一般是不通过Scene.render()调用的对象会进入到这里）
 		if (objs.count(obj) <= 0) {
 			cout << "Geometry对象不存在，已进行添加" << endl;
 			add(obj);
 		}
 		GeometryRenderInfo& gInfo = objs[obj];
-		//if (obj->type == LEAF) {										// 检索不同Geometry类型，更新其顶点数据
-		//	Leaf* leaf_a = dynamic_cast<Leaf*>(obj);
-		//	if (leaf_a->isMeshChanged()) {
-		//		leaf_a->updateVertex();
-		//		// 更新VBO
-		//		Mesh* m = leaf_a->getMeshes()[0];
-		//		glNamedBufferSubData(gInfo.meshesInfo[0].VBO, 0, m->getVertexSize() * sizeof(Vertex), m->getVertexPtr());
-		//	}
-		//}
 		for (auto& meshInfo : gInfo.meshesInfo) {
-			if (meshInfo.isChanged) {
-				// 检查更新网格
-				Mesh* mesh = obj->getMeshes()[meshInfo.id];
-				//Vertex* vptr = mesh->getVertexPtr();
-				//unsigned int uSize = mesh->getUSize(), vSize = mesh->getVSize();
-				//mesh->upda
-				
-				// 由于没有定义Mesh的自动更新函数，但其实目前除了Leaf类以外其他对象的网格都是静态的，两者具有完全不同的控制逻辑
-				// 有必要进行一层抽象，将Mesh的更新函数抽象出来
-
-
-				meshInfo.isChanged = false;	// 更新完毕
+			// 检查更新网格
+			Mesh* mesh = obj->getMeshes()[meshInfo.id];
+			if (mesh->isChanged()) {
+				mesh->updateVertex();
+				glNamedBufferSubData(meshInfo.VBO, 0, mesh->getVertexSize() * sizeof(Vertex), mesh->getVertexPtr());
+				mesh->resetChangeFlag();		// 重置标志位
 			}
-			// 物体在加入场景中时需要将顶点数据等载入显存，同时建立其缓冲区ID与对象之间的联系，使用map存储
 			glBindVertexArray(meshInfo.VAO);
 			glDrawElements(GL_TRIANGLES, meshInfo.elementNum, GL_UNSIGNED_INT, 0);
 			glBindVertexArray(0);
 		}
 	}
 
-	void render(Geometry* obj) {		// 绘制obj及其子对象
-		deque<Geometry*> buf{ obj };
-		Geometry* tmp{ nullptr };
-		while (!buf.empty()) {
-			tmp = buf.front();
-			buf.pop_front();
-			for (auto& child : tmp->getChildren())
-				buf.push_back(child);
-			renderOne(tmp);
-		}
-	}
+	//void render(Geometry* obj) {		// 绘制obj及其子对象
+	//	deque<Geometry*> buf{ obj };
+	//	Geometry* tmp{ nullptr };
+	//	while (!buf.empty()) {
+	//		tmp = buf.front();
+	//		buf.pop_front();
+	//		for (auto& child : tmp->getChildren())
+	//			buf.push_back(child);
+	//		renderOne(tmp);
+	//	}
+	//}
 
 	void render() {	// 绘制objs中所有对象
 		for (auto& obj : objs)

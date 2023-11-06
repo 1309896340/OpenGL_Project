@@ -5,10 +5,10 @@
 
 #include "stb_image.h"
 
-typedef enum {
-	DEFAULT,
-	LEAF
-}GeometryType;
+//typedef enum {
+//	DEFAULT,
+//	LEAF
+//}GeometryType;
 
 
 class Transform {
@@ -70,6 +70,8 @@ protected:
 	// 后来发现使用多级指针反而会有很多不方便，因此重构为vector类型的一维数组
 	vector<Vertex> vertex;
 	vector<unsigned int> index;
+
+	bool changeFlag{ true };		// 用于标记Mesh是否发生了变化，仅用于渲染端判断是否更新顶点缓冲区，渲染端处理完后会置为false。第一次渲染时必须为true
 public:
 	Mesh(unsigned int uSize = 2, unsigned int vSize = 2) :uSize(uSize), vSize(vSize) {
 		index.resize(vSize * uSize * 6, 0);
@@ -149,17 +151,25 @@ public:
 	unsigned int getVSize() {
 		return vSize;
 	}
+
+	// 开放给渲染端的方法
+	bool isChanged() {
+		// 标记该网格是否发生变化，为true时还未计算新的顶点属性
+		return changeFlag;
+	}
+	void setChangeFlag() {
+		// 出于考虑到由Geometry类对其管理的Mesh进行修改的情况，需要将该方法开放给外部调用
+		changeFlag = true;
+	
+	}
+	void resetChangeFlag() {
+		changeFlag = false;			// 用于渲染端更新完VBO后，重置changeFlag状态
+	}
+	virtual void updateVertex() {
+		// 空方法，该类中调用该方法没有任何操作，但在子类中可以被重写为具有更新自身特定形状的方法
+	};
 };
 
-
-class DynamicMesh : public Mesh {
-	// 动态网格类，继承自Mesh类，但具有一个updateVertex纯虚方法方法，用于更新网格顶点数据
-	// 由于更新顶点的具体做法并没有实现，是交给特定子类完成的，因此DynamicMesh类本身是抽象类
-	// 将继承Geometry类的Leaf类中的Mesh由这个类的子类描述
-public:
-	DynamicMesh(unsigned int uSize = 2, unsigned int vSize = 2) :Mesh(uSize, vSize) {}
-	virtual void updateVertex() = 0;
-};
 
 class Geometry {
 	// Geometry本身没有生成网格

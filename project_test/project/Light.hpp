@@ -3,6 +3,8 @@
 #ifndef __WIND_LIGHT
 #define __WIND_LIGHT
 
+#ifdef TEST_SOFT_RASTERIZATION
+
 #include "Geometry.hpp"
 #include "TriangleGetter.hpp"
 
@@ -235,5 +237,5 @@ public:
 		return this->depthmap;
 	}
 };
-
+#endif
 #endif
