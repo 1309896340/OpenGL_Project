@@ -165,7 +165,7 @@ public:
 		this->depthmap.width = wNum;
 		this->depthmap.height = hNum;
 
-		for(unsigned int i=0;i<hNum*wNum;i++)
+		for (unsigned int i = 0; i < hNum * wNum; i++)
 			this->depthmap.ptr[i] = FLT_MAX;		// 初始化为最大值
 
 
@@ -211,7 +211,7 @@ public:
 			}
 		}
 		// 调试深度图输出
-		Mat depthimg(hNum,wNum,CV_8UC1);
+		Mat depthimg(hNum, wNum, CV_8UC1);
 		std::stringstream imgPath;
 		imgPath << "C:\\Users\\windwhisper\\Desktop\\test_image\\data" << ".jpg";
 		for (unsigned int h = 0; h < depthmap.height; h++)
@@ -237,5 +237,51 @@ public:
 		return this->depthmap;
 	}
 };
+#endif	// !LIGHT_H
+
+
+#ifdef TEST_OPENGL
+class Light {
+	// 假定为平行光，具有位置、方向、光场的宽高、分辨率
+private:
+	vec3 position{ vec3(0.0f,0.0f,0.0f) };
+	vec3 direction{ -_front };
+
+	float width{ 1.0f };
+	float height{ 1.0f };
+
+	// 决定采样点的分辨率
+	unsigned int wSliceNum{ 800 };
+	unsigned int hSliceNum{ 600 };
+
+	mat4 projection{ mat4(1.0f) };
+	mat4 view{ mat4(1.0f) };
+public:
+	Light() = delete;
+	Light(vec3 position, vec3 direction) :position(position), direction(normalize(direction)) {
+		this->projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f);
+		this->view = glm::lookAt(this->position, this->position + this->direction, _up);
+	}
+
+	void setResolution(unsigned int wRes, unsigned int hRes) {
+		wSliceNum = wRes;
+		hSliceNum = hRes;
+	}
+
+	void setLightFieldSize(float width, float height) {
+		this->width = width;
+		this->height = height;
+	}
+
+	vec3 getPosition() {
+		return this->position;
+	}
+	vec3 getDirection() {
+		return this->direction;
+	}
+
+};
+
 #endif
+
 #endif
