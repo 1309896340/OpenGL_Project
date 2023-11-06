@@ -270,10 +270,18 @@ public:
 		vec3 lightUp = normalize(cross(lightRight, lightDir));
 
 		float* depthDataPtr = new float[wNum * hNum];
-		glBindFramebuffer(GL_FRAMEBUFFER, lights[light].FBO_depth);
-		glReadPixels(0, 0, wNum, hNum, GL_DEPTH_COMPONENT, GL_FLOAT, depthDataPtr);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		mat4 trans = light->getProjectionViewMatrix();
+
+		// 从绑定深度缓冲附件的帧缓冲中读取深度数据
+		//glBindFramebuffer(GL_FRAMEBUFFER, lights[light].FBO_depth);
+		//glReadPixels(0, 0, wNum, hNum, GL_DEPTH_COMPONENT, GL_FLOAT, depthDataPtr);
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// 从深度纹理中读取深度数据
+		glBindTexture(GL_TEXTURE_2D, lights[light].texture_depth);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, GL_FLOAT, depthDataPtr);
+		//glGetTextureImage(lights[light].texture_depth, 0, GL_DEPTH_COMPONENT, GL_FLOAT, hNum * wNum, depthDataPtr);		// 不知道为什么这个不行
+
+		//mat4 trans = light->getProjectionViewMatrix();
 		vec3 lineSeg[2];
 		for (unsigned int h = 0; h < hNum; h++) {
 			for (unsigned int w = 0; w < wNum; w++) {
