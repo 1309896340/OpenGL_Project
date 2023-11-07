@@ -18,6 +18,7 @@ using namespace std;
 
 
 using glm::vec3;
+using glm::vec4;
 using glm::mat4;
 using glm::length;
 using glm::cross;
@@ -79,11 +80,9 @@ GLuint compileShader() {
 	return shader;
 }
 
-
-typedef struct _TriangleBuffer {
-	vec3 vpos[3]{ glm::identity<vec3>() ,glm::identity<vec3>() ,glm::identity<vec3>() };
-	float area{ 0.0f };
-}TriangleBuffer;
+typedef struct _Triangle {
+	vec3 vpos[3]{ vec3(0.0f,0.0f,0.0f) , vec3(0.0f,0.0f,0.0f) , vec3(0.0f,0.0f,0.0f) };
+}Triangle;
 
 int main(void) {
 	// GLFW初始化
@@ -98,7 +97,10 @@ int main(void) {
 	assert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress));
 	// 配置其他参数
 	glEnable(GL_DEPTH);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+		glViewport(0, 0, width, height);
+		});
 	// 编译shader program
 	GLuint shader = compileShader();
 	// 生成球的顶点数据
@@ -139,37 +141,77 @@ int main(void) {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, vIndex.size() * sizeof(GLuint), vIndex.data(), GL_STATIC_DRAW);
 	// 配置uniform
 	static mat4 model = mat4(1.0f);
-	static mat4 view = glm::lookAt(vec3(0.0f, 2.0f, 6.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+	static mat4 view = glm::lookAt(vec3(0.0f, 6.0f, 6.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
 	static mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.f);
 	glUseProgram(shader);
 	glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, glm::value_ptr(view));
 	glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 	// 配置计算着色器
 	GLuint cshader = compileComputeShader();
 	// 使用计算着色器并计算面元，目前设置半径为1，则最后计算结果应为4PI，随面元分割数目增多而逼近
 	//创建一个着色器存储缓冲对象
-	GLuint SSBO;
-	glGenBuffers(1, &SSBO);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, wNum * hNum * 2 * sizeof(TriangleBuffer), NULL, GL_DYNAMIC_COPY);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
+	GLuint triangleBuffer, outAreaBuffer;
+	glGenBuffers(1, &triangleBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, triangleBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, wNum * hNum * 2 * 3 * sizeof(vec4), NULL, GL_DYNAMIC_COPY);		// 注意这里有个16字节对齐的问题，所以要用vec4，用vec3会出错
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, triangleBuffer);		// 将三角形顶点坐标缓冲区绑定到0号绑定点
+	glGenBuffers(1, &outAreaBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, outAreaBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, wNum * hNum * 2 * sizeof(float), NULL, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outAreaBuffer);			// 将三角形面积缓冲区绑定到1号绑定点
+	// 将三角形顶点坐标载入缓冲区，初始化面积缓冲区
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, triangleBuffer);
+	vec4* vertex_ptr = (vec4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);		// 16字节对齐，所以用vec4
+	float aaa = 0.0f;
+	for (unsigned int h = 0; h < hNum; h++) {
+		for (unsigned int w = 0; w < wNum; w++) {
+			for (unsigned int k = 0; k < 2; k++) {
+				// 两个三角形构成一个四边形
+				for (unsigned int s = 0; s < 3; s++) {
+					vertex_ptr[((h * wNum + w) * 2 + k) * 3 + s] = vec4(vPos[vIndex[((h * wNum + w) * 2 + k) * 3 + s]], 0.0f);
+				}
+			}
+		}
+	}
+
 	// 调度计算着色器
 	glUseProgram(cshader);
+	glDispatchCompute(hNum, wNum, 2);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// 从三角形面积缓冲区中读取结果
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, outAreaBuffer);
+	float* area_ptr = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	float areaSum = 0.0f;
+	for (unsigned int h = 0; h < hNum; h++) {
+		for (unsigned int w = 0; w < wNum; w++) {
+			for (unsigned int k = 0; k < 2; k++) {
+				float a = area_ptr[((h * wNum + w) * 2 + k)];
+				cout << "(" << h << "," << w << "," << k << ") / (" << hNum << "," << wNum << ",2)  partial area = " << a << endl;
+				areaSum += a;
+			}
+		}
+	}
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	cout << "total area = " << areaSum << endl;
+	return 0;
 
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		model = glm::rotate(model, glm::radians(1.0f), vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		//model = glm::rotate(model, glm::radians(1.0f), vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 		glDrawElements(GL_TRIANGLES, (GLsizei)vIndex.size(), GL_UNSIGNED_INT, 0);
 
 		glfwPollEvents();
 		glfwSwapBuffers(window);
 	}
+
+	glfwTerminate();
 
 	return 0;
 }
