@@ -18,5 +18,19 @@
     <ClCompile Include="test.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="glad\src\glad.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\fshader.gfs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\vshader.gvs">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="shader\cshader.gcs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
