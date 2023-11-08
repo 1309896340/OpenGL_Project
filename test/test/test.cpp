@@ -40,6 +40,11 @@ GLuint compileComputeShader() {
 	glCompileShader(computeShader);
 	GLint success;
 	glGetShaderiv(computeShader, GL_COMPILE_STATUS, &success);
+	if (success != GL_TRUE) {
+		char infoLog[512];
+		glGetShaderInfoLog(computeShader, 512, NULL, infoLog);
+		cout << "ERROR::SHADER::COMPUTE::COMPILATION_FAILED\n" << infoLog << endl;
+	}
 	assert(success == GL_TRUE);
 	glAttachShader(shader, computeShader);
 	glLinkProgram(shader);
@@ -80,7 +85,7 @@ GLuint compileShader() {
 	assert(success == GL_TRUE);
 
 	glAttachShader(shader, vertexShader);
-	glAttachShader(shader, geometryShader);
+	//glAttachShader(shader, geometryShader);		// 暂时不使用几何着色器
 	glAttachShader(shader, fragmentShader);
 	glLinkProgram(shader);
 	glDeleteShader(vertexShader);
@@ -99,7 +104,7 @@ float calculateArea(GLuint cshader, GLuint areaBuffer, unsigned int wNum, unsign
 	// 调度计算着色器，调用前需要保证areaBuffer已经绑定并分配了空间
 	glUseProgram(cshader);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, areaBuffer);
-	glDispatchCompute(hNum, wNum, 2);
+	glDispatchCompute(2, wNum, hNum);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	// 从三角形面积缓冲区中读取结果
 	float* area_ptr = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
@@ -185,36 +190,23 @@ int main(void) {
 	GLuint cshader = compileComputeShader();
 	// 使用计算着色器并计算面元，目前设置半径为1，则最后计算结果应为4PI，随面元分割数目增多而逼近
 	//创建一个着色器存储缓冲对象
-	GLuint triangleBuffer, outAreaBuffer;
-	glGenBuffers(1, &triangleBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, triangleBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, wNum * hNum * 2 * 3 * sizeof(vec4), NULL, GL_DYNAMIC_COPY);		// 注意这里有个16字节对齐的问题，所以要用vec4，用vec3会出错
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, triangleBuffer);		// 将三角形顶点坐标缓冲区绑定到0号绑定点
+	GLuint outAreaBuffer;
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, VBO);		// 直接将网格的顶点缓冲区绑定到SSBO，作为计算着色器的输入
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, EBO);
+	// 这里疑似存在16byte对齐的问题，和std140、std430的布局有关，待解决
+
+
 	glGenBuffers(1, &outAreaBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, outAreaBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, wNum * hNum * 2 * sizeof(float), NULL, GL_DYNAMIC_COPY);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outAreaBuffer);			// 将三角形面积缓冲区绑定到1号绑定点
-	//// 将三角形顶点坐标载入缓冲区，初始化面积缓冲区
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, triangleBuffer);
-	//vec4* vertex_ptr = (vec4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);		// 16字节对齐，所以用vec4
-	//float aaa = 0.0f;
-	//for (unsigned int h = 0; h < hNum; h++) {
-	//	for (unsigned int w = 0; w < wNum; w++) {
-	//		for (unsigned int k = 0; k < 2; k++) {
-	//			// 两个三角形构成一个四边形
-	//			for (unsigned int s = 0; s < 3; s++) {
-	//				vertex_ptr[((h * wNum + w) * 2 + k) * 3 + s] = vec4(vPos[vIndex[((h * wNum + w) * 2 + k) * 3 + s]], 0.0f);
-	//			}
-	//		}
-	//	}
-	//}
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, outAreaBuffer);			// 将三角形面积缓冲区绑定到1号绑定点
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//model = glm::rotate(model, glm::radians(1.0f), vec3(0.0f, 1.0f, 0.0f));
-		//glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		model = glm::rotate(model, glm::radians(1.0f), vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 		glUseProgram(shader);
 		glBindVertexArray(VAO);
