@@ -51,10 +51,11 @@ GLuint compileComputeShader() {
 GLuint compileShader() {
 	GLuint shader = glCreateProgram();
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	GLuint geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
 	GLint success;
-
+	// 顶点着色器
 	string source = readFile("shader\\vshader.gvs");
 	const char* csource = source.c_str();
 	glShaderSource(vertexShader, 1, &csource, NULL);
@@ -62,6 +63,15 @@ GLuint compileShader() {
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
 	assert(success == GL_TRUE);
 
+	// 几何着色器
+	source = readFile("shader\\gshader.ggs");
+	csource = source.c_str();
+	glShaderSource(geometryShader, 1, &csource, NULL);
+	glCompileShader(geometryShader);
+	glGetShaderiv(geometryShader, GL_COMPILE_STATUS, &success);
+	assert(success == GL_TRUE);
+
+	// 片段着色器
 	source = readFile("shader\\fshader.gfs");
 	csource = source.c_str();
 	glShaderSource(fragmentShader, 1, &csource, NULL);
@@ -70,6 +80,7 @@ GLuint compileShader() {
 	assert(success == GL_TRUE);
 
 	glAttachShader(shader, vertexShader);
+	glAttachShader(shader, geometryShader);
 	glAttachShader(shader, fragmentShader);
 	glLinkProgram(shader);
 	glDeleteShader(vertexShader);
@@ -83,6 +94,28 @@ GLuint compileShader() {
 typedef struct _Triangle {
 	vec3 vpos[3]{ vec3(0.0f,0.0f,0.0f) , vec3(0.0f,0.0f,0.0f) , vec3(0.0f,0.0f,0.0f) };
 }Triangle;
+
+float calculateArea(GLuint cshader, GLuint areaBuffer, unsigned int wNum, unsigned int hNum) {
+	// 调度计算着色器，调用前需要保证areaBuffer已经绑定并分配了空间
+	glUseProgram(cshader);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, areaBuffer);
+	glDispatchCompute(hNum, wNum, 2);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// 从三角形面积缓冲区中读取结果
+	float* area_ptr = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	float areaSum = 0.0f;
+	for (unsigned int h = 0; h < hNum; h++) {
+		for (unsigned int w = 0; w < wNum; w++) {
+			for (unsigned int k = 0; k < 2; k++) {
+				float a = area_ptr[((h * wNum + w) * 2 + k)];
+				//cout << "(" << h << "," << w << "," << k << ") / (" << hNum << "," << wNum << ",2)  partial area = " << a << endl;
+				areaSum += a;
+			}
+		}
+	}
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	return areaSum;
+}
 
 int main(void) {
 	// GLFW初始化
@@ -161,42 +194,20 @@ int main(void) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, outAreaBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, wNum * hNum * 2 * sizeof(float), NULL, GL_DYNAMIC_COPY);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outAreaBuffer);			// 将三角形面积缓冲区绑定到1号绑定点
-	// 将三角形顶点坐标载入缓冲区，初始化面积缓冲区
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, triangleBuffer);
-	vec4* vertex_ptr = (vec4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);		// 16字节对齐，所以用vec4
-	float aaa = 0.0f;
-	for (unsigned int h = 0; h < hNum; h++) {
-		for (unsigned int w = 0; w < wNum; w++) {
-			for (unsigned int k = 0; k < 2; k++) {
-				// 两个三角形构成一个四边形
-				for (unsigned int s = 0; s < 3; s++) {
-					vertex_ptr[((h * wNum + w) * 2 + k) * 3 + s] = vec4(vPos[vIndex[((h * wNum + w) * 2 + k) * 3 + s]], 0.0f);
-				}
-			}
-		}
-	}
-
-	// 调度计算着色器
-	glUseProgram(cshader);
-	glDispatchCompute(hNum, wNum, 2);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	// 从三角形面积缓冲区中读取结果
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, outAreaBuffer);
-	float* area_ptr = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	float areaSum = 0.0f;
-	for (unsigned int h = 0; h < hNum; h++) {
-		for (unsigned int w = 0; w < wNum; w++) {
-			for (unsigned int k = 0; k < 2; k++) {
-				float a = area_ptr[((h * wNum + w) * 2 + k)];
-				cout << "(" << h << "," << w << "," << k << ") / (" << hNum << "," << wNum << ",2)  partial area = " << a << endl;
-				areaSum += a;
-			}
-		}
-	}
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	cout << "total area = " << areaSum << endl;
-	return 0;
-
+	//// 将三角形顶点坐标载入缓冲区，初始化面积缓冲区
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, triangleBuffer);
+	//vec4* vertex_ptr = (vec4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);		// 16字节对齐，所以用vec4
+	//float aaa = 0.0f;
+	//for (unsigned int h = 0; h < hNum; h++) {
+	//	for (unsigned int w = 0; w < wNum; w++) {
+	//		for (unsigned int k = 0; k < 2; k++) {
+	//			// 两个三角形构成一个四边形
+	//			for (unsigned int s = 0; s < 3; s++) {
+	//				vertex_ptr[((h * wNum + w) * 2 + k) * 3 + s] = vec4(vPos[vIndex[((h * wNum + w) * 2 + k) * 3 + s]], 0.0f);
+	//			}
+	//		}
+	//	}
+	//}
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	while (!glfwWindowShouldClose(window)) {
@@ -205,7 +216,13 @@ int main(void) {
 		//model = glm::rotate(model, glm::radians(1.0f), vec3(0.0f, 1.0f, 0.0f));
 		//glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
+		glUseProgram(shader);
+		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)vIndex.size(), GL_UNSIGNED_INT, 0);
+
+		// 在渲染管线中的几何着色器将三角图元记录到SSBO之后，才能使用计算着色器计算面积
+		float areaSum = calculateArea(cshader, outAreaBuffer, wNum, hNum);
+		cout << "total area = " << areaSum << endl;
 
 		glfwPollEvents();
 		glfwSwapBuffers(window);

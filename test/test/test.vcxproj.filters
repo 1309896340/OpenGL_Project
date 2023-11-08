@@ -32,5 +32,8 @@
     <None Include="shader\cshader.gcs">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="shader\gshader.ggs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

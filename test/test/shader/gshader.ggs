@@ -1,0 +1,20 @@
+#version 430 core
+
+layout(triangles) in;
+layout(triangle_strip, max_vertices=3) out;
+
+layout(std430, binding=0) buffer TriangleVertex{
+	vec4 vertices[];
+};
+
+uniform mat4 view;
+uniform mat4 projection;
+
+void main(){
+	for(uint i=0; i<3; i++){
+		gl_Position = projection * view * gl_in[i].gl_Position;
+		vertices[gl_PrimitiveIDIn * 3 + i] = gl_in[i].gl_Position;		// 记录三角形的顶点信息到缓冲区
+		EmitVertex();
+	}
+	EndPrimitive();
+}

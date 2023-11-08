@@ -136,6 +136,7 @@
   <ItemGroup>
     <None Include="shader\cshader.gcs" />
     <None Include="shader\fshader.gfs" />
+    <None Include="shader\gshader.ggs" />
     <None Include="shader\vshader.gvs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
