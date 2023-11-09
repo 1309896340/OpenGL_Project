@@ -42,7 +42,9 @@ int main(int argc, char** argv) {
 	Sphere s1(0.06f), s2(0.06f);
 	Leaf leaf_a(2.0f, 0.2f), leaf_b(2.0f, 0.2f);
 
-	Light light(vec3(0.0f, 1.0f, 6.0f), vec3(0.0f, 1.3f, 0.0f));
+	Light light(vec3(6.0f, 6.0f, 0.0f), vec3(0.0f, 1.3f, 0.0f));
+	light.setFieldSize(8.0f, 6.0f, 0.001f, 20.0f);
+	light.setResolution(320, 240);
 
 	leaf = &leaf_a;
 
@@ -70,6 +72,10 @@ int main(int argc, char** argv) {
 
 
 		scene.render();
+		scene.updateDepthMap();	//更新深度图
+		float flux = scene.computeRadiantFlux();	//计算辐射通量
+		cout << "当前辐射通量为  " << flux << endl;
+
 		gui.render();
 		glfwSwapBuffers(window);
 		glfwPollEvents();

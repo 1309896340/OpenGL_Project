@@ -160,7 +160,7 @@ public:
 	void setChangeFlag() {
 		// 出于考虑到由Geometry类对其管理的Mesh进行修改的情况，需要将该方法开放给外部调用
 		changeFlag = true;
-	
+
 	}
 	void resetChangeFlag() {
 		changeFlag = false;			// 用于渲染端更新完VBO后，重置changeFlag状态
@@ -170,7 +170,6 @@ public:
 	};
 };
 
-
 class Geometry {
 	// Geometry本身没有生成网格
 private:
@@ -179,6 +178,8 @@ protected:
 	Geometry* parent{ nullptr };
 	vector<Geometry*> children;
 	vector<Mesh*> meshes;
+
+	bool needCalFlux{ false };		// 用于标记是否需要计算辐射通量
 public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
@@ -267,6 +268,10 @@ public:
 			offsetMatrix = (cur->offset.getMatrix()) * (cur->model.getMatrix()) * offsetMatrix;
 		}
 		return offsetMatrix;
+	}
+
+	bool isNeedCalFlux() {
+		return needCalFlux;
 	}
 };
 class Cube : public Geometry {

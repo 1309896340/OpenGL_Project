@@ -1,0 +1,77 @@
+#version 430 core
+
+layout(local_size_x=1, local_size_y=1, local_size_z=1) in;
+
+layout(binding=0, std430) buffer MeshPos{
+	vec4 meshPos[];
+};
+
+layout(binding=1, std430) buffer MeshIdx{
+	uint meshIdx[];
+};
+
+layout(binding=2, std430) buffer MeshRadiantFlux{
+	float raidantFlux[];
+};
+
+uniform lightInfo{
+	vec3 lightPos;
+	vec3 lightDir;
+	vec3 lightColor;
+	float lightIntensity;				// 光照度，单位为W/m^2
+
+	mat4 lightViewMatrix;			// 光源视角的视图矩阵
+};
+uniform sampler2D depthmap;		// 光源视角的深度纹理
+
+// 思路：在当前工作组中找到对应的三角形，算出重心位置，通过变换得到其在光源视角下的位置
+// 取出xy坐标并在深度图上找到对应位置下的z值，与当前位置的z值比较，如果深度图上z值小于当前位置z值，则说明被遮挡
+
+// 可能还需要将网格上附着的材质信息考虑进来，但这样就需要从光谱的角度来计算辐射功率
+
+void main(){
+	uint k = gl_WorkGroupID.x;
+	uint w = gl_WorkGroupID.y;
+	uint h = gl_WorkGroupID.z;
+	
+	uint kNum = gl_NumWorkGroups.x;
+	uint wNum = gl_NumWorkGroups.y;
+
+	uint triangleIdx = (h * wNum + w) * kNum + k;		// 三角形索引
+	uint vertexPosIdx = triangleIdx * 3;							// 三角形首顶点索引
+	
+	vec4 p1 = meshPos[meshIdx[vertexPosIdx + 0]];
+	vec4 p2 = meshPos[meshIdx[vertexPosIdx + 1]];
+	vec4 p3 = meshPos[meshIdx[vertexPosIdx + 2]];
+
+	vec3 v1 = vec3(p2 - p1);
+	vec3 v2 = vec3(p3 - p1);
+
+	vec3 triCenter = vec3(p1 + p2 + p3) / 3.0f;
+	
+	// vec3 L = normalize(lightPos - triCenter);
+	vec3 L = normalize(-lightDir);		// 平行光，所以光源位置不重要，只需要考虑光源方向即可，并且L的定义是指向光源的方向而非从光源出发的方向
+
+	vec3 vcross = cross(v1, v2);
+	vec3 N = normalize(vcross);
+	float area = length(vcross) / 2.0f;
+
+	// 计算辐射通量需要判断入射位置是否被遮挡
+	// 在顶点着色器中，要计算每个顶点在光源视角下的深度值
+	vec4 lightSpaceCentroid = lightViewMatrix * vec4(triCenter, 1.0f);
+	vec3 lightSpacePos = lightSpaceCentroid.xyz / lightSpaceCentroid.w;
+	// 此时lightSpacePos的三个轴范围是[-1, 1]，而纹理坐标是[0,1]，这里需要做一个转换
+	lightSpacePos = clamp(lightSpacePos * 0.5f + 0.5f, 0.0f, 1.0f);
+	// 然后使用texture(sampler2D, textureCoord) 将坐标映射到sampler2D上的深度值
+	float depth = texture(depthmap, lightSpacePos.xy).r;
+	float realDepth = lightSpacePos.z;
+
+	float flux = 0.0f;
+	if( area > 1e-8){							// 由于存在面积几乎为0的三角形，过滤掉这些三角形
+		if( realDepth <= depth){			// 实际深度大于深度图上的深度，说明被遮挡
+			flux = area * dot(N, L) * lightIntensity;		// 正常受到光照
+		}
+	}
+	// 写入SSBO
+	raidantFlux[ triangleIdx ] = flux;
+}

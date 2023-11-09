@@ -23,6 +23,9 @@ public:
 	void operator=(bool value) {
 		glUniform1i(location, (int)value);
 	}
+	void operator=(float value) {
+		glUniform1f(location, value);
+	}
 };
 
 class Shader {
@@ -62,7 +65,24 @@ public:
 			GLchar infoLog[512];
 			GLsizei length;
 			glGetShaderInfoLog(shader, 512, &length, infoLog);
-			std::cout << "着色器 " << shaderType << " 编译失败！\n" << infoLog << std::endl;			// 调试输出
+			std::string shaderName;
+			switch (shaderType) {
+			case GL_VERTEX_SHADER:
+				shaderName = "顶点着色器";
+				break;
+			case GL_GEOMETRY_SHADER:
+				shaderName = "几何着色器";
+				break;
+			case	GL_FRAGMENT_SHADER:
+				shaderName = "片段着色器";
+				break;
+			case GL_COMPUTE_SHADER:
+				shaderName = "计算着色器";
+				break;
+			default:
+				shaderName = "其他着色器";
+			}
+			std::cout << "着色器 " << shaderName << " 编译失败！\n" << infoLog << std::endl;			// 调试输出
 		}
 
 		glAttachShader(ID, shader);

@@ -17,7 +17,9 @@ public:
 	float width{ 1.0f }, height{ 1.0f };
 	float k = 4.4f, SLAngle = 30.0f, MVAngle = 0.0f, theta = 0.4f;
 
-	LeafMesh(float height, float width, unsigned int uSize = 2, unsigned int vSize = 2) :Mesh(uSize, vSize), height(height), width(width),wSliceNum(uSize),hSliceNum(vSize) {}
+	LeafMesh(float height, float width, unsigned int uSize = 2, unsigned int vSize = 2) :
+		Mesh(uSize, vSize), height(height), width(width), wSliceNum(uSize), hSliceNum(vSize) {
+	}
 	virtual void updateVertex() {
 		float x_accum = 0.0f, y_accum = 0.0f;
 		float a = -k * width / height, b = tanf(PI / 2.0f - SLAngle * PI / 180.0f);
@@ -121,6 +123,8 @@ class Leaf : public Geometry {
 private:
 public:
 	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) {
+		needCalFlux = true;		// 叶子网格需要计算辐射通量
+
 		// 暂时没有考虑height、width、hSliceNum、wSliceNum改变的情况
 		// 这里Geometry和其meshes[0]都有一份height、width、hSliceNum、wSliceNum的拷贝，如何保证一致性？
 		// meshes[0]需要这些信息来计算顶点坐标，而Geometry需要这些信息来计算包围盒，考虑移除Leaf类中的拷贝，重载获取这些属性的方法，将它们从meshes[0]中获取

@@ -187,6 +187,7 @@
     <None Include="shader\nshader.gvs" />
     <None Include="shader\plane.gfs" />
     <None Include="shader\plane.gvs" />
+    <None Include="shader\radiantFlux.gcs" />
     <None Include="shader\shader.gfs" />
     <None Include="shader\shader.gvs" />
   </ItemGroup>

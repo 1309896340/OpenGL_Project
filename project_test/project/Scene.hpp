@@ -16,15 +16,21 @@ typedef struct _MeshRenderInfo {
 	GLuint EBO{ 0 };
 	GLuint elementNum{ 0 };		// 网格所需绘制点个数
 	unsigned int id{ 0 };				// 该网格在Geometry的meshes中的索引
+
 	// 每个Mesh应当有各自的shader，后续会扩展
+	GLuint fluxBuffer{ 0 };			// 用于存储辐射通量的SSBO缓冲区，在加入Scene时初始化
 }MeshRenderInfo;
 
 typedef struct _GeometryRenderInfo {
 	vector<MeshRenderInfo> meshesInfo;
 	//GeometryType gtype{ GeometryType::DEFAULT };			// 几何体的类型
+	float flux{ 0.0f };			// 几何体的辐射通量
 } GeometryRenderInfo;
 
 typedef struct _LightInfo {
+	GLuint UBO{ 0 };			// 用于存储光源信息的uniform缓冲区，在加入Scene时初始化
+
+	// 用于渲染深度图的帧缓冲区
 	GLuint FBO_depth{ 0 };
 	GLuint texture_depth{ 0 };
 
@@ -75,6 +81,8 @@ public:
 		shaders["plane"] = new Shader("shader/plane.gvs", "shader/plane.gfs");		// 绘制简单平面
 		shaders["leaf"] = new Shader("shader/leaf.gvs", "shader/leaf.gfs");		// 渲染小麦叶片的着色器，其中包含材质
 		shaders["depthmap"] = new Shader("shader/depthmap.gvs", "shader/depthmap.gfs");		// 渲染深度图的着色器
+
+		shaders["radiantFlux"] = new ComputeShader("shader/radiantFlux.gcs");
 	}
 
 	void initUniformBuffer() {
@@ -124,6 +132,12 @@ public:
 		LightInfo info;
 		unsigned int wNum, hNum;
 		light->getResolution(&wNum, &hNum);
+		//{// 创建uniform缓冲区
+		//	glGenBuffers(1, &info.UBO);
+		//	glBindBuffer(GL_UNIFORM_BUFFER, info.UBO);
+		//	glBufferData(GL_UNIFORM_BUFFER, 4 * sizeof(vec4) + sizeof(float) + sizeof(mat4) + 8, nullptr, GL_DYNAMIC_COPY);
+		//	// 这里可能存在很大的问题，主要是字节对齐，需要使用renderdoc进一步验证
+		//}
 		{// 生成深度图
 			// 创建纹理附件
 			glGenTextures(1, &info.texture_depth);
@@ -183,6 +197,12 @@ public:
 			glGenBuffers(1, &mInfo.EBO);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mInfo.EBO);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->getIndexSize() * sizeof(GLuint), mesh->getIndexPtr(), GL_STATIC_DRAW);
+			// 如果需要计算辐射通量，则初始化存储计算结果的缓冲区
+			if (obj->isNeedCalFlux()) {
+				glGenBuffers(1, &mInfo.fluxBuffer);
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, mInfo.fluxBuffer);
+				glBufferData(GL_SHADER_STORAGE_BUFFER, mesh->getIndexSize() / 3 * sizeof(float), nullptr, GL_DYNAMIC_COPY);
+			}
 			// 记录其他网格属性
 			mInfo.elementNum = mesh->getIndexSize();
 			mInfo.id = k;
@@ -303,38 +323,31 @@ public:
 		glDrawArrays(GL_LINES, 0, wNum * hNum * 2);
 	}
 #endif
-	// 绘制objs中所有对象，并为每个光源生成深度贴图
-	void render() {
-		shader = shaders["default"];
-		shader->use();
-		glViewport(0, 0, WIDTH, HEIGHT);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		for (auto& elem : objs)
-			renderOne(elem.first);
-
-		// 遍历所有Light对象，生成其深度贴图
+	// 为每个光源生成深度贴图
+	void updateDepthMap() {
+		// 渲染场景中光源的深度图
 		// 这里不用shaders["default"]，因为默认shader使用ubo来存储相机视角的view和projection矩阵
 		// 而shaders["depthmap"]中直接使用光源获取的变换矩阵进行变换，和ubo无关
 		shader = shaders["depthmap"];
 		shader->use();
-		for (auto& elem : lights) {
+		for (auto& elem : lights) {	// 遍历所有Light对象
 			Light* light = elem.first;
 
-			assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);		// 验证一下FBO是否完整
+			assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);		// 验证FBO是否完整
 
 			glBindFramebuffer(GL_FRAMEBUFFER, lights[light].FBO_depth);
-			// 设置视口，清空深度缓冲
+			// 设置帧缓冲的视口，与该深度图的分辨率有关，清空深度缓冲
 			unsigned int wNum, hNum;
 			light->getResolution(&wNum, &hNum);
 			glViewport(0, 0, wNum, hNum);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			// 配置光源的变换矩阵
 			(*shader)["lightSpaceMatrix"] = light->getProjectionViewMatrix();		// 不同的光源有不同的视角
-			// 渲染深度图
+			// 遍历场景中所有几何体，渲染深度图
 			for (auto& elem : objs)
 				renderOne(elem.first);
 		}
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);		// 恢复默认帧缓冲(在主循环中swap的帧缓冲？)
 
 #ifdef TEST_RAY_TRACE
 		// 通过生成的深度贴图，可视化光线轨迹
@@ -343,6 +356,67 @@ public:
 		glViewport(0, 0, WIDTH, HEIGHT);
 		visualizeRay();
 #endif
+	}
+
+	// 绘制objs中所有对象
+	void render() {
+		// 渲染场景中的几何体
+		shader = shaders["default"];
+		shader->use();
+		glViewport(0, 0, WIDTH, HEIGHT);
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		for (auto& elem : objs)
+			renderOne(elem.first);
+	}
+
+	// 计算场景中物体受到的辐射通量
+	float computeRadiantFlux() {
+		// 这里需要区分哪些是需要计算辐射接受量的物体，需要在构建场景的时候就打上标签
+		// 有些物体只作为普通场景物体，如墙体等遮挡物，它们不需要计算辐射接受量，但是要用来构造深度图
+		// 需要将这个标签记录为Geometry的一个属性
+		ComputeShader* sd = static_cast<ComputeShader*>(shaders["radiantFlux"]);
+		sd->use();
+		// 载入光源信息（这里只考虑第一个光源，而且对所有场景中的问题而言，光源是相同的）
+		Light* light = lights.begin()->first;
+		(*sd)["lightPos"] = light->getPosition();
+		(*sd)["lightDir"] = light->getDirection();
+		(*sd)["lightColor"] = vec3(1.0f, 1.0f, 1.0f);
+		(*sd)["lightIntensity"] = light->getIntensity();
+		(*sd)["lightViewProjectionMatrix"] = light->getProjectionViewMatrix();
+		// 将light的深度贴图绑定到纹理单元0
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, lights[light].texture_depth);
+
+		float fluxSum = 0.0f;
+		// 遍历所有几何体
+		for (auto& elem : objs) {
+			Geometry* obj = elem.first;
+			if (!(obj->isNeedCalFlux()))
+				continue;
+			GeometryRenderInfo& ginfo = elem.second;
+			ginfo.flux = 0.0f;
+			for (unsigned int i = 0; i < ginfo.meshesInfo.size(); i++) {
+				MeshRenderInfo& meshinfo = ginfo.meshesInfo[i];
+				Mesh* mesh = obj->getMeshes()[meshinfo.id];
+				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, meshinfo.VBO);
+				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, meshinfo.EBO);
+				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, meshinfo.fluxBuffer);
+
+				glDispatchCompute(2, mesh->getUSize(), mesh->getVSize());
+				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, meshinfo.fluxBuffer);
+				float* fluxPtr = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+				float tmp = 0.0f;
+				for (unsigned int k = 0; k < mesh->getIndexSize() / 3; k++) {
+					tmp += fluxPtr[k];
+				}
+				cout << "mesh " << i << " flux: " << tmp << endl;
+				ginfo.flux += tmp;
+				glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+			}
+			fluxSum += ginfo.flux;
+		}
+		return fluxSum;
 	}
 };
 

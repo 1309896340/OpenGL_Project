@@ -138,7 +138,7 @@ GLFWwindow* GLFWinit() {
 
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_LINE_SMOOTH);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);			// 注意：打开线框模式后深度图也只会记录线框深度，导致深度测试失效
 	//glPolygonMode(GL_FRONT, GL_LINE);
 	//glPolygonMode(GL_BACK, GL_FILL);
 	glViewport(0, 0, WIDTH, HEIGHT);

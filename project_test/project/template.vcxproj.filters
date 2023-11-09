@@ -175,6 +175,9 @@
     <None Include="shader\depthmap.gvs">
       <Filter>资源文件\shader</Filter>
     </None>
+    <None Include="shader\radiantFlux.gcs">
+      <Filter>资源文件\shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="texture\leaf.jpg">

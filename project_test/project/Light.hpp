@@ -247,6 +247,9 @@ private:
 	vec3 position{ vec3(0.0f,0.0f,0.0f) };
 	vec3 direction{ -_front };
 
+	vec3 color{ vec3(1.0f,1.0f,1.0f) };
+	float intensity{ 1.0f };
+
 	float width{ 2.0f };
 	float height{ 2.0f };
 	float nearPlane{ 0.001f };
@@ -259,7 +262,7 @@ private:
 	bool changeFlag{ false };
 public:
 	Light() = delete;
-	Light(vec3 position, vec3 target) :position(position), direction(normalize(target-position)) {
+	Light(vec3 position, vec3 target, float intensity = 1.0f) :position(position), direction(normalize(target - position)), intensity(intensity) {
 	}
 
 	void setResolution(unsigned int wRes, unsigned int hRes) {
@@ -290,7 +293,7 @@ public:
 		*hRes = hSliceNum;
 	}
 
-	void getFieldSize(float *width,float *height,float *near,float *far) {
+	void getFieldSize(float* width, float* height, float* near, float* far) {
 		*width = this->width;
 		*height = this->height;
 		*near = this->nearPlane;
@@ -303,6 +306,13 @@ public:
 	vec3 getDirection() {
 		return this->direction;
 	}
+	vec3 getColor() {
+		return this->color;
+	}
+	float getIntensity() {
+		return this->intensity;
+	}
+	
 
 	// 得到从世界坐标系到光视角下的标准裁剪坐标系的变换矩阵
 	// 该方法主要用以提供给Scene生成深度图
