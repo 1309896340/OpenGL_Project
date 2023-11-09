@@ -9,19 +9,18 @@ layout(std430, binding=1) buffer MeshVertexIdx{
 	uint vertexIdx[];
 };
 
-layout(std430, binding=2) buffer TriangleArea{		// 用于记录三角形面积
+layout(std430, binding=2) buffer TriangleArea{
 	float areas[];
 };
 
 void main(){
-	// uint h = gl_WorkGroupID.x;
-	// uint w = gl_WorkGroupID.y;
-	// uint k = gl_WorkGroupID.z;
-	// uint wNum = gl_NumWorkGroups.y;
+	uint k = gl_WorkGroupID.x;			// k= 0, 1
+	uint w = gl_WorkGroupID.y;			// w= 0, 1, ..., wNum-1	wNum: 36
+	uint h = gl_WorkGroupID.z;			// h= 0, 1, ...	, hNum-1		hNum: 20
+	uint wNum = gl_NumWorkGroups.y;
 
-	// 这里要注意CS中是以x优先变动的，所以x对应的是k，y对应的是w，z对应的是h
-	uint idx = gl_LocalInvocationIndex;		// 三角形索引
-
+	uint idx = ( h * wNum + w ) * 2 + k;
+	
 	vec4 a = vertexPos[vertexIdx[idx*3 + 0]];
 	vec4 b = vertexPos[vertexIdx[idx*3 + 1]];
 	vec4 c = vertexPos[vertexIdx[idx*3 + 2]];
@@ -29,6 +28,5 @@ void main(){
 	vec3 v1 = vec3(b - a);
 	vec3 v2 = vec3(c - a);
 	
-    // areas[ (h * wNum + w ) * 2 + k] = length(cross(v1, v2)) / 2.0f;
     areas[ idx ] = length(cross(v1, v2)) / 2.0f;
 }

@@ -103,10 +103,10 @@ typedef struct _Triangle {
 float calculateArea(GLuint cshader, GLuint areaBuffer, unsigned int wNum, unsigned int hNum) {
 	// 调度计算着色器，调用前需要保证areaBuffer已经绑定并分配了空间
 	glUseProgram(cshader);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, areaBuffer);
 	glDispatchCompute(2, wNum, hNum);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	// 从三角形面积缓冲区中读取结果
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, areaBuffer);
 	float* area_ptr = (float*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
 	float areaSum = 0.0f;
 	for (unsigned int h = 0; h < hNum; h++) {
@@ -144,7 +144,7 @@ int main(void) {
 	// 生成球的顶点数据
 	float radius = 1.0f;
 	unsigned int wNum = 36, hNum = 20;
-	vector<vec3> vPos((wNum + 1) * (hNum + 1), vec3(0.0f, 0.0f, 0.0f));
+	vector<vec4> vPos((wNum + 1) * (hNum + 1), vec4(0.0f, 0.0f, 0.0f, 0.0f));
 	vector<GLuint> vIndex(wNum * hNum * 6, 0);
 	float dw = 2.0f * PI / wNum, dh = PI / hNum;
 	for (unsigned int h = 0; h <= hNum; h++) {
@@ -152,7 +152,7 @@ int main(void) {
 			float xx = radius * sinf(h * dh) * cosf(w * dw);
 			float yy = radius * sinf(h * dh) * sinf(w * dw);
 			float zz = radius * cos(h * dh);
-			vPos[h * (wNum + 1) + w] = vec3(xx, zz, -yy);
+			vPos[h * (wNum + 1) + w] = vec4(xx, zz, -yy, 0.0f);		// 16 byte 对齐，填充一个float
 			if (h != hNum && w != wNum) {
 				vIndex[(h * wNum + w) * 6 + 0] = h * (wNum + 1) + w;
 				vIndex[(h * wNum + w) * 6 + 1] = h * (wNum + 1) + w + 1;
@@ -170,8 +170,8 @@ int main(void) {
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vPos.size() * sizeof(vec3), vPos.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, NULL, (void*)0);
+	glBufferData(GL_ARRAY_BUFFER, vPos.size() * sizeof(vec4), vPos.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec4), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	glGenBuffers(1, &EBO);
@@ -179,7 +179,7 @@ int main(void) {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, vIndex.size() * sizeof(GLuint), vIndex.data(), GL_STATIC_DRAW);
 	// 配置uniform
 	static mat4 model = mat4(1.0f);
-	static mat4 view = glm::lookAt(vec3(0.0f, 6.0f, 6.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+	static mat4 view = glm::lookAt(vec3(0.0f, 3.0f, 3.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
 	static mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.f);
 	glUseProgram(shader);
 	glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -191,10 +191,9 @@ int main(void) {
 	// 使用计算着色器并计算面元，目前设置半径为1，则最后计算结果应为4PI，随面元分割数目增多而逼近
 	//创建一个着色器存储缓冲对象
 	GLuint outAreaBuffer;
+	glUseProgram(cshader);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, VBO);		// 直接将网格的顶点缓冲区绑定到SSBO，作为计算着色器的输入
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, EBO);
-	// 这里疑似存在16byte对齐的问题，和std140、std430的布局有关，待解决
-
 
 	glGenBuffers(1, &outAreaBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, outAreaBuffer);
@@ -205,10 +204,9 @@ int main(void) {
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		model = glm::rotate(model, glm::radians(1.0f), vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
 		glUseProgram(shader);
+		model = glm::rotate(model, glm::radians(0.2f), vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)vIndex.size(), GL_UNSIGNED_INT, 0);
 
