@@ -97,12 +97,12 @@ public:
 		return su;
 	}
 	// 标准化配置uniform：model、modelBuffer
-	void setModel(const mat4& model) {
-		(*this)["model"] = model;
-	}
-	void setModelBuffer(const mat4& modelBuffer) {
-		(*this)["modelBuffer"] = modelBuffer;
-	}
+	//void setModel(const mat4& model) {
+	//	(*this)["model"] = model;
+	//}
+	//void setModelBuffer(const mat4& modelBuffer) {
+	//	(*this)["modelBuffer"] = modelBuffer;
+	//}
 	// 定制化配置uniform
 	//void loadAttribute(const uniformTable& attribute) {
 	//	// 默认着色器定制uniform为颜色配置
@@ -118,10 +118,12 @@ public:
 		compileAndAttachShader(computePath, GL_COMPUTE_SHADER);
 		link();
 	}
-	~ComputeShader() {
-		glDeleteProgram(ID);
+	// 计算着色器需要进行手动调度，传入工作组数量，并同步内存
+	void dispatch(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z) {
+		this->use();
+		glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	}
-
 };
 
 #endif
