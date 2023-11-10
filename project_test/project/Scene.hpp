@@ -27,7 +27,7 @@ typedef struct _GeometryRenderInfo {
 	float flux{ 0.0f };			// 几何体的辐射通量
 } GeometryRenderInfo;
 
-typedef struct _LightInfo {
+typedef struct _LightRenderInfo {
 	GLuint UBO{ 0 };			// 用于存储光源信息的uniform缓冲区，在加入Scene时初始化
 
 	// 用于渲染深度图的帧缓冲区
@@ -37,14 +37,14 @@ typedef struct _LightInfo {
 	// 用于可视化光线的顶点缓冲区，采用glDrawArrays(GL_LINES, 0, 2)绘制
 	GLuint VAO{ 0 };
 	GLuint VBO{ 0 };
-}LightInfo;
+}LightRenderInfo;
 
 
 class Scene {
 	// Scene类与OpenGL高度耦合，其主要功能是管理场景中的所有对象，包括几何体、光源、相机、着色器
 private:
 	map<Geometry*, GeometryRenderInfo> objs;		// 在add时绑定一个新的GeometryRenderInfo，并初始化顶点缓冲
-	map<Light*, LightInfo> lights;		// 光源
+	map<Light*, LightRenderInfo> lights;		// 光源
 
 	Shader* shader{ nullptr };		// 当前使用的shader，渲染过程中可能会切换shader
 	Camera* camera{ 0 };				// 当前主相机
@@ -129,15 +129,17 @@ public:
 	void addLight(Light* light) {
 		// 加入light时，为其创建一个LightInfo来存储其渲染信息
 		// LightInfo应当用于存储深度图，当Light对象的属性(如位置、方向、分辨率)发生变化时，应当重新生成深度图
-		LightInfo info;
+		LightRenderInfo info;
 		unsigned int wNum, hNum;
 		light->getResolution(&wNum, &hNum);
-		//{// 创建uniform缓冲区
-		//	glGenBuffers(1, &info.UBO);
-		//	glBindBuffer(GL_UNIFORM_BUFFER, info.UBO);
-		//	glBufferData(GL_UNIFORM_BUFFER, 4 * sizeof(vec4) + sizeof(float) + sizeof(mat4) + 8, nullptr, GL_DYNAMIC_COPY);
-		//	// 这里可能存在很大的问题，主要是字节对齐，需要使用renderdoc进一步验证
-		//}
+		{// 创建uniform缓冲区
+			glGenBuffers(1, &info.UBO);
+			glBindBuffer(GL_UNIFORM_BUFFER, info.UBO);
+			glBufferData(GL_UNIFORM_BUFFER, 4 * sizeof(vec4) + sizeof(mat4), nullptr, GL_DYNAMIC_COPY);
+			glBindBufferBase(GL_UNIFORM_BUFFER, 3, info.UBO);
+			// 这个uniform buffer的结构
+			// 这里可能存在很大的问题，主要是字节对齐，需要使用renderdoc进一步验证
+		}
 		{// 生成深度图
 			// 创建纹理附件
 			glGenTextures(1, &info.texture_depth);
@@ -378,11 +380,20 @@ public:
 		sd->use();
 		// 载入光源信息（这里只考虑第一个光源，而且对所有场景中的问题而言，光源是相同的）
 		Light* light = lights.begin()->first;
-		(*sd)["lightPos"] = light->getPosition();
-		(*sd)["lightDir"] = light->getDirection();
-		(*sd)["lightColor"] = vec3(1.0f, 1.0f, 1.0f);
-		(*sd)["lightIntensity"] = light->getIntensity();
-		(*sd)["lightViewProjectionMatrix"] = light->getProjectionViewMatrix();
+		// 由于使用了uniform块，这里不能用glUniformXXX()的方式来传递数据，而是要用glBufferSubData()的方式
+		//(*sd)["lightPos"] = light->getPosition();
+		//(*sd)["lightDir"] = light->getDirection();
+		//(*sd)["lightColor"] = vec3(1.0f, 1.0f, 1.0f);
+		//(*sd)["lightIntensity"] = light->getIntensity();
+		//(*sd)["lightViewProjectionMatrix"] = light->getProjectionViewMatrix();
+		// 向uniform块中传递数据
+		glNamedBufferSubData(lights[light].UBO, 0, sizeof(vec3), value_ptr(light->getPosition()));
+		glNamedBufferSubData(lights[light].UBO, sizeof(vec4), sizeof(vec3), value_ptr(light->getDirection()));
+		glNamedBufferSubData(lights[light].UBO, 2 * sizeof(vec4), sizeof(vec3), value_ptr(light->getColor()));
+		float intensity = light->getIntensity();
+		glNamedBufferSubData(lights[light].UBO, 2 * sizeof(vec4) + sizeof(vec3), sizeof(float), &intensity);
+		glNamedBufferSubData(lights[light].UBO, 3 * sizeof(vec4) , sizeof(mat4), value_ptr(light->getProjectionViewMatrix()));
+
 		// 将light的深度贴图绑定到纹理单元0
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, lights[light].texture_depth);

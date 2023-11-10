@@ -14,13 +14,12 @@ layout(binding=2, std430) buffer MeshRadiantFlux{
 	float raidantFlux[];
 };
 
-uniform lightInfo{
+layout(binding=3, std140) uniform lightInfo{
 	vec3 lightPos;
 	vec3 lightDir;
 	vec3 lightColor;
-	float lightIntensity;				// 光照度，单位为W/m^2
-
-	mat4 lightViewMatrix;			// 光源视角的视图矩阵
+	float lightIntensity;
+	mat4 lightViewMatrix;
 };
 uniform sampler2D depthmap;		// 光源视角的深度纹理
 
@@ -52,7 +51,7 @@ void main(){
 	// vec3 L = normalize(lightPos - triCenter);
 	vec3 L = normalize(-lightDir);		// 平行光，所以光源位置不重要，只需要考虑光源方向即可，并且L的定义是指向光源的方向而非从光源出发的方向
 
-	vec3 vcross = cross(v1, v2);
+	vec3 vcross = cross(v2, v1);
 	vec3 N = normalize(vcross);
 	float area = length(vcross) / 2.0f;
 
