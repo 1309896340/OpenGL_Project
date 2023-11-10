@@ -1,4 +1,4 @@
-#include "proj.h"
+ï»¿#include "proj.h"
 
 #ifdef TEST_OPENGL
 
@@ -28,8 +28,8 @@ public:
 
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;		// ÆôÓÃ¼üÅÌ¿ØÖÆ
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;	// ÆôÓÃÊÖ±ú¿ØÖÆ
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;		// å¯ç”¨é”®ç›˜æ§åˆ¶
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;	// å¯ç”¨æ‰‹æŸ„æ§åˆ¶
 		ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 30.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
 		ImGui::GetIO().FontDefault = font;
 
@@ -50,26 +50,29 @@ public:
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		//ImGui::ShowDemoWindow();
-		// »æÖÆ×Ô¶¨ÒåµÄ¿Ø¼ş
+		// ç»˜åˆ¶è‡ªå®šä¹‰çš„æ§ä»¶
 		
 		bool isChanged = false;
 
-		ImGui::Begin(u8"½»»¥´°¿Ú");
-		if (ImGui::SliderFloat(u8"Ò¶³¤", &status.leafstatus.length, 1.0f, 4.5f)) {
+		ImGui::Begin(u8"äº¤äº’çª—å£");
+		if (ImGui::SliderFloat(u8"å¶é•¿", &status.leafstatus.length, 1.0f, 4.5f)) {
 			leaf->setLength(status.leafstatus.length);
 		}
-		if (ImGui::SliderFloat(u8"Ò¶¿íÒò×Ó", &status.leafstatus.theta, 0.0f, 0.5f)) {
+		if (ImGui::SliderFloat(u8"å¶å®½å› å­", &status.leafstatus.theta, 0.0f, 0.5f)) {
 			leaf->setTheta(status.leafstatus.theta);
 		}
-		if (ImGui::SliderFloat(u8"¾¥Ò¶¼Ğ½Ç", &status.leafstatus.SLAngle, 0.1f, 120.0f)) {
+		if (ImGui::SliderFloat(u8"èŒå¶å¤¹è§’", &status.leafstatus.SLAngle, 0.1f, 120.0f)) {
 			leaf->setSLAngle(status.leafstatus.SLAngle);
 		}
-		if (ImGui::SliderFloat(u8"ÍäÇúÏµÊı", &status.leafstatus.k, 0.0f, 30.0f)) {
+		if (ImGui::SliderFloat(u8"å¼¯æ›²ç³»æ•°", &status.leafstatus.k, 0.0f, 30.0f)) {
 			leaf->setK(status.leafstatus.k);
 		}
-		if (ImGui::SliderFloat(u8"Ö÷Ò¶ÂöÅ¤Çú½Ç", &status.leafstatus.MVAngle, -540.0f, 540.0f)) {
+		if (ImGui::SliderFloat(u8"ä¸»å¶è„‰æ‰­æ›²è§’", &status.leafstatus.MVAngle, -540.0f, 540.0f)) {
 			leaf->setMVAngle(status.leafstatus.MVAngle);
 		}
+		// æ˜¾ç¤ºcameraçš„æ‰€æœ‰çŠ¶æ€
+		ImGui::Text(u8"CameraçŠ¶æ€");
+		ImGui::ShowDemoWindow();
 		ImGui::End();
 	}
 	void render() {

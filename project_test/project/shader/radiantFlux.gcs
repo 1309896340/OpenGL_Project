@@ -23,6 +23,8 @@ layout(binding=3, std140) uniform lightInfo{
 };
 uniform sampler2D depthmap;		// 光源视角的深度纹理
 
+uniform mat4 meshModelMatrix;	// 将局部坐标系下的Mesh顶点坐标转换到世界坐标系下的模型矩阵(需要考虑Geometry的modelBuffer)
+
 // 思路：在当前工作组中找到对应的三角形，算出重心位置，通过变换得到其在光源视角下的位置
 // 取出xy坐标并在深度图上找到对应位置下的z值，与当前位置的z值比较，如果深度图上z值小于当前位置z值，则说明被遮挡
 
@@ -39,9 +41,9 @@ void main(){
 	uint triangleIdx = (h * wNum + w) * kNum + k;		// 三角形索引
 	uint vertexPosIdx = triangleIdx * 3;							// 三角形首顶点索引
 	
-	vec4 p1 = meshPos[meshIdx[vertexPosIdx + 0]];
-	vec4 p2 = meshPos[meshIdx[vertexPosIdx + 1]];
-	vec4 p3 = meshPos[meshIdx[vertexPosIdx + 2]];
+	vec4 p1 = meshModelMatrix * meshPos[meshIdx[vertexPosIdx + 0]];
+	vec4 p2 = meshModelMatrix * meshPos[meshIdx[vertexPosIdx + 1]];
+	vec4 p3 = meshModelMatrix * meshPos[meshIdx[vertexPosIdx + 2]];
 
 	vec3 v1 = vec3(p2 - p1);
 	vec3 v2 = vec3(p3 - p1);
@@ -68,7 +70,7 @@ void main(){
 	float flux = 0.0f;
 	if( area > 1e-8){							// 由于存在面积几乎为0的三角形，过滤掉这些三角形
 		if( realDepth <= depth){			// 实际深度大于深度图上的深度，说明被遮挡
-			flux = area * dot(N, L) * lightIntensity;		// 正常受到光照
+			flux = area * abs(dot(N, L)) * lightIntensity;		// 正常受到光照
 		}
 	}
 	// 写入SSBO

@@ -72,9 +72,9 @@ int main(int argc, char** argv) {
 
 
 		scene.render();
-		scene.updateDepthMap();	//更新深度图
-		float flux = scene.computeRadiantFlux();	//计算辐射通量
-		cout << "当前辐射通量为  " << flux << endl;
+		//scene.updateDepthMap();	//更新深度图
+		//float flux = scene.computeRadiantFlux();	//计算辐射通量
+		//cout << "当前辐射通量为  " << flux << endl;
 
 		gui.render();
 		glfwSwapBuffers(window);

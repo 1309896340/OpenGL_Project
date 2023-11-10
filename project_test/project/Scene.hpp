@@ -23,6 +23,7 @@ typedef struct _MeshRenderInfo {
 
 typedef struct _GeometryRenderInfo {
 	vector<MeshRenderInfo> meshesInfo;
+	unsigned int id{ 0 };				// 该几何体在Scene中的唯一编号
 	//GeometryType gtype{ GeometryType::DEFAULT };			// 几何体的类型
 	float flux{ 0.0f };			// 几何体的辐射通量
 } GeometryRenderInfo;
@@ -211,6 +212,7 @@ public:
 			// 加入到gInfo中
 			gInfo.meshesInfo.push_back(mInfo);
 		}
+		gInfo.id = (unsigned int)objs.size();		// 将没加入该对象前的objs的数量作为该对象的id
 		objs[obj] = gInfo;
 	}
 
@@ -225,7 +227,6 @@ public:
 			addOne(tmp);
 		}
 	}
-
 
 	void removeOne(Geometry* obj) { // 删除一个Geometry，不考虑子对象
 		GeometryRenderInfo& gInfo = objs[obj];
@@ -360,7 +361,7 @@ public:
 #endif
 	}
 
-	// 绘制objs中所有对象
+	// 递归调度renderOne，以绘制objs中所有对象
 	void render() {
 		// 渲染场景中的几何体
 		shader = shaders["default"];
@@ -392,7 +393,7 @@ public:
 		glNamedBufferSubData(lights[light].UBO, 2 * sizeof(vec4), sizeof(vec3), value_ptr(light->getColor()));
 		float intensity = light->getIntensity();
 		glNamedBufferSubData(lights[light].UBO, 2 * sizeof(vec4) + sizeof(vec3), sizeof(float), &intensity);
-		glNamedBufferSubData(lights[light].UBO, 3 * sizeof(vec4) , sizeof(mat4), value_ptr(light->getProjectionViewMatrix()));
+		glNamedBufferSubData(lights[light].UBO, 3 * sizeof(vec4), sizeof(mat4), value_ptr(light->getProjectionViewMatrix()));
 
 		// 将light的深度贴图绑定到纹理单元0
 		glActiveTexture(GL_TEXTURE0);
@@ -404,6 +405,8 @@ public:
 			Geometry* obj = elem.first;
 			if (!(obj->isNeedCalFlux()))
 				continue;
+			// 载入当前几何体的model矩阵(包括modelBuffer)
+			(*sd)["meshModelMatrix"] = obj->getFinalOffset() * obj->model.getMatrix() * obj->getModelBufferMatrix();
 			GeometryRenderInfo& ginfo = elem.second;
 			ginfo.flux = 0.0f;
 			for (unsigned int i = 0; i < ginfo.meshesInfo.size(); i++) {
@@ -421,7 +424,9 @@ public:
 				for (unsigned int k = 0; k < mesh->getIndexSize() / 3; k++) {
 					tmp += fluxPtr[k];
 				}
-				cout << "mesh " << i << " flux: " << tmp << endl;
+				// 这里可以调试某个Geometry的某个Mesh的辐射通量：tmp
+				printf("Goemetry id: %d  Mesh id: %d  flux: %.2f \n", ginfo.id, meshinfo.id, tmp);
+
 				ginfo.flux += tmp;
 				glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 			}

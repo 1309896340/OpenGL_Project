@@ -16,8 +16,9 @@
 #include <map>
 #include <set>
 
-#include <memory>
+//#include <memory>
 #include <cfloat>
+#include <cstdio>
 
 #ifdef TEST_OPENGL
 #include "GLAD/glad.h"
