@@ -1,4 +1,5 @@
 #include "proj.h"
+#include "Scene.hpp"
 #include "Camera.hpp"
 #include "Geometry.hpp"
 
@@ -10,11 +11,13 @@ class InputManager {
 	// 一个InputManager对象会绑定：
 	// 1. 一个Camera对象，控制当前相机的姿态和位置
 	// 2. 一个Geometry容器，其中存储着所有需要交互的物体的Geometry指针
+
+	// 通过调用setXX()来随时切换Camera或控制当前选中的Geometry
+	// 问题：要控制当前的Geometry，可能需要获取它具体的子类
 private:
 	// 交互影响的对象
 	GLFWwindow* window{ nullptr };
-	Camera* camera{ nullptr };
-	Geometry* geometry{ nullptr };
+	Scene* scene{ nullptr };
 
 public:
 	// 当前的交互状态
@@ -23,7 +26,8 @@ public:
 	bool shiftPressed{ false };
 	vec2 mousePos{ vec2(0.0f,0.0f) };
 
-	InputManager(GLFWwindow* window) :window(window) {
+	InputManager() = delete;
+	InputManager(GLFWwindow* window, Scene* scene) :window(window), scene(scene) {
 		// 将自身传入GLFWwindow的userdata
 		glfwSetWindowUserPointer(window, (void*)this);
 		// 设置回调函数
@@ -32,19 +36,13 @@ public:
 		glfwSetCursorPosCallback(window, mouse_callback);
 		glfwSetKeyCallback(window, key_callback);
 	}
-	InputManager(GLFWwindow* window, Camera* camera, Geometry* geometry) : InputManager(window) {
-		this->camera = camera;
-		this->geometry = geometry;
-	}
-	void setCamera(Camera* camera) { this->camera = camera; }
-	void setGeometry(Geometry* geometry) { this->geometry = geometry; }
-	Camera* getCamera() { return camera; }
-	Geometry* getGeometry() { return geometry; }
+
+	Camera* getCamera() { return scene->getCamera(); }
+	Scene* getScene() { return scene; }
 
 	static void framebuff_size_callback(GLFWwindow* window, int width, int height) {
 		glViewport(0, 0, width, height);
 	}
-
 	static void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods) {
 		InputManager* ctx = reinterpret_cast<InputManager*>(glfwGetWindowUserPointer(window));
 		if (button == GLFW_MOUSE_BUTTON_LEFT) {
@@ -72,7 +70,6 @@ public:
 			}
 		}
 	}
-
 	static void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		InputManager* ctx = reinterpret_cast<InputManager*>(glfwGetWindowUserPointer(window));
 		Camera* camera = ctx->getCamera();
@@ -110,7 +107,6 @@ public:
 			}
 		}
 	}
-
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		InputManager* ctx = reinterpret_cast<InputManager*>(glfwGetWindowUserPointer(window));
 		Camera* camera = ctx->getCamera();

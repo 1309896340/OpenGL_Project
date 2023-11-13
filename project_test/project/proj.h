@@ -66,6 +66,7 @@ using std::vector;
 using std::deque;
 using std::map;
 using std::set;
+using std::string;
 using std::cout;
 using std::endl;
 

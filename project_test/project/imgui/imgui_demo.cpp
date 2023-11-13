@@ -409,7 +409,7 @@ void ImGui::ShowDemoWindow(bool* p_open)
     ImGui::Text("dear imgui says hello! (%s) (%d)", IMGUI_VERSION, IMGUI_VERSION_NUM);
     ImGui::Spacing();
 
-    IMGUI_DEMO_MARKER("Help");
+    IMGUI_DEMO_MARKER("Help"); 
     if (ImGui::CollapsingHeader("Help"))
     {
         ImGui::SeparatorText("ABOUT THIS DEMO:");

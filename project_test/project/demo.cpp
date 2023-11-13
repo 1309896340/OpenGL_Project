@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 	light.setFieldSize(8.0f, 6.0f, 0.001f, 20.0f);
 	light.setResolution(320, 240);
 
-	InputManager inputmanager(window, camera, &leaf_a);
+	InputManager inputmanager(window, &scene);
 	GUI gui(window);
 
 	//leaf = &leaf_a;

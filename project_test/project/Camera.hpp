@@ -20,6 +20,10 @@ private:
 	float yaw = 0.0f;	// 规定0为x正前方，范围为[-pi,pi]
 	float pitch = 0.0f;	// 规定0为x正前方，范围为[-pi/2,pi/2]
 	float roll = 0.0f;	// 保留，暂时不用
+	// 描述透视矩阵相关参数
+	float near{ 0.01f };
+	float far{ 50.0f };
+	float fov{ 45.0f };
 public:
 	Camera(vec3 position, vec3 target) :position(position) {
 		front = normalize(target - position);	// front只在一开始通过position和target确定一次
@@ -88,7 +92,7 @@ public:
 		return glm::lookAt(position, position + front, _up);
 	}
 	mat4 getProjectionMatrix() {
-		return glm::perspective(45.0f, (float)WIDTH / HEIGHT, 0.1f, 50.0f);
+		return glm::perspective(fov * PI / 180.0f, (float)WIDTH / HEIGHT, near, far);
 	}
 	vec3 getShootPos(double x, double y) {
 		// x和y为窗口的未归一化坐标
@@ -106,6 +110,26 @@ public:
 	}
 	vec3 getUp() {
 		return up;
+	}
+
+	// 开放给ui的直接引用接口
+	float& getNear() {
+		return near;
+	}
+	float& getFar() {
+		return far;
+	}
+	float& getFov() {
+		return fov;
+	}
+	float getYaw() {
+		return yaw;
+	}
+	float getPitch() {
+		return pitch;
+	}
+	float getRoll() {
+		return roll;
 	}
 };
 

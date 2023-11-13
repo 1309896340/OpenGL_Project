@@ -5,10 +5,16 @@
 
 #include "stb_image.h"
 
-//typedef enum {
-//	DEFAULT,
-//	LEAF
-//}GeometryType;
+typedef enum {
+	DEFAULT,
+	CUBE,
+	SPHERE,
+	CYLINDER,
+	CONE,
+	COMBINATION,		// 以上基础问题的组合
+	// 扩展的几何体类型
+	LEAF
+}GeometryType;
 
 
 class Transform {
@@ -65,9 +71,6 @@ private:
 protected:
 	// 描述对象相关的数据
 	unsigned int uSize{ 0 }, vSize{ 0 };							// u为第几列，v为第几行。指分割的份数，不是顶点数。顶点数为uSize+1和vSize+1
-	//Vertex** vertex{ nullptr };										// 二维数组，存储顶点数据
-	//unsigned int*** index{ nullptr };								// 三维数组，存储索引数据
-	// 后来发现使用多级指针反而会有很多不方便，因此重构为vector类型的一维数组
 	vector<Vertex> vertex;
 	vector<unsigned int> index;
 
@@ -173,18 +176,26 @@ public:
 class Geometry {
 	// Geometry本身没有生成网格
 private:
+	static inline unsigned int idCount = 0;
 protected:
 	mat4 modelBuffer{ mat4(1.0f) };
 	Geometry* parent{ nullptr };
 	vector<Geometry*> children;
 	vector<Mesh*> meshes;
 
+	unsigned int id{ 0 };		// Geometry对象唯一标识符，且无法被修改
+	string name;				// Geometry对象的字符串标识符，可被修改
+
+	GeometryType type{ DEFAULT };
 	bool needCalFlux{ false };		// 用于标记是否需要计算辐射通量
 public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
-	Geometry() {}
-	~Geometry() {		// 仅删除当前对象，还是删除所有子对象？选择后者
+	Geometry() {
+		this->id = idCount++;
+		this->name = "Geometry_" + std::to_string(id);
+	}
+	~Geometry() {
 		for (auto& child : children)
 			delete child;		// 这里会递归删除所有子对象
 		for (auto& mesh : meshes) {
@@ -193,9 +204,13 @@ public:
 		children.clear();
 		meshes.clear();
 	}
-	vector<Geometry*>& getChildren() {
-		return children;
+	void rename(const string& newName) {
+		//该函数仅单纯修改name，唯一性由外部保证
+		this->name = newName;
 	}
+	string& getName() { return name; }
+	GeometryType getType() { return type; }
+	vector<Geometry*>& getChildren() { return children; }
 	// 需要调用方手动释放内存
 	// 这个方法太臃肿了，需要重构
 	//vector<Mesh*> getWorldMeshes() {
@@ -217,38 +232,21 @@ public:
 	//	}
 	//	return buf;
 	//}
-	vector<Mesh*>& getMeshes() {
-		return meshes;
-	}
+	vector<Mesh*>& getMeshes() { return meshes; }
 	virtual void pose() = 0;
 	// 预变换
-	mat4 getModelBufferMatrix() {
-		return modelBuffer;
-	}
-	mat4 getLocal2WorldMatrix() {
-		return this->getFinalOffset() * model.getMatrix() * modelBuffer;
-	}
+	mat4 getModelBufferMatrix() { return modelBuffer; }
+	mat4 getLocal2WorldMatrix() { return this->getFinalOffset() * model.getMatrix() * modelBuffer; }
 	void applyTransform() {
 		modelBuffer = (model.getMatrix()) * modelBuffer;
 		model.reset();
 	}
 	// 姿态变换
-	void translate(vec3 dxyz) {
-		model.translate(dxyz);
-	}
-	void translateTo(vec3 dxyz) {
-		model.translateTo(dxyz);
-	}
-	void rotate(float angle, vec3 axis) {
-		model.rotate(angle, axis);
-		//offset.rotate(angle, axis);
-	}
-	void scale(vec3 xyz) {
-		model.scale(xyz);
-	}
-	void scaleTo(vec3 xyz) {
-		model.scaleTo(xyz);
-	}
+	void translate(vec3 dxyz) { model.translate(dxyz); }
+	void translateTo(vec3 dxyz) { model.translateTo(dxyz); }
+	void rotate(float angle, vec3 axis) { model.rotate(angle, axis); }
+	void scale(vec3 xyz) { model.scale(xyz); }
+	void scaleTo(vec3 xyz) { model.scaleTo(xyz); }
 	// 树结构操作
 	void addChild(Geometry* obj, const Transform& offset = Transform()) {		// 添加的时候需要指明子节点(pose后的)起点位置相对于父节点在其pose坐标系的位置偏移
 		if (obj != nullptr) {
@@ -257,9 +255,7 @@ public:
 			children.push_back(obj);
 		}
 	}
-	void setParent(Geometry* obj) {
-		this->parent = obj;
-	}
+	void setParent(Geometry* obj) { this->parent = obj; }
 	mat4 getFinalOffset() {	 // 根据所有父节点计算当前节点的偏移矩阵
 		mat4 offsetMatrix(offset.getMatrix());
 		Geometry* cur = this;
@@ -270,9 +266,7 @@ public:
 		return offsetMatrix;
 	}
 
-	bool isNeedCalFlux() {
-		return needCalFlux;
-	}
+	bool isNeedCalFlux() { return needCalFlux; }
 };
 class Cube : public Geometry {
 private:
@@ -282,6 +276,7 @@ public:
 	Cube(float xLength, float yLength, float zLength, unsigned  int xSliceNum = 10, unsigned int ySliceNum = 10, unsigned int zSliceNum = 10) :
 		Geometry(), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
 		xLength(xLength), yLength(yLength), zLength(zLength) {
+		this->type = CUBE;
 
 		float dx, dy, dz;
 		dx = xLength / xSliceNum;
@@ -346,6 +341,9 @@ public:
 		model.rotate(-90.0f, _right);
 		applyTransform();
 	}
+	float getXLength() { return xLength; }
+	float getYLength() { return yLength; }
+	float getZLength() { return zLength; }
 };
 class Sphere : public Geometry {
 private:
@@ -355,7 +353,7 @@ private:
 
 public:
 	Sphere(float radius, unsigned int lonSliceNum = 36, unsigned int latSliceNum = 20) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
-
+		this->type = SPHERE;
 		float latStep = PI / latSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
 
@@ -377,6 +375,7 @@ public:
 		model.rotate(-90.0f, _right);
 		applyTransform();
 	}
+	float getRadius() { return radius; }
 };
 class Cylinder : public Geometry {
 private:
@@ -387,6 +386,7 @@ private:
 	int lonSliceNum;
 public:
 	Cylinder(float radius, float height, unsigned int rSliceNum = 10, unsigned int hSliceNum = 20, unsigned int lonSliceNum = 36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+		this->type = CYLINDER;
 
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
@@ -435,6 +435,8 @@ public:
 		model.translateTo(vec3(0.0f, height / 2.0f, 0.0f));
 		applyTransform();
 	}
+	float getRadius() { return radius; }
+	float getHeight() { return height; }
 };
 class Cone : public Geometry { // 圆锥
 private:
@@ -446,6 +448,8 @@ private:
 	int lonSliceNum;
 public:
 	Cone(float radius, float height, unsigned int rSliceNum = 10, unsigned int hSliceNum = 20, unsigned int lonSliceNum = 36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+		this->type = CONE;
+
 		float rStep = radius / rSliceNum;
 		float hStep = height / hSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -486,6 +490,8 @@ public:
 		model.translateTo(vec3(0.0f, height / 2.0f, 0.0f));
 		applyTransform();
 	}
+	float getRadius() { return radius; }
+	float getHeight() { return height; }
 };
 class Arrow : public Geometry {
 private:
@@ -501,6 +507,8 @@ public:
 	// 目前没有实现动态改变箭头长度的功能，只能在构造函数中指定
 	// 改变指向位置只能通过变换实现，且会对原先箭头的长宽比造成影响
 	Arrow(vec3 _begin, vec3 _end, vec3 bodyColor) :_begin(_begin), _end(_end), bodyColor(bodyColor) {
+		this->type = COMBINATION;
+
 		float len = length(_end - _begin);
 		vec3 direction = normalize(_end - _begin);
 
@@ -538,6 +546,8 @@ private:
 	Arrow* axis_x, * axis_y, * axis_z;
 public:
 	Axis() {
+		this->type = COMBINATION;
+
 		axis_x = new Arrow(_origin, _right, _right);
 		axis_y = new Arrow(_origin, _up, _up);
 		axis_z = new Arrow(_origin, _front, _front);

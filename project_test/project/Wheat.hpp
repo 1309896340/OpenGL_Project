@@ -123,6 +123,7 @@ class Leaf : public Geometry {
 private:
 public:
 	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) {
+		this->type = LEAF;
 		needCalFlux = true;		// 叶子网格需要计算辐射通量
 
 		// 暂时没有考虑height、width、hSliceNum、wSliceNum改变的情况

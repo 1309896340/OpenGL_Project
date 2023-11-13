@@ -48,8 +48,9 @@ private:
 	map<Light*, LightRenderInfo> lights;		// 光源
 
 	Shader* shader{ nullptr };		// 当前使用的shader，渲染过程中可能会切换shader
+
 	Camera* camera{ 0 };				// 当前主相机
-	GLuint ubo{ 0 };
+	GLuint ubo{ 0 };						// uniform缓冲区对象，用于存储投影矩阵和视图矩阵（与Camera相绑定的渲染属性）
 
 	float lastTime{ 0 }, currentTime{ (float)glfwGetTime() }, deltaTime{ 0 };
 
@@ -57,6 +58,7 @@ private:
 
 public:
 	map<std::string, Shader*> shaders;
+
 
 	Scene() : currentTime((float)glfwGetTime()) {
 		initShaders();					//  初始化所有Shader，编译、链接
@@ -98,6 +100,7 @@ public:
 		static float t_accum = 0.0f;
 		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), value_ptr(camera->getProjectionMatrix()));
 
 		lastTime = currentTime;
 		currentTime = (float)glfwGetTime();
@@ -125,6 +128,9 @@ public:
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), value_ptr(camera->getProjectionMatrix()));
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
 		//glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+	Camera* getCamera() {
+		return camera;
 	}
 
 	void addLight(Light* light) {
@@ -215,6 +221,8 @@ public:
 		gInfo.id = (unsigned int)objs.size();		// 将没加入该对象前的objs的数量作为该对象的id（当有对象移除时会出错，是个bug）
 		objs[obj] = gInfo;
 	}
+
+	map<Geometry*,GeometryRenderInfo> getObjects() { return objs; }
 
 	void add(Geometry* obj) {
 		deque<Geometry*> buf{ obj };
