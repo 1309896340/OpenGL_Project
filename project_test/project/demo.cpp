@@ -33,7 +33,6 @@ int main(int argc, char** argv) {
 	platformCheck();
 
 	GLFWwindow* window = GLFWinit();
-	GUI gui(window);
 	Camera* camera = new Camera(vec3(0.0f, 1.3f, 6.0f), vec3(0.0f, 1.3f, 0.0f));
 	Scene scene(camera);
 
@@ -48,6 +47,7 @@ int main(int argc, char** argv) {
 	light.setResolution(320, 240);
 
 	InputManager inputmanager(window, camera, &leaf_a);
+	GUI gui(window);
 
 	//leaf = &leaf_a;
 
