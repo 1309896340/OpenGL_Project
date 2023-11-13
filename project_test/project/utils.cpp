@@ -131,10 +131,10 @@ GLFWwindow* GLFWinit() {
 		exit(3);
 	}
 
-	glfwSetFramebufferSizeCallback(window, framebuff_size_callback);
-	glfwSetMouseButtonCallback(window, mouse_botton_callback);
-	glfwSetCursorPosCallback(window, mouse_callback);
-	glfwSetKeyCallback(window, key_callback);
+	//glfwSetFramebufferSizeCallback(window, framebuff_size_callback);
+	//glfwSetMouseButtonCallback(window, mouse_botton_callback);
+	//glfwSetCursorPosCallback(window, mouse_callback);
+	//glfwSetKeyCallback(window, key_callback);
 
 	glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_LINE_SMOOTH);

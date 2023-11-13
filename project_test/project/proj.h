@@ -92,17 +92,14 @@ typedef struct _LeafInfo {
 	float MVAngle = 0.0f;			// 主叶脉扭曲角度
 } LeafInfo;
 
-typedef struct _StatusInfo {
-	bool leftMouseButtonPressed = false;
-	bool rightMouseButtonPressed = false;
-	double mousePos[2];
-	bool shiftPressed = false;
-	unsigned int lastKey = 0;
-	vec3 lightPos = vec3(0.1f, 0.1f, 0.1f);
-	//bool startShoot = false;
-	//double shootPos[2];
-	LeafInfo leafstatus;
-}StatusInfo;
+//typedef struct _StatusInfo {
+//	bool leftMouseButtonPressed = false;
+//	bool rightMouseButtonPressed = false;
+//	double mousePos[2];
+//	bool shiftPressed = false;
+//	LeafInfo leafstatus;
+//	Scene* scene{ nullptr };
+//}StatusInfo;
 
 
 typedef struct _uniformTable {	// 除了MVP矩阵以外的其他定制化uniform变量

@@ -8,6 +8,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "Scene.hpp"
+#include "InputManager.hpp"
 #include "Geometry.hpp"
 #include "Wheat.hpp"
 #include "Shader.hpp"
@@ -25,15 +26,15 @@ void platformCheck() {
 	static_assert(sizeof(Vertex) == sizeof(GLfloat) * 10, "Vertex²»Ö§³Ö");
 }
 
-StatusInfo status;
-Camera* camera{ nullptr };
-Leaf* leaf{ nullptr };
+//StatusInfo status;
+//Camera* camera{ nullptr };
+//Leaf* leaf{ nullptr };
 int main(int argc, char** argv) {
 	platformCheck();
 
 	GLFWwindow* window = GLFWinit();
 	GUI gui(window);
-	camera = new Camera(vec3(0.0f, 1.3f, 6.0f), vec3(0.0f, 1.3f, 0.0f));
+	Camera* camera = new Camera(vec3(0.0f, 1.3f, 6.0f), vec3(0.0f, 1.3f, 0.0f));
 	Scene scene(camera);
 
 	//Axis axis;
@@ -46,7 +47,9 @@ int main(int argc, char** argv) {
 	light.setFieldSize(8.0f, 6.0f, 0.001f, 20.0f);
 	light.setResolution(320, 240);
 
-	leaf = &leaf_a;
+	InputManager inputmanager(window, camera, &leaf_a);
+
+	//leaf = &leaf_a;
 
 	c1.addChild(&s1, Transform(vec3(0.0f, 1.0f, 0.0f)));
 	s1.addChild(&c2, Transform(vec3(0.0f), 30.0f, _front));

@@ -6,6 +6,7 @@
 #define __WIND_GUI
 
 #include "proj.h"
+#include "InputManager.hpp"
 #include "Geometry.hpp"
 #include "Wheat.hpp"
 
@@ -15,8 +16,8 @@
 #include "misc/cpp/imgui_stdlib.h"
 
 
-extern StatusInfo status;
-extern Leaf *leaf;
+//extern StatusInfo status;
+//extern Leaf *leaf;
 
 class GUI {
 private:
@@ -51,24 +52,29 @@ public:
 		ImGui::NewFrame();
 		//ImGui::ShowDemoWindow();
 		// 绘制自定义的控件
-		
-		bool isChanged = false;
+
+		InputManager* ctx = reinterpret_cast<InputManager*>(glfwGetWindowUserPointer(window));
 
 		ImGui::Begin(u8"交互窗口");
-		if (ImGui::SliderFloat(u8"叶长", &status.leafstatus.length, 1.0f, 4.5f)) {
-			leaf->setLength(status.leafstatus.length);
+
+		// 直接修改Leaf的属性，这里写死了InputManager的geometry必须是Leaf
+		Leaf* leaf = static_cast<Leaf*>(ctx->getGeometry());
+		LeafMesh *mesh = static_cast<LeafMesh *>(leaf->getMeshes()[0]);
+
+		if (ImGui::SliderFloat(u8"叶长", &(mesh->height), 1.0f, 4.5f)) {
+			mesh->setChangeFlag();
 		}
-		if (ImGui::SliderFloat(u8"叶宽因子", &status.leafstatus.theta, 0.0f, 0.5f)) {
-			leaf->setTheta(status.leafstatus.theta);
+		if (ImGui::SliderFloat(u8"叶宽因子", &(mesh->theta), 0.0f, 0.5f)) {
+			mesh->setChangeFlag();
 		}
-		if (ImGui::SliderFloat(u8"茎叶夹角", &status.leafstatus.SLAngle, 0.1f, 120.0f)) {
-			leaf->setSLAngle(status.leafstatus.SLAngle);
+		if (ImGui::SliderFloat(u8"茎叶夹角", &(mesh->SLAngle), 0.1f, 120.0f)) {
+			mesh->setChangeFlag();
 		}
-		if (ImGui::SliderFloat(u8"弯曲系数", &status.leafstatus.k, 0.0f, 30.0f)) {
-			leaf->setK(status.leafstatus.k);
+		if (ImGui::SliderFloat(u8"弯曲系数", &(mesh->k), 0.0f, 30.0f)) {
+			mesh->setChangeFlag();
 		}
-		if (ImGui::SliderFloat(u8"主叶脉扭曲角", &status.leafstatus.MVAngle, -540.0f, 540.0f)) {
-			leaf->setMVAngle(status.leafstatus.MVAngle);
+		if (ImGui::SliderFloat(u8"主叶脉扭曲角", &(mesh->MVAngle), -540.0f, 540.0f)) {
+			mesh->setChangeFlag();
 		}
 		// 显示camera的所有状态
 		ImGui::Text(u8"Camera状态");

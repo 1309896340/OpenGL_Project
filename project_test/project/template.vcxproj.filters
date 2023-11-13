@@ -99,6 +99,9 @@
     <ClCompile Include="Wheat.hpp">
       <Filter>类</Filter>
     </ClCompile>
+    <ClCompile Include="InputManager.hpp">
+      <Filter>类</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="proj.h">

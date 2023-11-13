@@ -1,7 +1,7 @@
 
 #include "interaction.h"
-#ifdef TEST_OPENGL
-extern StatusInfo status;
+#ifdef TEST_OPENGL_A   // 暂时不使用
+//extern StatusInfo status;
 extern Camera* camera;
 
 extern Leaf* leaf;
@@ -15,7 +15,6 @@ void mouse_botton_callback(GLFWwindow* window, int button, int action, int mods)
 		if (action == GLFW_PRESS && !status.leftMouseButtonPressed) {
 			status.leftMouseButtonPressed = true;
 			glfwGetCursorPos(window, &status.mousePos[0], &status.mousePos[1]);
-			//std::cout << "发出射线:(" << status.shootPos[0] << "," << status.shootPos[1] << ")" << std::endl;
 		}
 		else if (action == GLFW_RELEASE && status.leftMouseButtonPressed) {
 			status.leftMouseButtonPressed = false;
@@ -105,27 +104,20 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			camera->move(10.0f, 0.0f, 0.0f);
 			break;
 		case GLFW_KEY_UP:  // 控制光源的位置
-			status.lightPos.z -= 0.2f;
 			break;
 		case GLFW_KEY_DOWN:
-			status.lightPos.z += 0.2f;
 			break;
 		case GLFW_KEY_LEFT:
-			status.lightPos.x -= 0.2f;
 			break;
 		case GLFW_KEY_RIGHT:
-			status.lightPos.x += 0.2f;
 			break;
 		case GLFW_KEY_H:
-			status.lightPos.y += 0.2f;
 			break;
 		case GLFW_KEY_G:
-			status.lightPos.y -= 0.2f;
 			break;
 		}
 	}
 	else if (action == GLFW_RELEASE) {
-		status.lastKey = GLFW_KEY_UNKNOWN;
 	}
 }
 #endif

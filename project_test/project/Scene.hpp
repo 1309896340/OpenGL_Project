@@ -212,7 +212,7 @@ public:
 			// 加入到gInfo中
 			gInfo.meshesInfo.push_back(mInfo);
 		}
-		gInfo.id = (unsigned int)objs.size();		// 将没加入该对象前的objs的数量作为该对象的id
+		gInfo.id = (unsigned int)objs.size();		// 将没加入该对象前的objs的数量作为该对象的id（当有对象移除时会出错，是个bug）
 		objs[obj] = gInfo;
 	}
 

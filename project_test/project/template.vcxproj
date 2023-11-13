@@ -148,6 +148,7 @@
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="imgui\misc\cpp\imgui_stdlib.cpp" />
+    <ClCompile Include="InputManager.hpp" />
     <ClCompile Include="interaction.cpp" />
     <ClCompile Include="Shader.hpp" />
     <ClCompile Include="utils.cpp" />
