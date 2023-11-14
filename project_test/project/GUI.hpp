@@ -105,21 +105,45 @@ public:
 			if (ptr != objs.end()) {
 				Geometry* obj = ptr->first;
 				// Geometry信息
+				// 
 				// 需要先将 model 取出，然后将其分解为平移、旋转、缩放三个量
 				mat4 model = obj->getLocal2WorldMatrix();
 				vec3 _scale, translation, skew;
 				quat orientation;
 				vec4 perspective;
-				glm::decompose(model, _scale, orientation, translation, skew, perspective);
-				orientation = glm::conjugate(orientation);
-				// 涉及一个复杂的转换问题，先写好一个模板
+
 				ImGui::SeparatorText("Geometry");
-				snprintf(showText, STR_BUFFER_N, u8"位置：(%.2f, %.2f, %.2f)", translation.x, translation.y, translation.z);
-				ImGui::Text(showText);
-				snprintf(showText, STR_BUFFER_N, u8"旋转：(%.2f, %.2f, %.2f, %.2f)", orientation.x, orientation.y, orientation.z, orientation.w);	// 用四元数表示旋转
-				ImGui::Text(showText);
-				snprintf(showText, STR_BUFFER_N, u8"缩放：(%.2f, %.2f, %.2f)", _scale.x, _scale.y, _scale.z);
-				ImGui::Text(showText);
+				if (ImGui::TreeNode("Global")) {
+					glm::decompose(model, _scale, orientation, translation, skew, perspective);
+					orientation = glm::conjugate(orientation);
+
+					snprintf(showText, STR_BUFFER_N, u8"位置：(%.2f, %.2f, %.2f)", translation.x, translation.y, translation.z);
+					ImGui::Text(showText);
+					snprintf(showText, STR_BUFFER_N, u8"旋转：(%.2f, %.2f, %.2f, %.2f)", orientation.x, orientation.y, orientation.z, orientation.w);	// 用四元数表示旋转
+					ImGui::Text(showText);
+					snprintf(showText, STR_BUFFER_N, u8"缩放：(%.2f, %.2f, %.2f)", _scale.x, _scale.y, _scale.z);
+					ImGui::Text(showText);
+
+					ImGui::TreePop();
+				}
+				if (ImGui::TreeNode("Local")) {
+					vec3& posVal = obj->model.getPosition();
+					quat& rotVal = obj->model.getRotation();
+					vec3& scaleVal = obj->model.getScale();
+					vec3 raxis = glm::axis(rotVal);
+					float rangle = glm::angle(rotVal) * 180.0f / PI;
+					ImGui::SliderFloat3(u8"位置", value_ptr(posVal), -5.0f, 5.0f);
+					ImGui::SliderFloat3(u8"缩放", value_ptr(scaleVal), 0.01f, 10.0f);
+					// 暂时不知道如何处理旋转的交互，如果使用SliderFloat3控制旋转轴，则需要将其限制在单位球面上，否则会出现奇怪的旋转
+					// 而且从这里通过修改父节点的scale可以看到子节点的scale也会跟着变化，这是不对的，应当只会造成子节点偏移位置的变化
+					// 或者不应当将缩放考虑进偏移矩阵的计算，换应当只考虑平移和旋转，或者只考虑均匀缩放
+					bool c1 = ImGui::SliderFloat3(u8"旋转轴", value_ptr(raxis), 0.0f, 1.0f);
+					bool c2 = ImGui::SliderFloat(u8"旋转角", &rangle, 0.0f, 360.0f);
+					if (c1 || c2) {
+						rotVal = glm::angleAxis(rangle * PI / 180.0f, normalize(raxis));
+					}
+					ImGui::TreePop();
+				}
 				// 子类信息
 				switch (obj->getType()) {
 					Leaf* leaf;

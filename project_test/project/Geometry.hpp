@@ -48,14 +48,17 @@ public:
 		_scale = vec3(1.0f);
 		rotation = identity<quat>();
 	}
-	quat getRotation() {
-		return rotation;
-	}
 	void setRotation(quat q) {
 		rotation = q;
 	}
-	vec3 getPosition() {
+	quat& getRotation() {
+		return rotation;
+	}
+	vec3 &getPosition() {
 		return position;
+	}
+	vec3 &getScale() {
+		return _scale;
 	}
 	mat4 getMatrix() {
 		mat4 Tmat(1.0f);
