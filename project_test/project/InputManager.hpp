@@ -20,7 +20,7 @@ private:
 	Scene* scene{ nullptr };
 
 public:
-	// 当前的交互状态
+	// 当前的交互状态（也可以直接使用ImGui提供的输入设备状态标志位）
 	bool leftMouseButtonPressed{ false };
 	bool rightMouseButtonPressed{ false };
 	bool shiftPressed{ false };

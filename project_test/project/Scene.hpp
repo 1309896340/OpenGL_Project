@@ -24,6 +24,7 @@ typedef struct _MeshRenderInfo {
 typedef struct _GeometryRenderInfo {
 	vector<MeshRenderInfo> meshesInfo;
 	unsigned int id{ 0 };				// 该几何体在Scene中的唯一编号
+	Shader* shader{ nullptr };
 	//GeometryType gtype{ GeometryType::DEFAULT };			// 几何体的类型
 	float flux{ 0.0f };			// 几何体的辐射通量
 } GeometryRenderInfo;
@@ -47,7 +48,7 @@ private:
 	map<Geometry*, GeometryRenderInfo> objs;		// 在add时绑定一个新的GeometryRenderInfo，并初始化顶点缓冲
 	map<Light*, LightRenderInfo> lights;		// 光源
 
-	Shader* shader{ nullptr };		// 当前使用的shader，渲染过程中可能会切换shader
+	//Shader* shader{ nullptr };		// 当前使用的shader，渲染过程中可能会切换shader
 
 	Camera* camera{ 0 };				// 当前主相机
 	GLuint ubo{ 0 };						// uniform缓冲区对象，用于存储投影矩阵和视图矩阵（与Camera相绑定的渲染属性）
@@ -76,6 +77,13 @@ public:
 		glDeleteBuffers(1, &ubo);
 	}
 
+	bool setShader(Geometry* obj, Shader* shader) {
+		if (objs.count(obj) <= 0)
+			return false;
+		objs[obj].shader = shader;
+		return true;
+	}
+
 	void initShaders() {
 		shaders["default"] = new Shader("shader/shader.gvs", "shader/shader.gfs");		// 默认shader
 		shaders["normal"] = new Shader("shader/normVisualize.gvs", "shader/normVisualize.ggs", "shader/normVisualize.gfs");	// 三角面元法线可视化
@@ -84,6 +92,7 @@ public:
 		shaders["plane"] = new Shader("shader/plane.gvs", "shader/plane.gfs");		// 绘制简单平面
 		shaders["leaf"] = new Shader("shader/leaf.gvs", "shader/leaf.gfs");		// 渲染小麦叶片的着色器，其中包含材质
 		shaders["depthmap"] = new Shader("shader/depthmap.gvs", "shader/depthmap.gfs");		// 渲染深度图的着色器
+		shaders["wired"] = new Shader("shader/wired.gvs", "shader/wired.ggs", "shader/wired.gfs");	// 绘制线框
 
 		shaders["radiantFlux"] = new ComputeShader("shader/radiantFlux.gcs");
 	}
@@ -218,11 +227,12 @@ public:
 			// 加入到gInfo中
 			gInfo.meshesInfo.push_back(mInfo);
 		}
+		gInfo.shader = shaders["default"];
 		gInfo.id = (unsigned int)objs.size();		// 将没加入该对象前的objs的数量作为该对象的id（当有对象移除时会出错，是个bug）
 		objs[obj] = gInfo;
 	}
 
-	map<Geometry*,GeometryRenderInfo> getObjects() { return objs; }
+	map<Geometry*, GeometryRenderInfo> getObjects() { return objs; }
 
 	void add(Geometry* obj) {
 		deque<Geometry*> buf{ obj };
@@ -260,14 +270,17 @@ public:
 
 	// 该方法仅为Scene.render()调用，以渲染场景中所有Geometry对象。不考虑Geometry子节点，只绘制当前Geometry
 	void renderOne(Geometry* obj) {
+		GeometryRenderInfo& gInfo = objs[obj];
+		Shader* shader = gInfo.shader;
+		shader->use();
 		(*shader)["model"] = obj->getFinalOffset() * obj->model.getMatrix();
 		(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
 		// 检查对象是否存在，不存在则添加。（一般是不通过Scene.render()调用的对象会进入到这里）
-		if (objs.count(obj) <= 0) {
-			cout << "Geometry对象不存在，已进行添加" << endl;
-			add(obj);
-		}
-		GeometryRenderInfo& gInfo = objs[obj];
+		assert(objs.count(obj) > 0);
+		//if (objs.count(obj) <= 0) {
+		//	cout << "Geometry对象不存在，已进行添加" << endl;
+		//	add(obj);
+		//}
 		for (auto& meshinfo : gInfo.meshesInfo) {
 			// 检查更新Mesh
 			Mesh* mesh = obj->getMeshes()[meshinfo.id];
@@ -278,7 +291,6 @@ public:
 			}
 			glBindVertexArray(meshinfo.VAO);
 			glDrawElements(GL_TRIANGLES, meshinfo.elementNum, GL_UNSIGNED_INT, 0);
-			glBindVertexArray(0);
 		}
 	}
 
@@ -329,6 +341,8 @@ public:
 			}
 		}
 		delete[] depthDataPtr;
+		Shader* shader = shaders["line"];
+		shader->use();
 		(*shader)["color"] = vec4(1.0f, 0.0f, 0.0f, 1.0f);	// 绘制红线
 		glBindVertexArray(lights[light].VAO);
 		glDrawArrays(GL_LINES, 0, wNum * hNum * 2);
@@ -337,13 +351,13 @@ public:
 	// 为每个光源生成深度贴图
 	void updateDepthMap() {
 		// 渲染场景中光源的深度图
+		// 需要保证场景中所有网格都已经更新完毕
 		// 这里不用shaders["default"]，因为默认shader使用ubo来存储相机视角的view和projection矩阵
 		// 而shaders["depthmap"]中直接使用光源获取的变换矩阵进行变换，和ubo无关
-		shader = shaders["depthmap"];
+		Shader* shader = shaders["depthmap"];
 		shader->use();
 		for (auto& elem : lights) {	// 遍历所有Light对象
 			Light* light = elem.first;
-
 			assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);		// 验证FBO是否完整
 
 			glBindFramebuffer(GL_FRAMEBUFFER, lights[light].FBO_depth);
@@ -355,8 +369,18 @@ public:
 			// 配置光源的变换矩阵
 			(*shader)["lightSpaceMatrix"] = light->getProjectionViewMatrix();		// 不同的光源有不同的视角
 			// 遍历场景中所有几何体，渲染深度图
-			for (auto& elem : objs)
-				renderOne(elem.first);
+			for (auto& elem : objs) {
+				//renderOne(elem.first);
+				Geometry* obj = elem.first;
+				GeometryRenderInfo& info = elem.second;
+				(*shader)["model"] = obj->getLocal2WorldMatrix();
+				(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
+				for (auto& meshinfo : info.meshesInfo) {
+					//Mesh* mesh = obj->getMeshes()[meshinfo.id];
+					glBindVertexArray(meshinfo.VAO);
+					glDrawElements(GL_TRIANGLES, meshinfo.elementNum, GL_UNSIGNED_INT, 0);
+				}
+			}
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);		// 恢复默认帧缓冲(在主循环中swap的帧缓冲？)
 
@@ -372,8 +396,6 @@ public:
 	// 递归调度renderOne，以绘制objs中所有对象
 	void render() {
 		// 渲染场景中的几何体
-		shader = shaders["default"];
-		shader->use();
 		glViewport(0, 0, WIDTH, HEIGHT);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		for (auto& elem : objs)

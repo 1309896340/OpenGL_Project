@@ -179,15 +179,16 @@ public:
 class Geometry {
 	// Geometry本身没有生成网格
 private:
-	static inline unsigned int idCount = 0;
+	static inline unsigned int geometryIdCount = 0;
 protected:
 	mat4 modelBuffer{ mat4(1.0f) };
 	Geometry* parent{ nullptr };
 	vector<Geometry*> children;
 	vector<Mesh*> meshes;
 
-	unsigned int id{ 0 };		// Geometry对象唯一标识符，且无法被修改
-	string name;				// Geometry对象的字符串标识符，可被修改
+	unsigned int id{ 0 };			// Geometry对象唯一标识符，且无法被修改
+	unsigned int subId{ 0 };	// 子对象标识符，调用子类的构造函数时自动赋值，否则为0
+	string name;					// Geometry对象的字符串标识符，可被修改
 
 	GeometryType type{ DEFAULT };
 	bool needCalFlux{ false };		// 用于标记是否需要计算辐射通量
@@ -195,7 +196,7 @@ public:
 	Transform model;		// 模型矩阵
 	Transform offset;			// 偏移矩阵，在addChild时记录子节点与当前节点的偏移量(包括位置、旋转)，属于父子节点间的坐标系变换，在此之上叠加model变换
 	Geometry() {
-		this->id = idCount++;
+		this->id = geometryIdCount++;
 		this->name = "Geometry_" + std::to_string(id);
 	}
 	~Geometry() {
@@ -207,6 +208,7 @@ public:
 		children.clear();
 		meshes.clear();
 	}
+	unsigned int getID() { return id; }
 	void rename(const string& newName) {
 		//该函数仅单纯修改name，唯一性由外部保证
 		this->name = newName;
@@ -273,12 +275,16 @@ public:
 };
 class Cube : public Geometry {
 private:
+	static inline unsigned int subIdCount = 0;
+
 	int xSliceNum, ySliceNum, zSliceNum;
 	float xLength, yLength, zLength;
 public:
 	Cube(float xLength, float yLength, float zLength, unsigned  int xSliceNum = 10, unsigned int ySliceNum = 10, unsigned int zSliceNum = 10) :
 		Geometry(), xSliceNum(xSliceNum), ySliceNum(ySliceNum), zSliceNum(zSliceNum),
 		xLength(xLength), yLength(yLength), zLength(zLength) {
+		this->subId = subIdCount++;
+		this->name = "Cube_" + std::to_string(subId);
 		this->type = CUBE;
 
 		float dx, dy, dz;
@@ -350,12 +356,15 @@ public:
 };
 class Sphere : public Geometry {
 private:
+	static inline unsigned int subIdCount = 0;
+
 	float radius;
 	int lonSliceNum;
 	int latSliceNum;
-
 public:
 	Sphere(float radius, unsigned int lonSliceNum = 36, unsigned int latSliceNum = 20) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
+		this->subId = subIdCount++; 
+		this->name = "Sphere_" + std::to_string(subId);
 		this->type = SPHERE;
 		float latStep = PI / latSliceNum;
 		float lonStep = 2 * PI / lonSliceNum;
@@ -382,6 +391,8 @@ public:
 };
 class Cylinder : public Geometry {
 private:
+	static inline unsigned int subIdCount = 0;
+
 	float radius;
 	float height;
 	int rSliceNum;
@@ -389,6 +400,8 @@ private:
 	int lonSliceNum;
 public:
 	Cylinder(float radius, float height, unsigned int rSliceNum = 10, unsigned int hSliceNum = 20, unsigned int lonSliceNum = 36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+		this->subId = subIdCount++;
+		this->name = "Cylinder_" + std::to_string(subId);
 		this->type = CYLINDER;
 
 		float rStep = radius / rSliceNum;
@@ -443,6 +456,8 @@ public:
 };
 class Cone : public Geometry { // 圆锥
 private:
+	static inline unsigned int subIdCount = 0;
+
 	float radius;
 	float height;
 
@@ -451,6 +466,8 @@ private:
 	int lonSliceNum;
 public:
 	Cone(float radius, float height, unsigned int rSliceNum = 10, unsigned int hSliceNum = 20, unsigned int lonSliceNum = 36) :Geometry(), radius(radius), height(height), rSliceNum(rSliceNum), hSliceNum(hSliceNum), lonSliceNum(lonSliceNum) {
+		this->subId = subIdCount++;
+		this->name = "Cone_" + std::to_string(subId);
 		this->type = CONE;
 
 		float rStep = radius / rSliceNum;

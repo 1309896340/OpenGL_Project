@@ -121,8 +121,11 @@ public:
 // 对具体子类的属性修改，只发生在客户端未add入Scene之前的子类指针，因此无需重载Geometry.addChild()、Scene.addOne()、Scene.add()，渲染端不用关心具体子类
 class Leaf : public Geometry {
 private:
+	static inline unsigned int subIdCount = 0;
 public:
 	Leaf(float height, float width, unsigned int hSliceNum = 20, unsigned int wSliceNum = 5) {
+		this->subId = subIdCount++;
+		this->name = "Leaf_" + std::to_string(subId);
 		this->type = LEAF;
 		needCalFlux = true;		// 叶子网格需要计算辐射通量
 

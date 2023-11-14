@@ -15,6 +15,7 @@
 #include <deque>
 #include <map>
 #include <set>
+#include <algorithm>
 
 //#include <memory>
 #include <cfloat>

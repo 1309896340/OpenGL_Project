@@ -191,6 +191,9 @@
     <None Include="shader\radiantFlux.gcs" />
     <None Include="shader\shader.gfs" />
     <None Include="shader\shader.gvs" />
+    <None Include="shader\wired.gfs" />
+    <None Include="shader\wired.ggs" />
+    <None Include="shader\wired.gvs" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="texture\leaf.jpg" />
