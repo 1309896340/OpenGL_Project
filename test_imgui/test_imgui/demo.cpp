@@ -8,9 +8,40 @@
 #include "glad\glad.h"
 #include "glfw\glfw3.h"
 
+#include "glm\glm.hpp"
+#include "glm\gtc\matrix_transform.hpp"
+#include "glm\gtx\matrix_decompose.hpp"
+#include "glm\gtx\string_cast.hpp"
 
 using std::cout;
 using std::endl;
+
+using glm::mat3;
+using glm::mat4;
+using glm::vec3;
+using glm::vec4;
+using glm::quat;
+
+std::ostream& operator<<(std::ostream& out, const mat4& m) {
+	out << glm::to_string(m);
+	return out;
+}
+std::ostream& operator<<(std::ostream& out, const mat3& m) {
+	out << glm::to_string(m);
+	return out;
+}
+std::ostream& operator<<(std::ostream& out, const vec3& v) {
+	out << glm::to_string(v);
+	return out;
+}
+std::ostream& operator<<(std::ostream& out, const vec4& v) {
+	out << glm::to_string(v);
+	return out;
+}
+std::ostream& operator<<(std::ostream& out, const quat& q) {
+	out << glm::to_string(q);
+	return out;
+}
 
 GLFWwindow* initWindow(int width, int height, const char* title) {
 	if (glfwInit() != GLFW_TRUE) {
@@ -53,7 +84,7 @@ bool imgui_init(GLFWwindow* window) {
 	ImGuiIO io = ImGui::GetIO();
 	const char* fontPath = "C:\\Windows\\Fonts\\msyh.ttc";
 	float fontSize = 23.0f;
-	ImFont *customFont = io.Fonts->AddFontFromFileTTF(fontPath, fontSize);
+	ImFont* customFont = io.Fonts->AddFontFromFileTTF(fontPath, fontSize);
 	io.FontDefault = customFont;
 	return true;
 }
@@ -82,8 +113,29 @@ int main(int argc, char** argv) {
 		cout << "imgui 初始化错误" << endl;
 		return -1;
 	}
+	// 初始化完成
+
+	//mat4 T = glm::translate(mat4(1.0f), vec3(1.0f, 2.0f, 3.0f));
+	//mat4 R1 = glm::rotate(mat4(1.0f), glm::radians(30.0f), vec3(0.0f, 0.0f, 1.0f));
+	//mat4 R2 = glm::rotate(mat4(1.0f), glm::radians(-30.0f), vec3(0.0f, 0.0f, 1.0f));
+	//mat4 S = glm::scale(mat4(1.0f), vec3(3.0f, 2.0f, 1.0f));
+	//mat4 trans = R2 * T * R1 * S;
+
+	//vec3 position, _scale, skew;
+	//vec4 perspective;
+	//quat rotation;
+
+	//glm::decompose(trans, _scale, rotation, position, skew, perspective);
+	//cout << "位置: " << position << endl;
+	//cout << "朝向: " << rotation << endl;
+	//cout << "缩放: " << _scale << endl;
+	//cout << "切变: " << skew << endl;
+	//cout << "透视: " << perspective << endl;
+
+	//return 0;
 
 
+	// 主循环
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
