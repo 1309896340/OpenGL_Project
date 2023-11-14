@@ -105,14 +105,20 @@ public:
 			if (ptr != objs.end()) {
 				Geometry* obj = ptr->first;
 				// Geometry信息
-				// 需要先将obj->getFinalOffset() * obj->model.getMatrix() * obj->getModelBufferMatrix() 求出，然后将其分解为平移、旋转、缩放三个量
+				// 需要先将 model 取出，然后将其分解为平移、旋转、缩放三个量
+				mat4 model = obj->getLocal2WorldMatrix();
+				vec3 _scale, translation, skew;
+				quat orientation;
+				vec4 perspective;
+				glm::decompose(model, _scale, orientation, translation, skew, perspective);
+				orientation = glm::conjugate(orientation);
 				// 涉及一个复杂的转换问题，先写好一个模板
 				ImGui::SeparatorText("Geometry");
-				snprintf(showText, STR_BUFFER_N, u8"位置：(%.2f, %.2f, %.2f)", 1.0f, 2.0f, 3.0f);
+				snprintf(showText, STR_BUFFER_N, u8"位置：(%.2f, %.2f, %.2f)", translation.x, translation.y, translation.z);
 				ImGui::Text(showText);
-				snprintf(showText, STR_BUFFER_N, u8"旋转：(%.2f, %.2f, %.2f, %.2f)", 1.0f, 2.0f, 3.0f, 4.0f);	// 用四元数表示旋转
+				snprintf(showText, STR_BUFFER_N, u8"旋转：(%.2f, %.2f, %.2f, %.2f)", orientation.x, orientation.y, orientation.z, orientation.w);	// 用四元数表示旋转
 				ImGui::Text(showText);
-				snprintf(showText, STR_BUFFER_N, u8"缩放：(%.2f, %.2f, %.2f)", 1.0f, 2.0f, 3.0f);
+				snprintf(showText, STR_BUFFER_N, u8"缩放：(%.2f, %.2f, %.2f)", _scale.x, _scale.y, _scale.z);
 				ImGui::Text(showText);
 				// 子类信息
 				switch (obj->getType()) {

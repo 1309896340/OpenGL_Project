@@ -236,7 +236,7 @@ public:
 	virtual void pose() = 0;
 	// Ԥ�任
 	mat4 getModelBufferMatrix() { return modelBuffer; }
-	mat4 getLocal2WorldMatrix() { return this->getFinalOffset() * model.getMatrix() * modelBuffer; }
+	mat4 getLocal2WorldMatrix() { return this->getFinalOffset() * model.getMatrix(); }
 	void applyTransform() {
 		modelBuffer = (model.getMatrix()) * modelBuffer;
 		model.reset();
