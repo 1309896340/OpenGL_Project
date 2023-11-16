@@ -17,8 +17,12 @@ typedef struct _MeshRenderInfo {
 	GLuint elementNum{ 0 };		// 网格所需绘制点个数
 	unsigned int id{ 0 };				// 该网格在Geometry的meshes中的索引
 
-	// 每个Mesh应当有各自的shader，后续会扩展
+	GLuint idTexture{ 0 };			// 用于映射自身ID的纹理
+	GLuint idFBO{ 0 };				// 用于映射自身ID的帧缓冲
+
 	GLuint fluxBuffer{ 0 };			// 用于存储辐射通量的SSBO缓冲区，在加入Scene时初始化
+
+	// 每个Mesh应当有各自的shader，后续会扩展
 }MeshRenderInfo;
 
 typedef struct _GeometryRenderInfo {
@@ -228,7 +232,7 @@ public:
 			gInfo.meshesInfo.push_back(mInfo);
 		}
 		gInfo.shader = shaders["default"];
-		gInfo.id = (unsigned int)objs.size();		// 将没加入该对象前的objs的数量作为该对象的id（当有对象移除时会出错，是个bug）
+		gInfo.id = obj->getID();
 		objs[obj] = gInfo;
 	}
 
@@ -244,6 +248,15 @@ public:
 				buf.push_back(child);
 			addOne(tmp);
 		}
+	}
+
+	Geometry* getObjectByID(unsigned int id) {
+		auto ptr = std::find_if(objs.begin(), objs.end(), [&id](const std::pair<Geometry*, GeometryRenderInfo>& elem) {
+			return elem.first->getID() == id;
+			});
+		if (ptr == objs.end())
+			return nullptr;
+		return ptr->first;
 	}
 
 	void removeOne(Geometry* obj) { // 删除一个Geometry，不考虑子对象

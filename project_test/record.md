@@ -1,0 +1,4 @@
+实现鼠标拾取物体的交互，为每个Geometry设置一个唯一编号，在渲染所属于这个Geometry的所有Mesh时将这个编号使用uniform传入着色器，在片段着色器中将编号映射为颜色，写入颜色texture附着的帧缓冲，当鼠标移动时会拾取纹理中的颜色值，反映射回Geometry编号，通过编号找到对应Geometry对象
+
+目前实现了一个在Scene根据Geometry的ID来返回Geometry的函数`getObjectById()`
+
