@@ -33,7 +33,7 @@ public:
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;		// 启用键盘控制
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;	// 启用手柄控制
-		ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 30.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
+		ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 18.0f, nullptr, io.Fonts->GetGlyphRangesChineseFull());
 		ImGui::GetIO().FontDefault = font;
 
 		bool flag = ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -62,7 +62,6 @@ public:
 
 		static int item_current = 0;		// 当前选中的几何体的索引
 		static bool isCursorPick = false;
-		//static bool isSelected = false;
 
 		char showText[STR_BUFFER_N];
 		unsigned int objNum = 0;					// 场景中几何体数量
@@ -83,10 +82,11 @@ public:
 
 		ImGui::SetNextItemOpen(true);
 		if (ImGui::CollapsingHeader(u8"对象管理")) {
-			objNum = (unsigned int)objs.size();
+			objNum = (unsigned int)objs.size() + 1;
 			objNames = (const char**)new char* [objNum];
+			objNames[0] = "";
 
-			unsigned idx = 0;
+			unsigned idx = 1;
 			for (auto ptr = objs.begin(); ptr != objs.end(); ptr++, idx++) {
 				string& gname = ptr->first->getName();		// 这里使用的引用，因此Geometry中name的修改会直接反映到这里
 				objNames[idx] = gname.c_str();
@@ -95,17 +95,15 @@ public:
 			Geometry* obj = nullptr;
 			if (isCursorPick) {
 				// 根据鼠标抓取
-
-				// 从id纹理中取颜色
 				ImVec2 mousePos = ImGui::GetIO().MousePos;
 				float pixel[4];
 				glBindFramebuffer(GL_FRAMEBUFFER, scene->getFrameBuffer());
 				glReadBuffer(GL_COLOR_ATTACHMENT1);
 				glReadPixels((GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
-				float idd = pixel[0] * 20.0f - 1.0f;		// 为负数表示没有选中任何物体，item_current保留原来值
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				float idd = pixel[0] * 20.0f - 1.0f;		// 为负数表示没有选中任何物体
 				if (idd >= 0) {
 					unsigned int geometryId = (unsigned int)idd;
-					glBindFramebuffer(GL_FRAMEBUFFER, 0);
 					// 根据geometry的id找到对应的Geometry
 					auto ptr = std::find_if(objs.begin(), objs.end(), [&geometryId](std::pair<Geometry*, GeometryRenderInfo> elem) {
 						return elem.second.id == geometryId;
@@ -113,12 +111,20 @@ public:
 					if (ptr != objs.end()) {
 						obj = ptr->first;
 						// 找到对应的item_current
+						bool findout = false;
 						for (unsigned int i = 0; i < objNum; i++) {
 							if (string(objNames[i]) == obj->getName()) {
 								item_current = i;
+								findout = true;
 								break;
 							}
 						}
+						if (!findout) {
+							//item_current = 0;
+						}
+					}
+					else {
+						cout << "id纹理映射的geometry已经不在objs中" << endl;	// 调试报错信息
 					}
 				}
 			}
