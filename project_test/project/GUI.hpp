@@ -62,26 +62,11 @@ public:
 
 		static int item_current = 0;		// 当前选中的几何体的索引
 		static bool isCursorPick = false;
+		//static bool isSelected = false;
 
 		char showText[STR_BUFFER_N];
 		unsigned int objNum = 0;					// 场景中几何体数量
 		const char** objNames = nullptr;		// 几何体名称列表
-
-		// 从id纹理中取颜色
-		ImVec2 mousePos = ImGui::GetIO().MousePos;
-		float pixel[4];
-		glBindFramebuffer(GL_FRAMEBUFFER, scene->getFrameBuffer());
-		//glBindTexture(GL_TEXTURE_2D, scene->getIdTexture());
-		//glGetnTexImage(GL_TEXTURE_2D,0, GL_RGBA, GL_FLOAT, 1, pixel);
-		//glGetTextureImage(scene->getIdTexture(), 0, GL_RGBA, GL_FLOAT, 1, pixel);
-		//glGetTextureSubImage(scene->getIdTexture(), 0, (GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 0, 1, 1, 1, GL_RGBA, GL_FLOAT, 1, pixel);
-		glReadBuffer(GL_COLOR_ATTACHMENT1);
-		glReadPixels((GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
-		//cout << "(" << mousePos.x << "," << mousePos.y << ") = " << pixel[0] << "   " << pixel[1] << "   " << pixel[2] << endl;
-		cout << "(" << mousePos.x << "," << mousePos.y << ") = " << (unsigned int)(pixel[0]*20.0f) << endl;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
 
 		ImGui::Begin(u8"交互窗口");
 		ImGui::SetNextItemOpen(true);
@@ -93,10 +78,6 @@ public:
 			snprintf(showText, STR_BUFFER_N, u8"航向角：%.1f°  俯仰角：%.1f°  翻滚角：%.1f°", camera->getYaw() * 180.0f / PI, camera->getPitch() * 180.0f / PI, camera->getRoll() * 180.0f / PI);
 			ImGui::Text(showText);
 			ImGui::SliderFloat(u8"FOV", &(camera->getFov()), 10.0f, 80.0f);
-			//float a[3];
-			//if (ImGui::SliderFloat3(u8"不知道什么滑块", a, 1.0, 3.0f)) {
-			//	cout << "触发" << endl;
-			//}
 
 		}
 
@@ -115,14 +96,31 @@ public:
 			if (isCursorPick) {
 				// 根据鼠标抓取
 
-
-
-
-
-
-
-				//cout << "value = " << pixel[0] << endl;
-				item_current = 0;		// 修改成鼠标抓取的对象
+				// 从id纹理中取颜色
+				ImVec2 mousePos = ImGui::GetIO().MousePos;
+				float pixel[4];
+				glBindFramebuffer(GL_FRAMEBUFFER, scene->getFrameBuffer());
+				glReadBuffer(GL_COLOR_ATTACHMENT1);
+				glReadPixels((GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
+				float idd = pixel[0] * 20.0f - 1.0f;		// 为负数表示没有选中任何物体，item_current保留原来值
+				if (idd >= 0) {
+					unsigned int geometryId = (unsigned int)idd;
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					// 根据geometry的id找到对应的Geometry
+					auto ptr = std::find_if(objs.begin(), objs.end(), [&geometryId](std::pair<Geometry*, GeometryRenderInfo> elem) {
+						return elem.second.id == geometryId;
+						});
+					if (ptr != objs.end()) {
+						obj = ptr->first;
+						// 找到对应的item_current
+						for (unsigned int i = 0; i < objNum; i++) {
+							if (string(objNames[i]) == obj->getName()) {
+								item_current = i;
+								break;
+							}
+						}
+					}
+				}
 			}
 			else {
 				ImGui::Combo(u8"对象列表", &item_current, (const char**)objNames, objNum);
