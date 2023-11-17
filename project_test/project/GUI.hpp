@@ -70,16 +70,17 @@ public:
 		// 从id纹理中取颜色
 		ImVec2 mousePos = ImGui::GetIO().MousePos;
 		float pixel[4];
-		//glBindFramebuffer(GL_FRAMEBUFFER, scene->getFrameBuffer());
+		glBindFramebuffer(GL_FRAMEBUFFER, scene->getFrameBuffer());
 		//glBindTexture(GL_TEXTURE_2D, scene->getIdTexture());
 		//glGetnTexImage(GL_TEXTURE_2D,0, GL_RGBA, GL_FLOAT, 1, pixel);
 		//glGetTextureImage(scene->getIdTexture(), 0, GL_RGBA, GL_FLOAT, 1, pixel);
-		glGetTextureSubImage(scene->getIdTexture(), 0, (GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 0, 1, 1, 1, GL_RGBA, GL_FLOAT, 1, pixel);
-		//glReadPixels((GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
-		cout << "(" << mousePos.x << "," << mousePos.y << ") = " << pixel[0] << "   " << pixel[1] << "   " << pixel[2] << endl;
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		//glGetTextureSubImage(scene->getIdTexture(), 0, (GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 0, 1, 1, 1, GL_RGBA, GL_FLOAT, 1, pixel);
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
+		glReadPixels((GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
+		//cout << "(" << mousePos.x << "," << mousePos.y << ") = " << pixel[0] << "   " << pixel[1] << "   " << pixel[2] << endl;
+		cout << "(" << mousePos.x << "," << mousePos.y << ") = " << (unsigned int)(pixel[0]*20.0f) << endl;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		// 读不出来。。。。。。
 
 
 		ImGui::Begin(u8"交互窗口");
