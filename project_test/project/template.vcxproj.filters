@@ -190,6 +190,18 @@
     <None Include="shader\wired.gvs">
       <Filter>资源文件\shader</Filter>
     </None>
+    <None Include="shader\idMapping.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\idMapping.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\screen.gfs">
+      <Filter>资源文件\shader</Filter>
+    </None>
+    <None Include="shader\screen.gvs">
+      <Filter>资源文件\shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="texture\leaf.jpg">

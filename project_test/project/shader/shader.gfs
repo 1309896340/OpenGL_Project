@@ -1,9 +1,17 @@
 #version 430 core
+layout(location=0) out vec4 sceneRendering;
+layout(location=1) out vec4 geometryID;
 
 in vec3 localPos;
-out vec4 FragColor;
 
+uniform uint gid;
+uniform bool selected;
 
 void main(){
-	FragColor = vec4(localPos+vec3(0.3, 0.1, 0.5), 1.0);
+	sceneRendering = vec4(localPos+vec3(0.3f, 0.1f, 0.5f), 1.0f);
+	if(selected){
+		sceneRendering = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	}
+	float idGray = (float(gid)+0.5f)/20.0f;
+	geometryID = vec4(idGray, idGray, idGray, idGray);
 }

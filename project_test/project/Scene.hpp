@@ -10,15 +10,13 @@
 #include "Light.hpp"
 
 #ifdef TEST_OPENGL
+
 typedef struct _MeshRenderInfo {
 	GLuint VAO{ 0 };
 	GLuint VBO{ 0 };
 	GLuint EBO{ 0 };
 	GLuint elementNum{ 0 };		// 网格所需绘制点个数
 	unsigned int id{ 0 };				// 该网格在Geometry的meshes中的索引
-
-	GLuint idTexture{ 0 };			// 用于映射自身ID的纹理
-	GLuint idFBO{ 0 };				// 用于映射自身ID的帧缓冲
 
 	GLuint fluxBuffer{ 0 };			// 用于存储辐射通量的SSBO缓冲区，在加入Scene时初始化
 
@@ -29,7 +27,8 @@ typedef struct _GeometryRenderInfo {
 	vector<MeshRenderInfo> meshesInfo;
 	unsigned int id{ 0 };				// 该几何体在Scene中的唯一编号
 	Shader* shader{ nullptr };
-	//GeometryType gtype{ GeometryType::DEFAULT };			// 几何体的类型
+
+	bool selected{ false };
 	float flux{ 0.0f };			// 几何体的辐射通量
 } GeometryRenderInfo;
 
@@ -57,6 +56,13 @@ private:
 	Camera* camera{ 0 };				// 当前主相机
 	GLuint ubo{ 0 };						// uniform缓冲区对象，用于存储投影矩阵和视图矩阵（与Camera相绑定的渲染属性）
 
+	GLuint frameBuffer{ 0 };			// 主视图的帧缓冲区
+	GLuint idTexture{ 0 };				// 用于识别对象id的颜色纹理
+
+	GLuint sceneFrameTexture{ 0 };				// 场景帧缓冲区
+	GLuint sceneDepthTexture{ 0 };				// 场景深度缓冲区
+	GLuint screenVAO{ 0 }, screenVBO{ 0 };
+
 	float lastTime{ 0 }, currentTime{ (float)glfwGetTime() }, deltaTime{ 0 };
 
 	const GLuint matrixBindPoint = 0;		// projection和view接口块绑定点
@@ -68,6 +74,7 @@ public:
 	Scene() : currentTime((float)glfwGetTime()) {
 		initShaders();					//  初始化所有Shader，编译、链接
 		initUniformBuffer();			//  初始化uniform缓冲区
+		initFrameBuffer();			// 初始化帧缓冲区
 	}
 
 	Scene(Camera* camera) :Scene() {
@@ -79,6 +86,59 @@ public:
 			delete shader.second;
 		}
 		glDeleteBuffers(1, &ubo);
+	}
+
+	void initFrameBuffer() {
+		glGenFramebuffers(1, &frameBuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+		// 场景深度缓冲
+		glGenTextures(1, &sceneDepthTexture);
+		glBindTexture(GL_TEXTURE_2D, sceneDepthTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, WIDTH, HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sceneDepthTexture, 0);
+
+		// 场景渲染纹理
+		glGenTextures(1, &sceneFrameTexture);
+		glBindTexture(GL_TEXTURE_2D, sceneFrameTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneFrameTexture, 0);
+
+		// id纹理
+		glGenTextures(1, &idTexture);
+		glBindTexture(GL_TEXTURE_2D, idTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, idTexture, 0);
+
+		assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);		// 恢复默认帧缓冲区
+
+		// ==================将默认窗口中的矩形的代码写在这里====================
+		glGenVertexArrays(1, &screenVAO);
+		glBindVertexArray(screenVAO);
+		float quaddata[] = {						// 左下角开个小窗口显示id纹理
+			// 位置					纹理坐标
+			-1.0f, -0.6f, 0.0f, 0.0f, 1.0f,			// 左上角
+			-1.0f, -1.0f, 0.0f,  0.0f, 0.0f,			// 左下角
+			-0.6f, -0.6f, 0.0f,  1.0f, 1.0f,			// 右上角
+			-0.6f, -1.0f, 0.0f,  1.0f, 0.0f,			// 右下角
+		};
+		glGenBuffers(1, &screenVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, screenVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quaddata), quaddata, GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
 	}
 
 	bool setShader(Geometry* obj, Shader* shader) {
@@ -99,6 +159,9 @@ public:
 		shaders["wired"] = new Shader("shader/wired.gvs", "shader/wired.ggs", "shader/wired.gfs");	// 绘制线框
 
 		shaders["radiantFlux"] = new ComputeShader("shader/radiantFlux.gcs");
+
+		//shaders["idMapping"] = new Shader("shader/idMapping.gvs", "shader/idMapping.gfs");	// 用于渲染ID映射纹理的着色器
+		shaders["screen"] = new Shader("shader/screen.gvs", "shader/screen.gfs");
 	}
 
 	void initUniformBuffer() {
@@ -114,6 +177,8 @@ public:
 		glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4), value_ptr(camera->getProjectionMatrix()));
+
+		this->updateAllMeshes();			// 处理动态网格，对Mesh的changeFlag=true的Mesh顶点重新计算并更新顶点缓冲区
 
 		lastTime = currentTime;
 		currentTime = (float)glfwGetTime();
@@ -142,9 +207,7 @@ public:
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4), value_ptr(camera->getViewMatrix()));
 		//glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
-	Camera* getCamera() {
-		return camera;
-	}
+	Camera* getCamera() { return camera; }
 
 	void addLight(Light* light) {
 		// 加入light时，为其创建一个LightInfo来存储其渲染信息
@@ -157,8 +220,6 @@ public:
 			glBindBuffer(GL_UNIFORM_BUFFER, info.UBO);
 			glBufferData(GL_UNIFORM_BUFFER, 4 * sizeof(vec4) + sizeof(mat4), nullptr, GL_DYNAMIC_COPY);
 			glBindBufferBase(GL_UNIFORM_BUFFER, 3, info.UBO);
-			// 这个uniform buffer的结构
-			// 这里可能存在很大的问题，主要是字节对齐，需要使用renderdoc进一步验证
 		}
 		{// 生成深度图
 			// 创建纹理附件
@@ -189,6 +250,22 @@ public:
 		}
 #endif
 		lights[light] = info;
+	}
+
+	void updateAllMeshes() {
+		for (auto& elem : objs) {
+			Geometry* obj = elem.first;
+			GeometryRenderInfo& gInfo = elem.second;
+			for (auto& meshinfo : gInfo.meshesInfo) {
+				// 检查标志位判断Mesh是否发生变化，如果发生变化则重新计算Mesh的顶点数据，并更新顶点缓冲区
+				Mesh* mesh = obj->getMesh(meshinfo.id);
+				if (mesh->isChanged()) {
+					mesh->updateVertex();
+					glNamedBufferSubData(meshinfo.VBO, 0, mesh->getVertexSize() * sizeof(Vertex), mesh->getVertexPtr());
+					mesh->resetChangeFlag();		// 重置标志位
+				}
+			}
+		}
 	}
 
 	void addOne(Geometry* obj) {	// 添加一个Geometry，不考虑子对象
@@ -236,7 +313,7 @@ public:
 		objs[obj] = gInfo;
 	}
 
-	map<Geometry*, GeometryRenderInfo> getObjects() { return objs; }
+	map<Geometry*, GeometryRenderInfo>& getObjects() { return objs; }
 
 	void add(Geometry* obj) {
 		deque<Geometry*> buf{ obj };
@@ -281,6 +358,8 @@ public:
 		}
 	}
 
+	GLuint getIdTexture() { return idTexture; }
+	GLuint getFrameBuffer() { return frameBuffer; };
 	// 该方法仅为Scene.render()调用，以渲染场景中所有Geometry对象。不考虑Geometry子节点，只绘制当前Geometry
 	void renderOne(Geometry* obj) {
 		GeometryRenderInfo& gInfo = objs[obj];
@@ -288,20 +367,10 @@ public:
 		shader->use();
 		(*shader)["model"] = obj->getFinalOffset() * obj->model.getMatrix();
 		(*shader)["modelBuffer"] = obj->getModelBufferMatrix();
-		// 检查对象是否存在，不存在则添加。（一般是不通过Scene.render()调用的对象会进入到这里）
-		assert(objs.count(obj) > 0);
-		//if (objs.count(obj) <= 0) {
-		//	cout << "Geometry对象不存在，已进行添加" << endl;
-		//	add(obj);
-		//}
+		(*shader)["selected"] = gInfo.selected;
+		(*shader)["gid"] = gInfo.id;
+		assert(objs.count(obj) > 0);		// 确保已经将对象加入到objs中
 		for (auto& meshinfo : gInfo.meshesInfo) {
-			// 检查更新Mesh
-			Mesh* mesh = obj->getMeshes()[meshinfo.id];
-			if (mesh->isChanged()) {
-				mesh->updateVertex();
-				glNamedBufferSubData(meshinfo.VBO, 0, mesh->getVertexSize() * sizeof(Vertex), mesh->getVertexPtr());
-				mesh->resetChangeFlag();		// 重置标志位
-			}
 			glBindVertexArray(meshinfo.VAO);
 			glDrawElements(GL_TRIANGLES, meshinfo.elementNum, GL_UNSIGNED_INT, 0);
 		}
@@ -408,11 +477,28 @@ public:
 
 	// 递归调度renderOne，以绘制objs中所有对象
 	void render() {
-		// 渲染场景中的几何体
+		// 先渲染到frameBuffer
+		glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 		glViewport(0, 0, WIDTH, HEIGHT);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		GLuint attachmentsID[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		glDrawBuffers(2, attachmentsID);
 		for (auto& elem : objs)
 			renderOne(elem.first);
+
+		// 将frameBuffer的第一个颜色附件拷贝到默认帧缓冲中
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, frameBuffer);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);			// 只取出其中的第一个颜色缓冲
+		glBlitFramebuffer(0, 0, WIDTH, HEIGHT, 0, 0, WIDTH, HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+		// 在默认帧缓冲颜色附件的左下方开小窗口显示id纹理
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		Shader* shader = shaders["screen"];
+		shader->use();
+		glBindVertexArray(screenVAO);
+		glBindTexture(GL_TEXTURE_2D, idTexture);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 
 	// 计算场景中物体受到的辐射通量
@@ -424,12 +510,6 @@ public:
 		sd->use();
 		// 载入光源信息（这里只考虑第一个光源，而且对所有场景中的问题而言，光源是相同的）
 		Light* light = lights.begin()->first;
-		// 由于使用了uniform块，这里不能用glUniformXXX()的方式来传递数据，而是要用glBufferSubData()的方式
-		//(*sd)["lightPos"] = light->getPosition();
-		//(*sd)["lightDir"] = light->getDirection();
-		//(*sd)["lightColor"] = vec3(1.0f, 1.0f, 1.0f);
-		//(*sd)["lightIntensity"] = light->getIntensity();
-		//(*sd)["lightViewProjectionMatrix"] = light->getProjectionViewMatrix();
 		// 向uniform块中传递数据
 		glNamedBufferSubData(lights[light].UBO, 0, sizeof(vec3), value_ptr(light->getPosition()));
 		glNamedBufferSubData(lights[light].UBO, sizeof(vec4), sizeof(vec3), value_ptr(light->getDirection()));

@@ -18,7 +18,10 @@ public:
 		glUniform3fv(location, 1, value_ptr(value));
 	}
 	void operator=(mat4 value) {
-		glUniformMatrix4fv(location, 1, GLFW_FALSE, value_ptr(value));
+		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(value));
+	}
+	void operator=(unsigned int value) {
+		glUniform1ui(location, value);
 	}
 	void operator=(bool value) {
 		glUniform1i(location, (int)value);

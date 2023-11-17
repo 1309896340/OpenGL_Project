@@ -58,13 +58,31 @@ public:
 		InputManager* ctx = reinterpret_cast<InputManager*>(glfwGetWindowUserPointer(window));
 		Camera* camera = ctx->getCamera();
 		Scene* scene = ctx->getScene();
-		map<Geometry*, GeometryRenderInfo> objs = scene->getObjects();
+		map<Geometry*, GeometryRenderInfo>& objs = scene->getObjects();
 
+		static int item_current = 0;		// 当前选中的几何体的索引
+		static bool isCursorPick = false;
 
 		char showText[STR_BUFFER_N];
+		unsigned int objNum = 0;					// 场景中几何体数量
+		const char** objNames = nullptr;		// 几何体名称列表
+
+		// 从id纹理中取颜色
+		ImVec2 mousePos = ImGui::GetIO().MousePos;
+		float pixel[4];
+		//glBindFramebuffer(GL_FRAMEBUFFER, scene->getFrameBuffer());
+		//glBindTexture(GL_TEXTURE_2D, scene->getIdTexture());
+		//glGetnTexImage(GL_TEXTURE_2D,0, GL_RGBA, GL_FLOAT, 1, pixel);
+		//glGetTextureImage(scene->getIdTexture(), 0, GL_RGBA, GL_FLOAT, 1, pixel);
+		glGetTextureSubImage(scene->getIdTexture(), 0, (GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 0, 1, 1, 1, GL_RGBA, GL_FLOAT, 1, pixel);
+		//glReadPixels((GLint)mousePos.x, HEIGHT - 1 - (GLint)mousePos.y, 1, 1, GL_RGBA, GL_FLOAT, pixel);
+		cout << "(" << mousePos.x << "," << mousePos.y << ") = " << pixel[0] << "   " << pixel[1] << "   " << pixel[2] << endl;
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		// 读不出来。。。。。。
+
 
 		ImGui::Begin(u8"交互窗口");
-
 		ImGui::SetNextItemOpen(true);
 		if (ImGui::CollapsingHeader(u8"相机属性")) {
 			vec3 tmp;
@@ -81,10 +99,6 @@ public:
 
 		}
 
-		static int item_current = 0;		// 当前选中的几何体的索引
-		unsigned int objNum = 0;		// 几何体数量
-		const char** objNames = nullptr;		// 几何体名称列表
-
 		ImGui::SetNextItemOpen(true);
 		if (ImGui::CollapsingHeader(u8"对象管理")) {
 			objNum = (unsigned int)objs.size();
@@ -95,22 +109,34 @@ public:
 				string& gname = ptr->first->getName();		// 这里使用的引用，因此Geometry中name的修改会直接反映到这里
 				objNames[idx] = gname.c_str();
 			}
-			ImGui::Combo(u8"对象列表", &item_current, (const char**)objNames, objNum);
-			// ===========显示选中项的属性===============
-			string selectedGeometryName = objNames[item_current];
-			auto ptr = std::find_if(objs.begin(), objs.end(), [&selectedGeometryName](const std::pair<Geometry*, GeometryRenderInfo> item) {
-				return item.first->getName() == string(selectedGeometryName);
-				// 不确定这里的比较是否正确，假定string正确重载了==，同时假定char数组也如预期的那样转换成string
-				});
-			if (ptr != objs.end()) {
-				std::for_each(objs.begin(), objs.end(), [scene](std::pair<Geometry*, GeometryRenderInfo> item) {		// 重置shader
-					item.second.shader = scene->shaders["default"];		// 假定原本使用的shader就是default
-					scene->setShader(item.first, scene->shaders["default"]);
-					});
-				scene->setShader(ptr->first, scene->shaders["wired"]);		// 对选中对象使用线框shader
+			ImGui::Checkbox(u8"鼠标抓取", &isCursorPick);
+			Geometry* obj = nullptr;
+			if (isCursorPick) {
+				// 根据鼠标抓取
 
 
-				Geometry* obj = ptr->first;
+
+
+
+
+
+				//cout << "value = " << pixel[0] << endl;
+				item_current = 0;		// 修改成鼠标抓取的对象
+			}
+			else {
+				ImGui::Combo(u8"对象列表", &item_current, (const char**)objNames, objNum);
+			}
+
+			// 根据item_current找到Geometry
+			for (auto& elem : objs) {
+				elem.second.selected = false;
+				if (elem.first->getName() == string(objNames[item_current])) {
+					elem.second.selected = true;
+					obj = elem.first;
+				}
+			}
+			// 显示选中项的属性
+			if (obj != nullptr) {
 				// Geometry信息
 				// 需要先将 model 取出，然后将其分解为平移、旋转、缩放三个量
 				mat4 model = obj->getLocal2WorldMatrix();

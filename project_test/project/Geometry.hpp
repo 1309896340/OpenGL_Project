@@ -54,10 +54,10 @@ public:
 	quat& getRotation() {
 		return rotation;
 	}
-	vec3 &getPosition() {
+	vec3& getPosition() {
 		return position;
 	}
-	vec3 &getScale() {
+	vec3& getScale() {
 		return _scale;
 	}
 	mat4 getMatrix() {
@@ -238,6 +238,7 @@ public:
 	//	return buf;
 	//}
 	vector<Mesh*>& getMeshes() { return meshes; }
+	Mesh* getMesh(unsigned int id) { return meshes[id]; }
 	virtual void pose() = 0;
 	// Ԥ�任
 	mat4 getModelBufferMatrix() { return modelBuffer; }
@@ -363,7 +364,7 @@ private:
 	int latSliceNum;
 public:
 	Sphere(float radius, unsigned int lonSliceNum = 36, unsigned int latSliceNum = 20) :Geometry(), radius(radius), lonSliceNum(lonSliceNum), latSliceNum(latSliceNum) {
-		this->subId = subIdCount++; 
+		this->subId = subIdCount++;
 		this->name = "Sphere_" + std::to_string(subId);
 		this->type = SPHERE;
 		float latStep = PI / latSliceNum;

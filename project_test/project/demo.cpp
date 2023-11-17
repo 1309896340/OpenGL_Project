@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
 		gui.update();
 		float deltaTime = scene.step();
 
-		c1.rotate(deltaTime * 20.0f, _up);
+		//c1.rotate(deltaTime * 20.0f, _up);
 
 
 		scene.render();
