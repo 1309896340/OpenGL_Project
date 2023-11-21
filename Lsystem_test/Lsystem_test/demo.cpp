@@ -9,6 +9,11 @@
 
 using namespace std;
 
+typedef enum {
+	NUMBER,
+	OPERATOR
+}ElemType;
+
 // 将text中匹配到的符合"A(x, y)"模式的文本替换为"A(?,?)"然后到mapper的键中寻找可以匹配的规则
 // 匹配的方法是遍历mapper的键，将待替换文本中的?作为通配符，进行模糊匹配，如果匹配成功则按顺序将对应?位置的实际值赋值给mapper值中对应的变量
 
@@ -19,21 +24,181 @@ inline void strip(string& s) {
 	}
 }
 
-// 比如 "8+7*2-9/3"
-inline float expressionEvaluate(const string& expression) {
-	float res = 0.0f;
-	// 暂未实现
+bool isOperator(char c) {
+	switch (c) {
+	case '+': case '-': case '*': case '/':
+		return true;
+		break;
+	}
+	return false;
+}
 
+bool isNumber(char c) {
+	if (c >= '0' && c <= '9' || c == '.')		// 潜在问题：负号既可以是运算符也可以是数字的一部分
+		return true;
+	return false;
+}
+
+/*
+中缀表达式转换为后缀表达式
+输出 newExpr 为后缀表达式，elemType为每个元素的类型，0为数字，1为运算符
+*/ 
+inline void expression2RPN(const string& expression, vector<string>& newExpr, vector<ElemType>& elemType) {
+	vector<char> operators;		// 运算符栈
+	newExpr.clear();
+	elemType.clear();
+	for (unsigned int i = 0; i < expression.size(); i++) {
+		char c = expression[i];
+		if (c == ' ')
+			continue;
+		if (isNumber(c)) {
+			unsigned int startPos = i;
+			while (isNumber(expression[++i]));
+			newExpr.push_back(expression.substr(startPos, i - startPos));
+			elemType.push_back(ElemType::NUMBER);
+			// 数字串压栈，i当前位置更新为扫描到的下一个非数字字符，也就是运算符
+			i--;	// 由于for循环结尾会自增，所以这里先减1
+		}
+		else if (c == '(') {
+			//newExpr.push_back(expression.substr(i, 1));
+			operators.push_back(c);
+		}
+		else if (c == ')') {
+			char top = operators.back();
+			while (top != '(') {
+				newExpr.push_back(string(1, top));
+				elemType.push_back(ElemType::OPERATOR);
+				operators.pop_back();
+				top = operators.back();
+			}
+			operators.pop_back();	// 取出左括号，但不压入newExpr
+		}
+		else if (isOperator(c)) {
+			if (operators.empty())
+				operators.push_back(c);
+			else {
+				char top = operators.back();
+				if (top == '(')
+					operators.push_back(c);
+				else {
+					if (c == '+' || c == '-') {
+						if (top == '*' || top == '/') {
+							newExpr.push_back(string(1, top));
+							elemType.push_back(ElemType::OPERATOR);
+							operators.pop_back();
+							operators.push_back(c);
+						}
+						else {
+							operators.push_back(c);
+						}
+					}
+					else if (c == '*' || c == '/') {
+						operators.push_back(c);
+					}
+				}
+			}
+		}
+	}
+	// 将operators中剩余的运算符压入newExpr
+	while (!operators.empty()) {
+		char top = operators.back();
+		newExpr.push_back(string(1, top));
+		elemType.push_back(ElemType::OPERATOR);
+		operators.pop_back();
+	}
+}
+
+/*
+对后缀表达式求值
+*/
+inline float evalRPN(vector<string>& rpn, vector<ElemType> &elemType) {
+	vector<float> stack;
+	for (unsigned int i = 0; i < rpn.size();i++) {
+		ElemType& type = elemType[i];
+		if (type == ElemType::NUMBER) {
+			stack.push_back((float)atof(rpn[i].c_str()));
+		}
+		else if (type == ElemType::OPERATOR) {
+			float v2 = stack.back();
+			stack.pop_back();
+			float v1 = stack.back();
+			stack.pop_back();
+			char opr = rpn[i][0];
+			float res = 0.0f;
+			switch (opr) {
+			case '+':
+				res = v1 + v2;
+				break;
+			case '-':
+				res = v1 - v2;
+				break;
+			case '*':
+				res = v1 * v2;
+				break;
+			case '/':
+				res = v1 / v2;
+				break;
+			}
+			stack.push_back(res);
+		}
+	}
+	return stack[0];
+}
+
+
+inline float expressionEvaluate(const string& expression) {
+	vector<string> RPNExpr;
+	vector<ElemType> elemType;
+	expression2RPN(expression, RPNExpr, elemType);
+	float res = evalRPN(RPNExpr, elemType);
 	cout << "表达式 \"" << expression << "\" 的结果为：" << res << endl;	// 调试信息
 	return res;
 }
 
+template<typename T>
+ostream& operator<<(ostream& out, const vector<T>& data) {
+	for (unsigned int i = 0; i < data.size(); i++)
+		out << data[i] << " ";
+	return out;
+}
+
 int main(int argc, char** argv) {
+	vector<string> rpnElem;
+	vector<ElemType> elemType;
+	float res;
+	//expression2RPN("(1.0 + 2.4)*5.6", rpnElem, elemType);
+	//res = evalRPN(rpnElem, elemType);
+	//cout << rpnElem << endl;
+	//cout << "res = " << res << endl;
+	//cout << "======================" << endl;
+	//expression2RPN("1.0 + 2.4 * 5.6", rpnElem, elemType);
+	//cout << rpnElem << endl;
+	//res = evalRPN(rpnElem, elemType);
+	//cout << "res = " << res << endl;
+	//cout << "======================" << endl;
+	//expression2RPN("((2.41+3.93)*5.64+6.12)*2.32-5.21", rpnElem, elemType);
+	//cout << rpnElem << endl;
+	//res = evalRPN(rpnElem, elemType);
+	//cout << "res = " << res << endl;
+	//cout << "======================" << endl;
 
-	expressionEvaluate("3.01 +  21.412");
-	expressionEvaluate("3.0 *  -4.2");
-	expressionEvaluate("1.2 + 3.0 *  -4.2");
 
+	/*
+	当中缀表达式中存在单操作数的负号时，可以将其转换为用0减去操作数的双操作数形式，如将"3-"换成"03-"，这样统一了操作数为2
+	举几个例子
+	2*(-3)				转换为		2 0 3 - *
+	2*(-3+5)		转换为		2 0 3 - 5 + *
+	-2*4-5			转换为		0 2 - 4 * 5 -
+	-2*(-4+5)		转换为		0 2 - 0 4 - 5 + *
+	另外的一个问题：如何判断负号是单操作数的负号还是双操作数的减号
+	根据stackoverflow用户的回答 https://stackoverflow.com/questions/46861254/infix-to-postfix-for-negative-numbers 
+
+	*/
+	expression2RPN("(-1.0 + 2.4)*(-5.6)", rpnElem, elemType);
+	cout << rpnElem << endl;
+	res = evalRPN(rpnElem, elemType);
+	cout << "res = " << res << endl;
+	cout << "======================" << endl;
 
 	// https://www.cnblogs.com/coolcpp/p/cpp-regex.html
 	string axiom = "A(0.1, 0.5)B(1.6, 0.2, 2.1)C(-0.2, 4.1)D(21.32)";
