@@ -4,6 +4,7 @@
 #include <map>
 #include <regex>
 #include <sstream>
+#include <cassert>
 
 #include "LSystem.hpp"
 
@@ -13,6 +14,43 @@ typedef enum {
 	NUMBER,
 	OPERATOR
 }ElemType;
+
+
+template<typename T>
+ostream& operator<<(ostream& out, const vector<T>& data) {
+	for (unsigned int i = 0; i < data.size(); i++)
+		out << data[i] << " ";
+	return out;
+}
+
+// 运算符分为 '+'  '-'  '*'  '/'  '|'  5种
+// 0表示小于，1表示等于，2表示大于
+char priorComparaLookupTable[5][5] = {
+	{1, 1, 0 ,0 ,0},
+	{1, 1, 0, 0, 0},
+	{2, 2, 1, 1, 0},
+	{2, 2, 1, 1, 0},
+	{2, 2, 2, 2, 1}
+};
+
+char operatorNumLookupTable[5] = { 2,2,2,2,1 };
+
+inline char opr2id(char c) {
+	switch (c) {
+	case '+':
+		return 0;
+	case '-':
+		return 1;
+	case '*':
+		return 2;
+	case '/':
+		return 3;
+	case '|':
+		return 4;
+	default:
+		return -1;	//不应该出现的情况
+	}
+}
 
 // 将text中匹配到的符合"A(x, y)"模式的文本替换为"A(?,?)"然后到mapper的键中寻找可以匹配的规则
 // 匹配的方法是遍历mapper的键，将待替换文本中的?作为通配符，进行模糊匹配，如果匹配成功则按顺序将对应?位置的实际值赋值给mapper值中对应的变量
@@ -26,7 +64,7 @@ inline void strip(string& s) {
 
 bool isOperator(char c) {
 	switch (c) {
-	case '+': case '-': case '*': case '/':
+	case '+': case '-': case '*': case '/': case '|':
 		return true;
 		break;
 	}
@@ -42,14 +80,14 @@ bool isNumber(char c) {
 /*
 中缀表达式转换为后缀表达式
 输出 newExpr 为后缀表达式，elemType为每个元素的类型，0为数字，1为运算符
-*/ 
+*/
 inline void expression2RPN(const string& expression, vector<string>& newExpr, vector<ElemType>& elemType) {
 	vector<char> operators;		// 运算符栈
 	newExpr.clear();
 	elemType.clear();
 	for (unsigned int i = 0; i < expression.size(); i++) {
 		char c = expression[i];
-		if (c == ' ')
+		if (c == ' ')		// 跳过空格
 			continue;
 		if (isNumber(c)) {
 			unsigned int startPos = i;
@@ -74,6 +112,13 @@ inline void expression2RPN(const string& expression, vector<string>& newExpr, ve
 			operators.pop_back();	// 取出左括号，但不压入newExpr
 		}
 		else if (isOperator(c)) {
+			// 处理负号歧义问题
+			// c是第0个元素，或者c前面是左括号，或者c前面是运算符，那么c就是负号。否则是普通减号
+			if (c == '-' && (i == 0 || expression[i - 1] == '(' || isOperator(expression[i - 1]))) {
+				// 如果是单目负号，将其处理替换为'|'以区分
+				c = '|';
+			}
+			// =========================
 			if (operators.empty())
 				operators.push_back(c);
 			else {
@@ -81,18 +126,16 @@ inline void expression2RPN(const string& expression, vector<string>& newExpr, ve
 				if (top == '(')
 					operators.push_back(c);
 				else {
-					if (c == '+' || c == '-') {
-						if (top == '*' || top == '/') {
-							newExpr.push_back(string(1, top));
-							elemType.push_back(ElemType::OPERATOR);
-							operators.pop_back();
-							operators.push_back(c);
-						}
-						else {
-							operators.push_back(c);
-						}
+					// 比较优先级
+					char compRes = priorComparaLookupTable[opr2id(c)][opr2id(top)];
+					if (compRes <= 1) {
+						// 当前优先级低于栈顶运算符优先级
+						newExpr.push_back(string(1, top));
+						elemType.push_back(ElemType::OPERATOR);
+						operators.pop_back();
+						operators.push_back(c);
 					}
-					else if (c == '*' || c == '/') {
+					else if (compRes == 2) {
 						operators.push_back(c);
 					}
 				}
@@ -106,37 +149,46 @@ inline void expression2RPN(const string& expression, vector<string>& newExpr, ve
 		elemType.push_back(ElemType::OPERATOR);
 		operators.pop_back();
 	}
+	//cout << "原始表达式：" << endl << expression << endl;
+	//cout << "生成的后缀表达式：" << endl << newExpr << endl;
 }
 
 /*
 对后缀表达式求值
 */
-inline float evalRPN(vector<string>& rpn, vector<ElemType> &elemType) {
+inline float evalRPN(vector<string>& rpn, vector<ElemType>& elemType) {
 	vector<float> stack;
-	for (unsigned int i = 0; i < rpn.size();i++) {
+	for (unsigned int i = 0; i < rpn.size(); i++) {
 		ElemType& type = elemType[i];
 		if (type == ElemType::NUMBER) {
 			stack.push_back((float)atof(rpn[i].c_str()));
 		}
 		else if (type == ElemType::OPERATOR) {
-			float v2 = stack.back();
-			stack.pop_back();
-			float v1 = stack.back();
-			stack.pop_back();
+			float params[2];
 			char opr = rpn[i][0];
-			float res = 0.0f;
+			float res;
+			for (unsigned int k = 0; k < operatorNumLookupTable[opr2id(opr)]; k++) {
+				params[k] = stack.back();
+				stack.pop_back();
+			}
 			switch (opr) {
 			case '+':
-				res = v1 + v2;
+				res = params[1] + params[0];
 				break;
 			case '-':
-				res = v1 - v2;
+				res = params[1] - params[0];
 				break;
 			case '*':
-				res = v1 * v2;
+				res = params[1] * params[0];
 				break;
 			case '/':
-				res = v1 / v2;
+				res = params[1] / params[0];
+				break;
+			case '|':
+				res = -params[0];
+				break;
+			default:
+				assert(0);
 				break;
 			}
 			stack.push_back(res);
@@ -151,16 +203,10 @@ inline float expressionEvaluate(const string& expression) {
 	vector<ElemType> elemType;
 	expression2RPN(expression, RPNExpr, elemType);
 	float res = evalRPN(RPNExpr, elemType);
-	cout << "表达式 \"" << expression << "\" 的结果为：" << res << endl;	// 调试信息
+	//cout << "表达式 \"" << expression << "\" 的结果为：" << res << endl;	// 调试信息
 	return res;
 }
 
-template<typename T>
-ostream& operator<<(ostream& out, const vector<T>& data) {
-	for (unsigned int i = 0; i < data.size(); i++)
-		out << data[i] << " ";
-	return out;
-}
 
 int main(int argc, char** argv) {
 	vector<string> rpnElem;
@@ -191,23 +237,26 @@ int main(int argc, char** argv) {
 	-2*4-5			转换为		0 2 - 4 * 5 -
 	-2*(-4+5)		转换为		0 2 - 0 4 - 5 + *
 	另外的一个问题：如何判断负号是单操作数的负号还是双操作数的减号
-	根据stackoverflow用户的回答 https://stackoverflow.com/questions/46861254/infix-to-postfix-for-negative-numbers 
-
+	根据stackoverflow用户的回答 https://stackoverflow.com/questions/46861254/infix-to-postfix-for-negative-numbers
+	单目负号在于三种情况：
+	1. 表达式的开头
+	2. 紧跟在左括号右边
+	3. 紧跟在运算符后面
+	双目负号(减号)在于两种情况
+	1. 紧跟在数字后面
+	2. 紧跟在右括号后面
 	*/
-	expression2RPN("(-1.0 + 2.4)*(-5.6)", rpnElem, elemType);
-	cout << rpnElem << endl;
-	res = evalRPN(rpnElem, elemType);
-	cout << "res = " << res << endl;
-	cout << "======================" << endl;
+
+	//expression2RPN("(-1.0 + 2.4)*(-5.6)", rpnElem, elemType);
+	//expression2RPN("-(1+2)", rpnElem, elemType);
+	//expression2RPN("-(1+2*(3-5*(-3+2*(3/6+2/(-3+1)))))", rpnElem, elemType);
+	//cout << rpnElem << endl;
+	//res = evalRPN(rpnElem, elemType);
+	//cout << "res = " << res << endl;
+	//cout << "======================" << endl;
 
 	// https://www.cnblogs.com/coolcpp/p/cpp-regex.html
 	string axiom = "A(0.1, 0.5)B(1.6, 0.2, 2.1)C(-0.2, 4.1)D(21.32)";
-	//LRule mapper = {
-	//	{"A(x, y)", "B(0.2*y, 0.5*x)F"},
-	//	{"B(x, y, z)", "GA(x + y, x - y + 0.5*z)F"},
-	//	{"C(x, y)", "B(0.2*y, 0.5*x)C(0.1*x, 0.5*y)"},
-	//	{"D(x)", "C(0.5*y, 0.2*x)F"}
-	//};
 	LRule mapper = {
 		{"A(x, y)", "B(0.2*y, 0.5*x)"},
 		{"B(x, y, z)", "A(x + y, x - y + 0.5*z)"},
@@ -266,7 +315,7 @@ int main(int argc, char** argv) {
 				replacedStringStream << to_string(paramsMap[src]);
 			}
 		}
-		cout << "替换完但未计算的表达式：" << replacedStringStream.str() << endl;
+		cout << "文本替换后：" << replacedStringStream.str() << endl;
 		// 将替换完成后的字符串中的表达式计算出来，假定这里只使用不带括号的加减乘除
 		string stringNotCompute = replacedStringStream.str();
 		// stringNotCompute是替换后的表达式，可能具有多个带参符号，需要再进行一轮遍历
