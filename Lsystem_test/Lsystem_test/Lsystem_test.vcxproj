@@ -128,9 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="demo.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LSystem.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
