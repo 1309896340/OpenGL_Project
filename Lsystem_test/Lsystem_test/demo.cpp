@@ -8,16 +8,23 @@ using namespace std;
 
 
 int main(int argc, char** argv) {
-
-
+	//vector<string> newStr;
+	//vector<ElemType> newStrType;
+	//PD0LSystem::expression2RPN("--0.2", newStr,newStrType);
 
 	// https://www.cnblogs.com/coolcpp/p/cpp-regex.html
 	string axiom = "A(0.1, 0.5)B(1.6, 0.2, 2.1)C(-0.2, 4.1)D(21.32)";
+	//LRule mapper = {
+	//	{"A(x, y)", "B(0.2*y, 0.5*x, x+y)"},
+	//	{"B(x, y, z)", "A(x + y, x - y + 0.5*z)"},
+	//	{"C(x, y)", "B(0.2*x, 0.5*y, x)C(0.1*x, 0.5*y)"},
+	//	{"D(x)", "C(0.5, 0.2*x)"}
+	//};
 	LRule mapper = {
-		{"A(x, y)", "B(0.2*y, 0.5*x, x+y)"},
-		{"B(x, y, z)", "A(x + y, x - y + 0.5*z)"},
-		{"C(x, y)", "B(0.2*x, 0.5*y, x)C(0.1*x, 0.5*y)"},
-		{"D(x)", "C(0.5, 0.2*x)"}
+		{"A(x, y)", "B(y, x, x+y)F"},
+		{"B(x, y, z)", "A(z, x+y-z)"},
+		{"C(x, y)", "B(x-y, -y, -x)C(x, y)"},
+		{"D(x)", "C(x, x)"}
 	};
 
 	PD0LSystem lsystem(axiom, mapper);
