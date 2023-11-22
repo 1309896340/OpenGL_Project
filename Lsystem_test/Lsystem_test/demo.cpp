@@ -21,10 +21,10 @@ int main(int argc, char** argv) {
 	//	{"D(x)", "C(0.5, 0.2*x)"}
 	//};
 	LRule mapper = {
-		{"A(x, y)", "B(y, x, x+y)F"},
-		{"B(x, y, z)", "A(z, x+y-z)"},
-		{"C(x, y)", "B(x-y, -y, -x)C(x, y)"},
-		{"D(x)", "C(x, x)"}
+		{"A(x,y)", "B(y,x,x+y)F"},
+		{"B(x,y,z)", "A(z,x+y-z)"},
+		{"C(x,y)", "B(x-y,-y,-x)C(x,y)"},
+		{"D(x)", "C(x,x)"}
 	};
 
 	PD0LSystem lsystem(axiom, mapper);

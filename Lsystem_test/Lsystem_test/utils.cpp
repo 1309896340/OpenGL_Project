@@ -47,7 +47,7 @@ char opr2id(char c) {
 	case '|':
 		return 4;
 	default:
-		return -1;	//不应该出现的情况
+		return -1;		//不应该出现的情况
 	}
 }
 
